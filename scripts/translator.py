@@ -716,36 +716,48 @@ def main() -> int:
     translation_map: dict[Any, str] = {}
     context_brief: dict[str, Any] | None = None
     if api_key:
-        if provider == "gemini":
-            if is_script_rewrite_style(translation_style):
-                try:
-                    context_brief = build_context_brief_with_gemini(
-                        api_key,
-                        api_base_url,
-                        model,
-                        segments,
-                        source_language,
-                        target_language,
-                        translation_style,
-                        user_glossary,
-                        creator_context,
-                    )
-                except Exception as error:
-                    context_brief = {"warning": f"context brief failed: {error}"}
-            translation_map = translate_all_with_gemini(
-                api_key,
-                api_base_url,
-                model,
-                segments,
-                source_language,
-                target_language,
-                translation_style,
-                context_brief,
-                user_glossary,
-                creator_context,
-            )
-        else:
+        # LaputaMediaCenter Phase 3.A：扩展 provider 支持。两阶段 prompt 文本完全不动；
+        # OpenAI / Mistral 走 OpenAI-compatible 路径（call_gemini_json 已内建该分支，
+        # 通过 is_openai_compatible_base_url 自动判断），由调用方传入正确的 api_base_url。
+        # - openai: 默认 https://api.openai.com/v1
+        # - mistral: 默认 https://api.mistral.ai/v1
+        if provider not in ("gemini", "openai", "mistral"):
             raise ValueError(f"Unsupported translation provider: {provider}")
+
+        # 为 openai/mistral 提供默认 base URL（如果 TS 层没传）
+        if provider == "openai" and not api_base_url:
+            api_base_url = "https://api.openai.com/v1"
+        elif provider == "mistral" and not api_base_url:
+            api_base_url = "https://api.mistral.ai/v1"
+
+        # 两阶段邏輯共用，不分 provider（call_gemini_json 内部按 base URL 自动分发）
+        if is_script_rewrite_style(translation_style):
+            try:
+                context_brief = build_context_brief_with_gemini(
+                    api_key,
+                    api_base_url,
+                    model,
+                    segments,
+                    source_language,
+                    target_language,
+                    translation_style,
+                    user_glossary,
+                    creator_context,
+                )
+            except Exception as error:
+                context_brief = {"warning": f"context brief failed: {error}"}
+        translation_map = translate_all_with_gemini(
+            api_key,
+            api_base_url,
+            model,
+            segments,
+            source_language,
+            target_language,
+            translation_style,
+            context_brief,
+            user_glossary,
+            creator_context,
+        )
 
     translated_segments: list[dict[str, Any]] = []
     for index, segment in enumerate(segments):

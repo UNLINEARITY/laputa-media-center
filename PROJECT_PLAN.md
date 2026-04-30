@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 2 ✅ 完成 → Phase 3.A 待開始
-**下次從哪裡繼續**：Phase 3.A — ASR + LLM Provider 抽象（lib/providers/asr/ + lib/providers/llm/）
+**當前 Phase**：Phase 3.A（進行中，後端完成；UI deferred 到 Claude Design）
+**下次從哪裡繼續**：Phase 1 deferred 兩個大檔重寫（closed-loop-readiness 760→~250 / provider-smoke-audit 1351→~400）+ UI 切換器
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -262,7 +262,7 @@
 
 ---
 
-### Phase 3.A：ASR + LLM Provider 抽象 ⚪ 未開始
+### Phase 3.A：ASR + LLM Provider 抽象 🟡 進行中（後端完成 2026-04-30）
 
 **目標**：把「多供應商統一控制台」核心賣點代碼化（ASR + LLM 後端）。
 
@@ -459,13 +459,18 @@
 - [x] **修 binary 名**：v1.8.4 起 main.exe → whisper-cli.exe（舊名是 deprecation wrapper）；
       解壓後拍平 Release/* 內容到 cacheDir 頂層讓 ggml*.dll 與 exe 同目錄
 
-### Phase 3.A：ASR + LLM Provider 抽象
-- [ ] 設計 lib/providers/asr/ 和 llm/ 接口
-- [ ] ASR：whisper.cpp（🟢）+ Gemini Audio（🟢）+ OpenAI（🟡）
-- [ ] LLM：Gemini（🟢）+ OpenAI（🟡）+ Mistral（🟢）
-- [ ] 改 translator.py LLM 調用為讀 registry
-- [ ] UI 切換器（🟢🟡🔴 標示）
-- [ ] 測試連接按鈕
+### Phase 3.A：ASR + LLM Provider 抽象（後端完成於 2026-04-30）
+- [x] 設計 lib/providers/asr/ 和 llm/ 接口（types.ts + IASRProvider/ILLMProvider）
+- [x] ASR：whisper-cpp（🟢，包 WhisperCppRunner）+ gemini-audio（🟢，Hybrid: whisper 時間戳 + Gemini 文本對齊）
+      （openai-whisper **砍**：朋友用 whisper.cpp 已夠，避免維護面 + 體積）
+- [x] LLM：gemini（🟢，包 lib/ai/gemini）+ openai（🟡，SDK）+ mistral（🟢，SDK）
+- [x] 改 translator.py L719：擴展 provider 分支接受 gemini/openai/mistral，
+      OpenAI/Mistral 走 OpenAI-compatible 路徑（call_gemini_json 已內建判斷）；**兩階段 prompt 0 動**
+- [x] 改 lib/ingest/runner.ts:runWhisper() + lib/workflow/steps/dubbing/whisper-asr.ts 走 registry
+- [x] 改 lib/workflow/steps/dubbing/translate-text.ts 走 registry.getActiveLlmProviderId()
+- [x] 4 個 API routes：GET/POST `/api/providers/{asr,llm}` + POST `/api/providers/{asr,llm}/test`
+- [ ] **UI 切換器 deferred 到 Claude Design**（用戶要求等 Claude Design 重新設計）
+- [ ] **Phase 1 deferred 兩個大檔重寫**：closed-loop-readiness.ts 760→~250 + provider-smoke-audit.ts 1351→~400 ← 下次
 
 ### Phase 3.B：MD/PDF 入口 + 播客模式
 - [ ] MD 入口（gray-matter + remark）
@@ -678,3 +683,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：Phase 1.B 完成。砍 Fish Audio 全鏈路（provider 400 行/UI 105 行/verify ~70 行/types/legacy-constants/8 個 routes 引用清理）；修 8 個測試 hardcode（chuangcut@16.0.0 → laputa@0.1.0）；砍 4 個考古測試文件（mainline-positioning-guard / api-routes-safety-guard / tts-legacy-auth / settings-page-legacy-tts）；skip 17 個 Fish Audio + GCS 對象已砍的舊 case。**Phase 1 收尾驗收**：pnpm test:unit 685 pass / 17 skip / 0 fail；dev server 200 OK；受保護資產 8 個全保留。**Defer**：provider-smoke-audit / closed-loop-readiness 簡化任務超出 Phase 1 範圍（會傷主流程 dubbing-readiness/route.ts 1700+ 行），轉到 Phase 3.A Provider 抽象階段重構。
 - **2026-04-30**：Phase 2 代碼層集成完成（TEAM 模式：3 個 agent 並行盤點 + 設計）。新建 `lib/asr/` 6 個檔（WhisperCppRunner + binary-installer 自動下載 GitHub releases v1.7.4 prebuild + model-installer 從 HuggingFace 拉 ggml-base / 共 ~150MB 緩存到 ~/.laputa/whisper/）。改 `lib/ingest/runner.ts:runWhisper()` 和 `lib/workflow/steps/dubbing/whisper-asr.ts` 兩個 ASR 入口都用 WhisperCppRunner，segments.json schema 保持與 translator.py 兼容。Phase 2 默認純 CPU（Blackwell sm_120 cuBLAS prebuild 不穩，base 模型 i5-14600KF 跑 1 分鐘音頻 ~3-5 秒夠用）。`scripts/whisper_asr.py` 加 DEPRECATED 注釋作 fallback。pnpm test:unit 685 pass / 17 skip / 0 fail。Phase 2 收尾待做：真實 YT 轉錄驗收 + install API + UI 按鈕。
 - **2026-04-30**：Phase 2 收尾完成（TEAM 模式：3 個 agent 並行 — E 驗證 release URL / F 設計 install API / G 盤點 settings UI 風格）。新建 `app/api/runtime/whisper-cpp/install/route.ts`（SSE + session-only + 1/min rate + single-flight）+ `status/route.ts`（GET JSON）+ `components/settings/whisper-cpp-installer.tsx`（進度條 UI），集成到 settings/maintenance tab。**真實驗收**：自動下載 ~5MB whisper-cli.exe + 148MB ggml-base.bin 到 ~/.laputa/whisper/，1 秒 wav 轉錄 748ms 完成（CPU AVX2/FMA），JSON 輸出格式對齊。**修 3 個發現的問題**：(1) v1.7.4 release assets 沒遷到改名後的 ggml-org/whisper.cpp，升級到 v1.8.4；(2) Node undici fetch 對 HuggingFace cas-bridge redirect 有 timeout，model-installer 改用 spawn curl；(3) v1.8.4 zip 主可執行從 main.exe 改名 whisper-cli.exe，解壓後拍平 Release/ 內容到 cacheDir 讓 dll 與 exe 同目錄。pnpm test:unit 685 pass / 17 skip / 0 fail。Phase 2 整體完成，下一步 Phase 3.A Provider 抽象。
+- **2026-04-30**：Phase 3.A 後端完成（TEAM 模式：3 個 agent 並行 — H 盤點 LLM 調用點 / I 設計 Provider 架構 / K 驗證 translator.py 契約）。新建 `lib/providers/{asr,llm}/` 9 個檔（types + 5 個 provider impl + registry）。ASR：whisper-cpp（默認，包 WhisperCppRunner）+ gemini-audio（Hybrid 模式：whisper 時間戳 + Gemini 文本對齊）。LLM：gemini（默認，包 lib/ai/gemini）+ openai（SDK）+ mistral（SDK）。**openai-whisper 砍**（朋友用 whisper.cpp 已夠）。改 `scripts/translator.py:L719` 擴展 provider 分支：accept gemini/openai/mistral（OpenAI/Mistral 走 OpenAI-compatible 路徑，call_gemini_json 已內建判斷），**兩階段 prompt 0 動**。改 `lib/ingest/runner.ts:runWhisper()` + `lib/workflow/steps/dubbing/{whisper-asr,translate-text}.ts` 走 registry。新建 4 個 API routes（GET/POST list + POST test）。**真實驗收**：GET `/api/providers/asr` 列出 2 個 + GET `/api/providers/llm` 列出 3 個 + POST `/api/providers/asr/test {whisper-cpp}` 1117ms ok=true。pnpm test:unit 685 pass / 17 skip / 0 fail。**UI deferred 到 Claude Design 階段**（用戶要求）。**Phase 1 deferred 兩個大檔重寫**：留下次（closed-loop-readiness 760→~250 + provider-smoke-audit 1351→~400）。

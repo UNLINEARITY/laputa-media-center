@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process'
 import { copyFileSync, existsSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { WhisperCppRunner } from '@/lib/asr'
 import { toWhisperLanguageCode } from '@/lib/config/languages'
+import { getActiveAsrProvider } from '@/lib/providers/registry'
 import { getIngestArtifactDir, getIngestArtifactUrl } from './artifacts'
 import {
   getIngestFfmpeg,
@@ -421,11 +421,11 @@ async function runWhisper(
   outputDir: string,
   language: string,
 ): Promise<WhisperJson> {
-  // Phase 2：whisper.cpp 二进制 + ggml 模型，免 Python 依赖。
-  // 首次调用会自动下载（~5MB binary + ~142MB base model）。
-  const runner = new WhisperCppRunner()
+  // Phase 3.A：通过 registry 走当前激活的 ASR Provider（默认 whisper-cpp）。
+  // 首次调用 whisper-cpp 会自动下载（~5MB binary + ~148MB base model）。
+  const provider = getActiveAsrProvider()
   const whisperLanguage = toWhisperLanguageCode(language)
-  const result = await runner.transcribe(audioPath, {
+  const result = await provider.transcribe(audioPath, {
     outputDir,
     language: whisperLanguage || 'auto',
   })

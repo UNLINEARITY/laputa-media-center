@@ -62,8 +62,13 @@ export class TranslateTextStep extends BaseStep<TranslateTextOutput> {
     const translationCredential = getDubbingTranslationCredential()
     const translateApiKey =
       (config.translate_api_key as string) || translationCredential?.apiKey || ''
+    // Phase 3.A：从 registry 读 active LLM provider（fallback 链：job config > credential > registry > 'gemini'）
+    const { getActiveLlmProviderId } = await import('@/lib/providers/registry')
     const translateProvider =
-      (config.translate_api_provider as string) || translationCredential?.provider || 'gemini'
+      (config.translate_api_provider as string) ||
+      translationCredential?.provider ||
+      getActiveLlmProviderId() ||
+      'gemini'
     const translateModel = normalizeDubbingTranslationModelId(
       (config.translate_model as string) || translationCredential?.modelId || '',
     )

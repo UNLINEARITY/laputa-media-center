@@ -1,7 +1,8 @@
 /**
- * Whisper ASR 语音识别步骤（Phase 2 后由 whisper.cpp 取代 Python 后端）。
+ * Whisper ASR 语音识别步骤
  *
- * - 调用 WhisperCppRunner 进行语音转文字
+ * Phase 3.A：通过 lib/providers/registry 走当前激活的 ASR Provider
+ * （默认 whisper-cpp，可切 gemini-audio Hybrid）。
  * - 输出 dubbing.segments artifact 到任务临时目录
  * - segments schema 与 translator.py 契约对齐：[{id, start, end, text}]
  */
@@ -10,12 +11,13 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import { WhisperCppRunner } from '@/lib/asr'
+import type { AsrSegment as RegistryAsrSegment } from '@/lib/asr/types'
 import { getLanguageLabel, toWhisperLanguageCode } from '@/lib/config/languages'
 import { getDubbingSampleMediaPath } from '@/lib/dubbing/sample-media'
 import { getDubbingSampleDurationSeconds } from '@/lib/dubbing/sample-mode'
 import { getIngestFfmpeg } from '@/lib/ingest/runtime'
 import { getWorkflowArtifactFilename } from '@/lib/jobs/workflow-artifact-manifest'
+import { getActiveAsrProvider } from '@/lib/providers/registry'
 import { getJobTempDir } from '@/lib/utils/paths'
 import type { WorkflowContext } from '../../types'
 import { BaseStep } from '../base'
@@ -25,13 +27,8 @@ import { getDubbingFileArtifactOutputPath } from './artifact-paths'
 // 类型定义
 // ============================================================================
 
-/** ASR 分段（与 translator.py segments_file schema 对齐） */
-export interface AsrSegment {
-  id?: number
-  start: number
-  end: number
-  text: string
-}
+/** ASR 分段（与 translator.py segments_file schema 对齐；从 lib/asr/types 重导出避免重定义） */
+export type AsrSegment = RegistryAsrSegment
 
 /** ASR 步骤输出 */
 export interface WhisperAsrOutput {
@@ -134,7 +131,7 @@ async function createDubbingSampleMedia(
 
 /**
  * Whisper ASR 语音识别步骤
- * Phase 2：调用 whisper.cpp 二进制（WhisperCppRunner）将视频音频转为文字分段
+ * Phase 3.A：通过 registry.getActiveAsrProvider() 走当前激活的 ASR Provider
  */
 export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
   readonly id = 'asr_transcribe'
@@ -191,19 +188,20 @@ export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
       sampleDurationSeconds,
     })
 
-    this.logApiCall(ctx, 'WhisperCpp', 'asr_transcribe', {
+    const provider = getActiveAsrProvider()
+    this.logApiCall(ctx, 'ASR', 'asr_transcribe', {
       video: effectiveVideoUrl,
       original_video: sampleSource ? videoUrl : undefined,
       source_language: sourceLanguage,
       whisper_language: whisperLanguage,
-      runtime: 'whisper.cpp',
+      provider: provider.id,
+      tier: provider.tier,
     })
 
     const startTime = Date.now()
 
     try {
-      const runner = new WhisperCppRunner()
-      const result = await runner.transcribe(effectiveVideoUrl, {
+      const result = await provider.transcribe(effectiveVideoUrl, {
         outputDir: path.dirname(segmentsFile),
         language: whisperLanguage,
         segmentsFilename: segmentsArtifactFilename,
@@ -219,11 +217,12 @@ export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
 
       this.logApiResponse(
         ctx,
-        'WhisperCpp',
+        'ASR',
         'asr_transcribe',
         {
           segment_count: segments.length,
           detected_language: result.language,
+          provider: provider.id,
         },
         duration,
       )
@@ -244,7 +243,7 @@ export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
     } catch (error) {
       const duration = Date.now() - startTime
       this.logError(ctx, '语音识别失败', error)
-      this.logApiResponse(ctx, 'WhisperCpp', 'asr_transcribe', undefined, duration)
+      this.logApiResponse(ctx, 'ASR', 'asr_transcribe', undefined, duration)
       throw error
     }
   }
