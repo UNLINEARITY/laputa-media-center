@@ -19,6 +19,9 @@ import { GeneratePodcastScriptStep } from './podcast/generate-podcast-script'
 import { PodcastDeliveryStep } from './podcast/podcast-delivery'
 import { PodcastTtsStep } from './podcast/podcast-tts'
 import { stepRegistry } from './registry'
+import { BuildMultiPlatformBriefStep } from './script-rewrite/build-multi-platform-brief'
+import { GeneratePlatformScriptsStep } from './script-rewrite/generate-platform-scripts'
+import { ScriptDeliveryStep } from './script-rewrite/script-delivery'
 
 /**
  * 注册所有步骤
@@ -45,6 +48,11 @@ export function registerAllSteps(): void {
     generate_podcast_script: GeneratePodcastScriptStep,
     podcast_tts: PodcastTtsStep,
     podcast_delivery: PodcastDeliveryStep,
+
+    // 多平台脚本适配步骤（Multi-Platform Script Workflow，Phase 3.C-B）
+    build_multi_platform_brief: BuildMultiPlatformBriefStep,
+    generate_platform_scripts: GeneratePlatformScriptsStep,
+    script_delivery: ScriptDeliveryStep,
   })
 }
 
@@ -64,4 +72,7 @@ export {
   GeneratePodcastScriptStep,
   PodcastTtsStep,
   PodcastDeliveryStep,
+  BuildMultiPlatformBriefStep,
+  GeneratePlatformScriptsStep,
+  ScriptDeliveryStep,
 }

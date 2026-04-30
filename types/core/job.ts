@@ -48,6 +48,7 @@ export type JobType =
   | 'translation_dubbing'
   | 'content_ingest'
   | 'podcast_production'
+  | 'multi_platform_script'
 export type LanguageStyleSource = 'creator_profile' | 'request' | 'merged'
 
 // 翻译配音配置

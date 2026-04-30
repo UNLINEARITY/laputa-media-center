@@ -127,6 +127,7 @@ describe('jobs route', () => {
       content_ingest: '/api/ingest',
       translation_dubbing: '/api/dubbing',
       podcast_production: '/api/podcast',
+      multi_platform_script: '/api/script-rewrite',
     })
     expect(jobsRepoMock.create).not.toHaveBeenCalled()
   })

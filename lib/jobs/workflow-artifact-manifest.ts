@@ -88,6 +88,29 @@ export const WORKFLOW_ARTIFACTS = {
     filename: 'podcast.mp3',
     contentType: 'audio/mpeg',
   },
+  // Phase 3.C-B：短视频脚本适配（4 平台）
+  'script.multi_platform_brief': {
+    id: 'script.multi_platform_brief',
+    kind: 'file',
+    filename: 'script_brief.json',
+    contentType: 'application/json; charset=utf-8',
+  },
+  'script.multi_platform_json': {
+    id: 'script.multi_platform_json',
+    kind: 'file',
+    filename: 'platform_scripts.json',
+    contentType: 'application/json; charset=utf-8',
+  },
+  'script.delivery_collection': {
+    id: 'script.delivery_collection',
+    kind: 'collection',
+  },
+  'script.manifest': {
+    id: 'script.manifest',
+    kind: 'file',
+    filename: 'script_manifest.json',
+    contentType: 'application/json; charset=utf-8',
+  },
 } as const
 
 export type WorkflowArtifactId = keyof typeof WORKFLOW_ARTIFACTS
@@ -115,6 +138,9 @@ export const WORKFLOW_ARTIFACT_ID_BY_FILE = {
   'podcast_script.json': 'podcast.script',
   'podcast_script.md': 'podcast.script_markdown',
   'podcast.mp3': 'podcast.final_audio',
+  'script_brief.json': 'script.multi_platform_brief',
+  'platform_scripts.json': 'script.multi_platform_json',
+  'script_manifest.json': 'script.manifest',
 } as const satisfies Record<string, WorkflowArtifactId>
 
 export type WorkflowArtifactManifestEntry = {
