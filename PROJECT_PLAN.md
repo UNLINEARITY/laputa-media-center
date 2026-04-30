@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 3.A ✅ 完成 → Phase 3.B 待開始
-**下次從哪裡繼續**：Phase 3.B — MD/PDF 入口 + 播客模式（A1 決議，v1.0 包含播客）
+**當前 Phase**：Phase 3.B（進行中，後端完成；UI deferred 到下次）
+**下次從哪裡繼續**：Phase 3.B 收尾 — `app/podcast/page.tsx` + `podcast-form` + `podcast-workbench` UI + `app/api/podcast/route.ts`
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -296,7 +296,7 @@
 
 ---
 
-### Phase 3.B：MD/PDF 入口 + 播客模式（A1 決議）⚪ 未開始
+### Phase 3.B：MD/PDF 入口 + 播客模式（A1 決議）🟡 進行中（後端完成 2026-04-30）
 
 **目標**：擴展素材入口，實現播客 / 旁白生產線。
 
@@ -477,15 +477,22 @@
 - [ ] **provider-smoke-audit.ts 重寫 deferred 到 Phase 4**（Agent M 坦誠評估：reservation/permit 450 行被
       dubbing-readiness/route.ts 深度耦合，最多砍到 ~830，達不到 ~400 目標，且觸發 8 個 consumer 回歸風險）
 
-### Phase 3.B：MD/PDF 入口 + 播客模式
-- [ ] MD 入口（gray-matter + remark）
-- [ ] PDF 入口（unpdf，保留結構）
-- [ ] source-classifier 擴展
-- [ ] text_draft 拆 md_draft / pdf_draft
-- [ ] 播客 LLM 改寫步驟
-- [ ] podcast-production 工作流
-- [ ] app/podcast 頁面
-- [ ] 播客 + 旁白測試
+### Phase 3.B：MD/PDF 入口 + 播客模式（後端完成 2026-04-30）
+- [x] MD 入口（gray-matter 解析 frontmatter + 標題/段落結構）
+- [x] PDF 入口（unpdf 純 JS 提取，按頁分段）
+- [x] source-classifier 擴展（加 .md/.markdown/.pdf 識別 + SOURCE_LABELS/STRATEGIES）
+- [x] text_draft 拆 md_draft / pdf_draft（types/runner/source-classifier 全鏈路）
+- [x] 播客 LLM 改寫步驟（兩階段）：
+      `build-podcast-brief.ts` + `generate-podcast-script.ts`，走 `lib/providers/llm/registry`
+      （**不複用 translator.py**，獨立 prompt + JSON schema）
+- [x] podcast-production 工作流（4 stages: ingest → rewrite → tts → delivery）
+- [x] `podcast-tts.ts` 直接 fetch MiniMax t2a_v2（不走 voice_cloner.py，但用同一 voice-registry / boundary / gate）
+- [x] `podcast-delivery.ts` ffmpeg concat + manifest
+- [x] `app/api/upload/document/route.ts` (.md/.pdf 上傳，50MB 限制)
+- [x] `app/api/ingest/route.ts` schema 加 md_draft/pdf_draft
+- [x] workflow-ids + artifact-manifest + steps registry 全鏈路註冊
+- [ ] **UI 部分 deferred 到下次**：app/podcast/page.tsx + podcast-form + podcast-workbench + app/api/podcast/route.ts
+- [ ] **真實驗收**：800 字觀點稿 → brief.json → script.md → final.mp3（下次 UI 完成後一起）
 
 ### Phase 4：清理 + 重置
 - [ ] Agent docs 合併
@@ -690,3 +697,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：Phase 2 收尾完成（TEAM 模式：3 個 agent 並行 — E 驗證 release URL / F 設計 install API / G 盤點 settings UI 風格）。新建 `app/api/runtime/whisper-cpp/install/route.ts`（SSE + session-only + 1/min rate + single-flight）+ `status/route.ts`（GET JSON）+ `components/settings/whisper-cpp-installer.tsx`（進度條 UI），集成到 settings/maintenance tab。**真實驗收**：自動下載 ~5MB whisper-cli.exe + 148MB ggml-base.bin 到 ~/.laputa/whisper/，1 秒 wav 轉錄 748ms 完成（CPU AVX2/FMA），JSON 輸出格式對齊。**修 3 個發現的問題**：(1) v1.7.4 release assets 沒遷到改名後的 ggml-org/whisper.cpp，升級到 v1.8.4；(2) Node undici fetch 對 HuggingFace cas-bridge redirect 有 timeout，model-installer 改用 spawn curl；(3) v1.8.4 zip 主可執行從 main.exe 改名 whisper-cli.exe，解壓後拍平 Release/ 內容到 cacheDir 讓 dll 與 exe 同目錄。pnpm test:unit 685 pass / 17 skip / 0 fail。Phase 2 整體完成，下一步 Phase 3.A Provider 抽象。
 - **2026-04-30**：Phase 3.A 後端完成（TEAM 模式：3 個 agent 並行 — H 盤點 LLM 調用點 / I 設計 Provider 架構 / K 驗證 translator.py 契約）。新建 `lib/providers/{asr,llm}/` 9 個檔（types + 5 個 provider impl + registry）。ASR：whisper-cpp（默認，包 WhisperCppRunner）+ gemini-audio（Hybrid 模式：whisper 時間戳 + Gemini 文本對齊）。LLM：gemini（默認，包 lib/ai/gemini）+ openai（SDK）+ mistral（SDK）。**openai-whisper 砍**（朋友用 whisper.cpp 已夠）。改 `scripts/translator.py:L719` 擴展 provider 分支：accept gemini/openai/mistral（OpenAI/Mistral 走 OpenAI-compatible 路徑，call_gemini_json 已內建判斷），**兩階段 prompt 0 動**。改 `lib/ingest/runner.ts:runWhisper()` + `lib/workflow/steps/dubbing/{whisper-asr,translate-text}.ts` 走 registry。新建 4 個 API routes（GET/POST list + POST test）。**真實驗收**：GET `/api/providers/asr` 列出 2 個 + GET `/api/providers/llm` 列出 3 個 + POST `/api/providers/asr/test {whisper-cpp}` 1117ms ok=true。pnpm test:unit 685 pass / 17 skip / 0 fail。**UI deferred 到 Claude Design 階段**（用戶要求）。**Phase 1 deferred 兩個大檔重寫**：留下次（closed-loop-readiness 760→~250 + provider-smoke-audit 1351→~400）。
 - **2026-04-30**：Phase 3.A 收尾完成（TEAM 模式：3 個 agent 並行 — L 重寫 closed-loop / M 評估 provider-smoke-audit / N 設計 UI）。**closed-loop-readiness 重寫**：760→730（4% reduction，inline fallback + dict-driven detail；保 8 個 consumer 序列化 + 5 個 provider gate 邊界）。Agent M 坦誠評估後 **provider-smoke-audit deferred 到 Phase 4**（reservation/permit 450 行深度耦合 dubbing-readiness/route.ts，砍會破壞付費 gate）。**UI 切換器（Claude Design）**：新建 `asr-provider-switcher.tsx` + `llm-provider-switcher.tsx`（Tier 🟢🟡🔴 badge / Ready chip / 測試連接按鈕 / 切換 active 按鈕 / OpenAI 付費確認 inline checkbox / Mistral 開源備選 / OpenAI+Mistral 凭證編輯器走 POST /api/configs / 配置入口跳轉 maintenance/ai-studio tab），集成到 settings system tab 內「運行 Provider」分組（不新開 tab）。pnpm test:unit 685 pass / 17 skip / 0 fail；/settings + GET/POST /api/providers/* 全部 200 OK。Phase 3.A 整體完成，下一步 Phase 3.B（MD/PDF 入口 + 播客模式）。
+- **2026-04-30**：Phase 3.B 後端完成（TEAM 模式：3 agent 並行 — O 盤點 ingest 鏈 / P 設計播客 / Q 受保護資產守門員）。**MD/PDF 入口**：types `source_type` 加 `md_draft|pdf_draft` + JobType 加 `podcast_production`；source-classifier 加 .md/.markdown/.pdf 識別；runner.ts 新增 `createMarkdownDraftTranscription`（gray-matter 解析 frontmatter + 標題/段落）+ `createPdfDraftTranscription`（unpdf 純 JS 按頁提取）；新建 `app/api/upload/document/route.ts` (.md/.pdf 上傳)。**播客模式 4 stages**：ingest → rewrite → tts → delivery；新建 4 step + artifact-paths：`build-podcast-brief.ts`（LLM 第一階段，走 registry，獨立 prompt schema）+ `generate-podcast-script.ts`（LLM 第二階段，含 opening/body/transition/closing role + pacing_hint + pause_after_ms）+ `podcast-tts.ts`（**直接 fetch MiniMax t2a_v2**，沿用 voice-registry/boundary/gate，不走 voice_cloner.py）+ `podcast-delivery.ts`（ffmpeg concat + manifest）。新建 `lib/workflow/workflows/podcast-production.ts` + workflow-ids/artifact-manifest 全鏈路註冊。pnpm test:unit 685 pass / 17 skip / 0 fail。**未動受保護資產**：translator.py 兩階段邏輯 / voice-registry / creator-profile / source-classifier 核心邏輯（只擴展 enum + case，符合 PROJECT_PLAN line 305-309 計劃）。**UI deferred 到下次**：app/podcast/page.tsx + podcast-form + podcast-workbench + app/api/podcast/route.ts。

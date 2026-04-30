@@ -8,9 +8,11 @@ import {
   CONTENT_INGEST_WORKFLOW_ID,
   getWorkflowIdForJobType,
   isMainlineWorkflowId,
+  PODCAST_PRODUCTION_WORKFLOW_ID,
   TRANSLATION_DUBBING_WORKFLOW_ID,
 } from '../workflow-ids'
 import { contentIngestWorkflow } from './content-ingest'
+import { podcastProductionWorkflow } from './podcast-production'
 import { translationDubbingWorkflow } from './translation-dubbing'
 
 /**
@@ -25,7 +27,7 @@ export function selectWorkflow(_videoCount: number, taskType?: string): Workflow
     if (workflow) return workflow
   }
 
-  throw new Error('旧剪辑工作流已下架；请显式使用 content_ingest 或 translation_dubbing 工作流。')
+  throw new Error('旧剪辑工作流已下架；请显式使用 content_ingest / translation_dubbing / podcast_production 工作流。')
 }
 
 /**
@@ -39,8 +41,10 @@ export function getWorkflowById(workflowId: string): WorkflowDefinition | null {
       return translationDubbingWorkflow
     case CONTENT_INGEST_WORKFLOW_ID:
       return contentIngestWorkflow
+    case PODCAST_PRODUCTION_WORKFLOW_ID:
+      return podcastProductionWorkflow
   }
 }
 
 // 导出工作流定义
-export { translationDubbingWorkflow, contentIngestWorkflow }
+export { translationDubbingWorkflow, contentIngestWorkflow, podcastProductionWorkflow }

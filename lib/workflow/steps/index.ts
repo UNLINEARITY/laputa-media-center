@@ -14,6 +14,10 @@ import { WhisperAsrStep } from './dubbing/whisper-asr'
 import { BuildContentBriefStep } from './ingest/build-content-brief'
 import { InspectSourceStep } from './ingest/inspect-source'
 import { TranscribeMediaStep } from './ingest/transcribe-media'
+import { BuildPodcastBriefStep } from './podcast/build-podcast-brief'
+import { GeneratePodcastScriptStep } from './podcast/generate-podcast-script'
+import { PodcastDeliveryStep } from './podcast/podcast-delivery'
+import { PodcastTtsStep } from './podcast/podcast-tts'
 import { stepRegistry } from './registry'
 
 /**
@@ -35,6 +39,12 @@ export function registerAllSteps(): void {
     inspect_source: InspectSourceStep,
     transcribe_media: TranscribeMediaStep,
     build_content_brief: BuildContentBriefStep,
+
+    // 播客生产步骤（Podcast Production Workflow，Phase 3.B）
+    build_podcast_brief: BuildPodcastBriefStep,
+    generate_podcast_script: GeneratePodcastScriptStep,
+    podcast_tts: PodcastTtsStep,
+    podcast_delivery: PodcastDeliveryStep,
   })
 }
 
@@ -50,4 +60,8 @@ export {
   InspectSourceStep,
   TranscribeMediaStep,
   BuildContentBriefStep,
+  BuildPodcastBriefStep,
+  GeneratePodcastScriptStep,
+  PodcastTtsStep,
+  PodcastDeliveryStep,
 }

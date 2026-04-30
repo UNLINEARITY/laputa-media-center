@@ -126,6 +126,7 @@ describe('jobs route', () => {
     expect(responseBody.replacement_endpoints).toEqual({
       content_ingest: '/api/ingest',
       translation_dubbing: '/api/dubbing',
+      podcast_production: '/api/podcast',
     })
     expect(jobsRepoMock.create).not.toHaveBeenCalled()
   })
