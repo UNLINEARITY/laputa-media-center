@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 3.C（進行中，B+C+D 完成；A 留下次，需用戶確認啟動）
-**下次從哪裡繼續**：Phase 3.C-A 高亮自動切片（4 stage workflow + 手動微調 start/end UI）
+**當前 Phase**：Phase 3.C 完成（A+B+C+D 全做完，待實機驗收）
+**下次從哪裡繼續**：實機驗收 Phase 3.C 全 4 工具 → 進 Phase 4（清理 + reset）或 Phase 5（開源準備）
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -397,16 +397,20 @@
 
 ---
 
-### Phase 3.C：自媒體爆款工具（v1.x，2026-04-30 加入計劃）🟡 進行中（B+C+D 完成）
+### Phase 3.C：自媒體爆款工具（v1.x，2026-04-30 加入計劃）✅ 完成（A+B+C+D 全做完）
 
 **目標**：在現有 ingest + LLM provider 基礎上加 4 個自媒體創作高 ROI 工具。**核心策略**：復用 Phase 3.A registry 的 LLM 抽象 + Phase 3.B 的 rewrite step 模式（podcast 已建好參考），新組件最小化。
 
-**A. 高亮自動切片** ⚪ 未開始（v1.x 主推）
-- 工作流：transcribe → LLM 標出「金句 / 笑點 / 反轉 / 情緒高潮」段落 → ffmpeg 切 30-60s 短視頻 + 自動配字幕
-- 新建：`lib/workflow/steps/highlights/find-highlights.ts`（LLM step，輸出 `[{start, end, hook_text, score}]`）+ `extract-highlights.ts`（ffmpeg 切片）
+**A. 高亮自動切片** ✅ 完成（commit `079d172`）
+- 工作流：transcribe → score（LLM 標金句 / 笑點 / 反轉 / 情緒高潮 / 論點）→ cut（ffmpeg 切 30-60s + 燒字幕）→ delivery
+- LLM score：`find-highlights.ts`（走 registry + 5 種 type enum + 1-10 score + hook_text + fallback 兜底）
+- ffmpeg cut：`extract-highlights.ts`（單步 -ss/-to + ass filter 切片燒字幕，可選 9:16 豎屏裁剪）
+- 字幕：復用 Phase 3.C-D `generateSegmentedASS` + 5 套 preset；相對時間戳，clip 起點對齊 0
 - 新工作流：`highlights-extraction` (4 stages: ingest → score → cut → delivery)
-- UI：`app/highlights/page.tsx` + 候選片段列表 + 預覽 + 一鍵導出 + **手動微調 start/end**（Agent R 設計）
-- 限制：只接受 video 類素材（不接 text/md/pdf）
+- API：POST /api/highlights（建任務）/ GET /api/highlights/[id]（拉狀態+manifest）/ POST /api/highlights/[id]/recut（手動 ±10s 微調批量重切）/ GET /api/highlights/[id]/clips/[filename]（mp4 stream + path traversal 防護）
+- UI：`app/highlights/page.tsx`（form）+ `app/highlights/[id]/page.tsx`（3s 輪詢結果頁）+ `components/highlights/{highlights-workbench,highlights-form,highlight-clip-card,highlight-trim-controls}.tsx`（video preview + 雙 Slider ±10s 微調 + recut + 下載）
+- 限制：只接受 video 類素材（API 層 z.enum 強校驗：youtube/local_video/local_audio/web_video）
+- transcribe-media keepVideo 條件擴展：`ingest_goal === 'localize' || === 'highlights'`
 
 **B. 短視頻腳本適配** ✅ 完成（commit `5a67d30`）
 - 同一觀點稿 → **單次 LLM call** 輸出 4 個版本（YT 長 / 抖音 60s / 小紅書 / 公眾號）+ 平台 subset 支援（4 選 N）
@@ -447,7 +451,20 @@
 - POST /api/script-rewrite 空 body 返回 400 + Zod schema 校驗訊息（path: ["source"]）
 - 4 個新 step + 1 個新 workflow + API + UI 全部 wire 通
 
-**預估對話次數**：A 還需 1-2 次（需用戶確認啟動）
+**驗收（Phase 3.C-A）**：
+- pnpm test:unit ✅ 685 pass / 17 skip / 0 fail
+- /highlights HTTP 200
+- POST /api/highlights 空 body 返 400 + Zod schema 校驗
+- POST /api/highlights {source: text} 返 400「仅支持视频类」（API 層 enum 守門）
+- POST /api/highlights {source_type: md_draft} 返 400 + enum 限制
+- 4 個新 step + 1 個新 workflow + 4 個 API route + 4 個 UI 文件全部 wire 通
+- 手動微調 ±10s 通過 /api/highlights/[id]/recut sync 重切實現
+
+**Phase 3.C 整體完成 — 4 個自媒體爆款工具全部就緒**：
+- A. 高亮自動切片 ✅
+- B. 多平台腳本適配（YT 長 / 抖音 60s / 小紅書 / 公眾號）✅
+- C. 標題鉤子優化器 ✅
+- D. 字幕樣式預設庫 ✅
 
 ---
 
@@ -757,3 +774,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：Phase 3.B 收尾完成。新建 `app/api/podcast/route.ts`（z.enum schema 校驗：source_type 限 text/md/pdf_draft + tone 4 種 + speaker_mode 雙人/單人 + voice_id 必填 + creator_context + boundary_ack + confirmed_gate_ids；taskQueue.enqueue + initState 完整鏈路）。新建 `components/podcast/podcast-form.tsx` ~480 行（3 種素材切換 / textarea 50 字下限 / .md/.pdf 走 /api/upload/document / 4 風格卡片 + 5 時長 chip + 雙人模式 / VoiceSelect 從 /api/dubbing/voices 拉本地聲線 / 雙重 inline checkbox 確認 / sonner toast）+ `podcast-workbench.tsx`（4-stage 進度卡）+ `app/podcast/page.tsx`。**驗收**：/podcast 200 + /api/podcast schema 400 校驗 + pnpm test:unit 685 pass / 0 fail。Phase 3.B 整體完成。**用戶決定加入 Phase 3.C**（自媒體爆款工具：高亮切片 / 短視頻腳本適配 / 標題鉤子優化 / 字幕樣式預設庫）作為下一階段。
 - **2026-04-30**：Phase 3.C-CD 完成（commit `8896468`）。**C 標題鉤子優化器**：`lib/title-hooks/{types,optimizer}.ts`（走 LLM Provider Registry，5 候選標題 + SEO 關鍵詞 + 鉤子強度 1-5 + 開頭前 30 秒對比優化，含兜底）+ `app/api/title-hooks/route.ts`（POST，z.schema + rate limit + 同步返回）+ `components/title-hooks/{title-hook-modal,use-title-hooks}.tsx`（modal + 一鍵複製）+ `app/title-hooks/page.tsx`（獨立演示頁，粘貼任意文稿即可使用）。**按需觸發**（不自動跑、不創 job）。**D 字幕樣式預設庫**：`lib/subtitle/presets.ts`（4+1 套：default / cantonese_trendy / serious_political / variety_explainer / xhs_fresh）+ 擴展 `lib/subtitle/{types,adaptive-size,generator}.ts`（presetId 可選，保默認行為不變）+ `app/api/subtitle-presets/route.ts` + `components/subtitle/subtitle-preset-selector.tsx`。**全部基於既有 Noto Sans SC family，靠 size/color/outline/shadow/weight 差異化**（零新字體 + 零 license 風險）。dubbing-form 集成 deferred（2000+ 行，待專項對話）。pnpm test:unit 685 pass / 17 skip / 0 fail。
 - **2026-04-30**：Phase 3.C-B 完成（commit `5a67d30`）。**多平台腳本適配**（YT 長 / 抖音 60s / 小紅書 / 公眾號，4 選 N）。**兩階段 LLM rewrite**：Stage 1 `build-multi-platform-brief`（核心觀點 + 鉤子候選 + 4 平台 hint + glossary，走 registry，含 fallback brief 兜底）；Stage 2 `generate-platform-scripts`（**單次 LLM call** 輸出選定平台版本，subset 支援；4 個平台 schema：YoutubeLongScript / DouyinShortScript / XhsPost / WechatArticle）；`script-delivery` 寫 4 個 .md（youtube_script / douyin_script / xhs_post / wechat_article）+ script_manifest.json。**4 stages workflow**：ingest → analyze → rewrite → delivery（`lib/workflow/workflows/multi-platform-script.ts`）。**API**：`app/api/script-rewrite/route.ts`（z.schema：6 種 source_type / platform enum / 可選 target 時長 + auth + rate limit + taskQueue.enqueue）。**UI**：`app/script-rewrite/page.tsx` + `components/script-rewrite/{script-workbench,script-form}.tsx`（3 種素材：text/md/pdf + 4 平台 toggle 多選）。**types/manifest 擴展**：`multi_platform_script` JobType + `script_platforms` config + 4 條 script.* artifact + workflow-ids 全鏈路常量。pnpm test:unit 685 pass / 17 skip / 0 fail；/script-rewrite HTTP 200；POST /api/script-rewrite 空 body 返回 400 + Zod schema 校驗。**Phase 3.C 只剩 A 高亮切片**（需用戶確認啟動）。
+- **2026-04-30**：Phase 3.C-A 完成（commit `079d172`）。**高亮自動切片**：4 stages workflow（ingest → score → cut → delivery）。**LLM score `find-highlights.ts`**：transcript.json segments → 5-10 個 30-60s 片段（5 種 type enum：quotable/plot_twist/emotional_peak/storytelling/takeaway + score 1-10 + hook_text ≤80 字 + context_snippet），含 fallback（無時間碼或 LLM 失敗時用 segments 均勻採樣）+ normalize（clamp 5-90s 時長、type 白名單、score 1-10）。**ffmpeg cut `extract-highlights.ts`**：每 highlight 單步 ffmpeg `-ss/-to + -vf ass=...:fontsdir=...`（切片+燒字幕一氣呵成；libx264 + faststart）；可選 9:16 豎屏裁剪 `crop=ih*9/16:ih`；走 Phase 3.C-D `generateSegmentedASS` 多 Dialogue + 5 套 preset；clip 內字幕用相對時間戳（segment.start - clip_start）。**delivery `highlights-delivery.ts`**：寫 highlights_manifest.json（含 cuts metadata + summary + warning）。**API 4 條**：POST /api/highlights（建任務，z.schema：source_type 限 youtube/local_video/local_audio/web_video + target_count 3-10 + preset 5 選 1 + aspect 16:9/9:16）+ GET /api/highlights/[id]（拉 manifest + cuts + status，UI 輪詢）+ POST /api/highlights/[id]/recut（單/批量 ±10s 微調，clamp tolerance + 5-90s 時長校驗，sync 重切返回）+ GET /api/highlights/[id]/clips/[filename]（mp4 stream，path traversal 防護 + .mp4 enum）。**UI**：`app/highlights/page.tsx`（form：YouTube URL / 本地上傳 + 段數 3/5/7/10 + 5 套 preset + 16:9/9:16）+ `app/highlights/[id]/page.tsx`（3s 輪詢狀態 + 完成後 N 個 clip card：原生 `<video>` preview + score/type badge + 雙 Slider 微調 ±10s + recut 按鈕 + 下載按鈕）+ `components/highlights/{highlights-workbench,highlights-form,highlight-clip-card,highlight-trim-controls}.tsx`。**transcribe-media keepVideo 擴展**：`ingest_goal === 'localize' || === 'highlights'`（受保護 source-classifier 0 動）。**types/manifest 擴展**：`highlights_extraction` JobType + 3 條 highlights.* artifact + workflow-ids 全鏈路常量 + script_platforms/highlights_target_count/highlights_subtitle_preset/highlights_aspect 加入 JobConfig 正式類型。pnpm test:unit 685 pass / 17 skip / 0 fail；/highlights HTTP 200；POST /api/highlights 空 body 400；text source 400「仅支持视频类」；md_draft source_type 400 enum 校驗。**Phase 3.C 整體完成（A+B+C+D 4 工具全部就緒）**，下一步等用戶實機驗收後決定 Phase 4（清理 + reset）或 Phase 5（開源準備）。
