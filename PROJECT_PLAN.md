@@ -1,8 +1,12 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 0（未開始）
-**下次從哪裡繼續**：Phase 0 第一步 — 從前身項目複製代碼
+**當前 Phase**：Phase 0 ✅ 完成 → Phase 1 待開始
+**下次從哪裡繼續**：Phase 1 第一步 — 砍 License V1/V2 兼容代碼（保留 V3 機制）
+
+**Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
+**Phase 0 驗收結果**：`pnpm install` / `pnpm db:init` / `pnpm dev` 全部跑通，
+`http://localhost:8899` 返回 HTTP 200 + HTML 正常渲染（Next.js 16.2.4 + React 19.2.3）。
 
 ---
 
@@ -387,13 +391,26 @@
 
 ## 5. 當前進度
 
-### Phase 0：項目初始化
-- [ ] 從前身項目選擇性複製代碼
-- [ ] 改 package.json name + version
-- [ ] 全項目重命名 ChuangCut → LaputaMediaCenter
-- [ ] 重寫 .env.example
-- [ ] 跑通 pnpm install + db:init + dev
-- [ ] git init + 第一次 commit
+### Phase 0：項目初始化 ✅ 完成（2026-04-30，commit `ac7dc06`）
+- [x] 從前身項目選擇性複製代碼
+- [x] 改 package.json name + version（laputa-media-center@0.1.0）
+- [x] 全項目重命名 ChuangCut → LaputaMediaCenter（顯示文案 + 運行時字串）
+- [x] 重寫 .env.example（乾淨模板，無個人路徑）
+- [x] 跑通 pnpm install + db:init + dev（http://localhost:8899 HTTP 200）
+- [x] git init + 第一次 commit（main branch）
+
+**Phase 0 額外做的決定（用戶批准）**：
+- proxy.ts 加 `NODE_ENV=development` license bypass（保留 V3 機制，僅放寬門禁）
+- session cookie：`chuangcut_session` → `laputa_session`
+- API token prefix：`cca_` → `lmc_`
+- runtime tmp：`/tmp/chuangcut` → `/tmp/laputa`
+
+**Phase 0 沒處理（留給後續 Phase）**：
+- 測試斷言裡 hardcode 的 `chuangcut-video-workflow@16.0.0` → Phase 1
+- `docs/test-reports/e2e-results.json` 過時測試報告 → Phase 4（已被 .gitignore）
+- `docs/agent/*` 裡 Docker / Zeabur 文檔 → Phase 1 砍 SaaS / Phase 4 docs 大砍
+- `laputa-video-chuangcut-editing` 引用 → 不改（用戶機器真實 skill 目錄路徑）
+- `lib/license/crypto.ts` SALT → 不改（避免破壞已生成 license）
 
 ### Phase 1：砍 SaaS 偽裝
 - [ ] License V1/V2 砍掉
@@ -632,4 +649,4 @@ VERSION.md                        Phase 4 改寫或刪除
 
 - **2026-04-30**：D 決議微調 — Wav2Lip 從「默認關」改為「默認啟用主力」；LatentSync 從「v1.0 高級選項」降為「預留 stub，後備未來升級」。原因：用戶目前用 Wav2Lip 滿足，先穩定再升級。
 - **2026-04-30**：項目計劃 v3 確立。納入：A1（v1.0 含播客）、B2（PDF 保留結構）、C2（MiniMax + Edge TTS）、D3 修訂（Wav2Lip 默認啟用 + v1.1 D-ID/Sync.so）、E（凍結舊項目）。資產保護清單建立。
-- **YYYY-MM-DD**：項目初始化，Phase 0 待開始
+- **2026-04-30**：Phase 0 完成（commit `ac7dc06`）。代碼骨架從 ChuangCut 拷貝就位，受保護資產原封不動，dev server 跑通。proxy.ts 加 dev mode license bypass（保留 V3 機制）。下一步進 Phase 1。
