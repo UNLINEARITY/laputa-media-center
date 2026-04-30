@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -84,7 +85,7 @@ function buildBriefPromptPayload(opt: {
 
 function safeParseBrief(raw: string): MultiPlatformBrief | null {
   try {
-    const parsed = JSON.parse(raw)
+    const parsed = safeParseJson<Partial<MultiPlatformBrief>>(raw)
     if (!parsed || typeof parsed !== 'object') return null
     if (typeof parsed.summary !== 'string' || !Array.isArray(parsed.core_points)) return null
     if (!parsed.platform_hints) return null

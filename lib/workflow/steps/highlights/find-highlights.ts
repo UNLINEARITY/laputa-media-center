@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -97,7 +98,7 @@ function buildHighlightsPromptPayload(opt: {
 
 function safeParseBrief(raw: string): HighlightsBrief | null {
   try {
-    const parsed = JSON.parse(raw)
+    const parsed = safeParseJson<Partial<HighlightsBrief>>(raw)
     if (!parsed || typeof parsed !== 'object') return null
     if (!Array.isArray(parsed.highlights)) return null
     if (typeof parsed.summary !== 'string') return null

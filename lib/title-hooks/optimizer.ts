@@ -5,6 +5,7 @@
  * 按需触发，不写盘、不依赖 jobId。
  */
 
+import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type {
   OpeningOptimization,
@@ -70,7 +71,10 @@ function safeParseResult(raw: string): {
   opening_optimization?: OpeningOptimization
 } | null {
   try {
-    const parsed = JSON.parse(raw)
+    const parsed = safeParseJson<{
+      titles?: TitleSuggestion[]
+      opening_optimization?: OpeningOptimization
+    }>(raw)
     if (!parsed || typeof parsed !== 'object') return null
     return parsed
   } catch {

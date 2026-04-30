@@ -11,6 +11,7 @@
 
 import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
+import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import path from 'node:path'
@@ -43,7 +44,9 @@ export interface BuildPodcastBriefOutput {
   llmProvider: string
 }
 
-const SYSTEM_INSTRUCTION = `你是一位资深中文播客编辑。你擅长把长篇观点稿、报道或学术文章重写为听感舒服、信息密度高、节奏自然的播客口语脚本。
+const MAX_SOURCE_CHARS = 12000
+
+const SYSTEM_INSTRUCTION =`你是一位资深中文播客编辑。你擅长把长篇观点稿、报道或学术文章重写为听感舒服、信息密度高、节奏自然的播客口语脚本。
 你输出的内容必须严格符合用户要求的 JSON schema，不要添加额外字段或注释。
 不要替用户做语言翻译；保持原稿的源语言。`
 
@@ -87,7 +90,7 @@ function buildBriefPromptPayload(opt: {
 
 function safeParseBrief(raw: string): PodcastBrief | null {
   try {
-    const parsed = JSON.parse(raw)
+    const parsed = safeParseJson<Partial<PodcastBrief>>(raw)
     if (!parsed || typeof parsed !== 'object') return null
     if (typeof parsed.summary !== 'string' || !Array.isArray(parsed.key_points)) return null
     return parsed as PodcastBrief
@@ -149,10 +152,12 @@ export class BuildPodcastBriefStep extends BaseStep<BuildPodcastBriefOutput> {
 
     const { readFile } = await import('node:fs/promises')
     const transcript = JSON.parse(await readFile(transcriptJsonPath, 'utf-8'))
-    const sourceText = String(transcript.text || '').trim()
-    if (!sourceText) {
+    const fullText = String(transcript.text || '').trim()
+    if (!fullText) {
       throw new Error('Podcast brief: transcript.text is empty')
     }
+    const sourceText = fullText.slice(0, MAX_SOURCE_CHARS)
+    const truncated = fullText.length > MAX_SOURCE_CHARS
 
     const provider = getActiveLlmProvider()
     this.logApiCall(ctx, 'LLM', 'build_podcast_brief', {
@@ -162,6 +167,7 @@ export class BuildPodcastBriefStep extends BaseStep<BuildPodcastBriefOutput> {
       target_duration_minutes: targetDuration,
       speaker_mode: speakerMode,
       source_chars: sourceText.length,
+      source_chars_truncated: truncated,
     })
 
     const start = Date.now()

@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -105,10 +106,10 @@ function buildScriptPromptPayload(opt: {
 
 function safeParseScript(
   raw: string,
-  platforms: PlatformId[],
+  _platforms: PlatformId[],
 ): Partial<MultiPlatformScript> | null {
   try {
-    const parsed = JSON.parse(raw) as Partial<MultiPlatformScript>
+    const parsed = safeParseJson<Partial<MultiPlatformScript>>(raw)
     if (!parsed || typeof parsed !== 'object') return null
     return parsed
   } catch {
