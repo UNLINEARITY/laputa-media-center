@@ -29,7 +29,7 @@ YouTube / 网页视频读取失败。请确认 yt-dlp 可用；如 YouTube 要�
     normalized.includes('whisper_model_unavailable')
   ) {
     return `${message}
-whisper.cpp 未就绪。请在设置页点击「安装 whisper.cpp」按钮触发首次下载（~5MB binary + ~142MB ggml-base 模型），或设置 WHISPER_CPP_PATH 指向已编译好的 whisper-cli 可执行文件。`
+whisper.cpp 未就绪。请在设置页点击「安装 whisper.cpp」按钮触发首次下载（~5MB binary + ~148MB ggml-base 模型），或设置 WHISPER_CPP_PATH 指向已编译好的 whisper-cli 可执行文件。`
   }
 
   if (normalized.includes('ffmpeg')) {

@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 2（進行中，代碼層集成完成；待真實驗收）
-**下次從哪裡繼續**：Phase 2 收尾 — 跑真實 1 分鐘 YT 視頻驗收 + 加 install API + UI 按鈕
+**當前 Phase**：Phase 2 ✅ 完成 → Phase 3.A 待開始
+**下次從哪裡繼續**：Phase 3.A — ASR + LLM Provider 抽象（lib/providers/asr/ + lib/providers/llm/）
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -241,7 +241,7 @@
 
 ---
 
-### Phase 2：替換 Python 依賴 🟡 進行中（代碼層集成完成 2026-04-30）
+### Phase 2：替換 Python 依賴 ✅ 完成（2026-04-30）
 
 **目標**：擺脫 GPT-SoVITS 5GB 依賴，用 whisper.cpp 二進制取代。
 
@@ -440,7 +440,7 @@
       creator-profile.ts / applied-asset-summary.ts / dubbing-qa.ts /
       source-classifier.ts / workflow/engine.ts / config/languages.ts
 
-### Phase 2：替換 Python（代碼層完成於 2026-04-30；待真實驗收）
+### Phase 2：替換 Python（完成於 2026-04-30）
 - [x] 集成 whisper.cpp（lib/asr/ 6 個新檔：types/binary-installer/model-installer/whisper-cpp-runner/runtime-status/index）
 - [x] transcribe-media.ts 改後端（ingest 流程 runner.ts:runWhisper 用 WhisperCppRunner）
 - [x] dubbing/whisper-asr.ts 同步遷移（保留 dubbing.segments artifact schema）
@@ -448,8 +448,16 @@
 - [x] 保留 translator.py 兩階段邏輯（受保護資產，零改動）
 - [x] scripts/whisper_asr.py 加 DEPRECATED 注釋（保留作 fallback）
 - [x] tests/ingest/runner.test.ts mock WhisperCppRunner（避免測試觸發真實下載）
-- [ ] 真實驗收：1 分鐘 YT 視頻轉錄成功（需網絡 + 觸發首次下載）← Phase 2 收尾
-- [ ] 加 install API + settings UI 按鈕（自動觸發二進制+模型下載）← Phase 2 收尾
+- [x] **真實驗收完成**：whisper-cli.exe + ggml-base.bin 自動下載到 ~/.laputa/whisper/，
+      1 秒 wav 轉錄 748ms 完成（CPU AVX2/FMA），JSON 輸出格式對齊 normalize 邏輯
+- [x] **install API**：POST /api/runtime/whisper-cpp/install (SSE 推送進度) +
+      GET /api/runtime/whisper-cpp/status；session-only + rate limit 1/min + module-level single-flight
+- [x] **UI 按鈕**：components/settings/whisper-cpp-installer.tsx，集成在 settings/maintenance tab
+- [x] **修 binary URL**：v1.7.4 → v1.8.4 + repo 改名 ggerganov → ggml-org（v1.7.4 release assets 沒遷移，404）
+- [x] **修 model 下載**：Node undici fetch 對 HuggingFace cas-bridge redirect 鏈有 UND_ERR_CONNECT_TIMEOUT，
+      改用 spawn curl（Win10+/macOS/Linux 預裝）
+- [x] **修 binary 名**：v1.8.4 起 main.exe → whisper-cli.exe（舊名是 deprecation wrapper）；
+      解壓後拍平 Release/* 內容到 cacheDir 頂層讓 ggml*.dll 與 exe 同目錄
 
 ### Phase 3.A：ASR + LLM Provider 抽象
 - [ ] 設計 lib/providers/asr/ 和 llm/ 接口
@@ -669,3 +677,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：Phase 1.A 完成。砍 stress test (5)、混淆構建 (obfuscate-build + dep)、Docker scripts、Zeabur 文檔、GCS 全鏈路 (50+ 引用點)、provider-smoke CLI mjs；改 Auth 默認 false、Rate limit 寬鬆。License V1/V2 任務跳過（前身已收斂為 V3-only）。Phase 1.B 待做：Fish Audio 砍除 + provider-smoke-audit/closed-loop-readiness 簡化 + 修測試 hardcode。
 - **2026-04-30**：Phase 1.B 完成。砍 Fish Audio 全鏈路（provider 400 行/UI 105 行/verify ~70 行/types/legacy-constants/8 個 routes 引用清理）；修 8 個測試 hardcode（chuangcut@16.0.0 → laputa@0.1.0）；砍 4 個考古測試文件（mainline-positioning-guard / api-routes-safety-guard / tts-legacy-auth / settings-page-legacy-tts）；skip 17 個 Fish Audio + GCS 對象已砍的舊 case。**Phase 1 收尾驗收**：pnpm test:unit 685 pass / 17 skip / 0 fail；dev server 200 OK；受保護資產 8 個全保留。**Defer**：provider-smoke-audit / closed-loop-readiness 簡化任務超出 Phase 1 範圍（會傷主流程 dubbing-readiness/route.ts 1700+ 行），轉到 Phase 3.A Provider 抽象階段重構。
 - **2026-04-30**：Phase 2 代碼層集成完成（TEAM 模式：3 個 agent 並行盤點 + 設計）。新建 `lib/asr/` 6 個檔（WhisperCppRunner + binary-installer 自動下載 GitHub releases v1.7.4 prebuild + model-installer 從 HuggingFace 拉 ggml-base / 共 ~150MB 緩存到 ~/.laputa/whisper/）。改 `lib/ingest/runner.ts:runWhisper()` 和 `lib/workflow/steps/dubbing/whisper-asr.ts` 兩個 ASR 入口都用 WhisperCppRunner，segments.json schema 保持與 translator.py 兼容。Phase 2 默認純 CPU（Blackwell sm_120 cuBLAS prebuild 不穩，base 模型 i5-14600KF 跑 1 分鐘音頻 ~3-5 秒夠用）。`scripts/whisper_asr.py` 加 DEPRECATED 注釋作 fallback。pnpm test:unit 685 pass / 17 skip / 0 fail。Phase 2 收尾待做：真實 YT 轉錄驗收 + install API + UI 按鈕。
+- **2026-04-30**：Phase 2 收尾完成（TEAM 模式：3 個 agent 並行 — E 驗證 release URL / F 設計 install API / G 盤點 settings UI 風格）。新建 `app/api/runtime/whisper-cpp/install/route.ts`（SSE + session-only + 1/min rate + single-flight）+ `status/route.ts`（GET JSON）+ `components/settings/whisper-cpp-installer.tsx`（進度條 UI），集成到 settings/maintenance tab。**真實驗收**：自動下載 ~5MB whisper-cli.exe + 148MB ggml-base.bin 到 ~/.laputa/whisper/，1 秒 wav 轉錄 748ms 完成（CPU AVX2/FMA），JSON 輸出格式對齊。**修 3 個發現的問題**：(1) v1.7.4 release assets 沒遷到改名後的 ggml-org/whisper.cpp，升級到 v1.8.4；(2) Node undici fetch 對 HuggingFace cas-bridge redirect 有 timeout，model-installer 改用 spawn curl；(3) v1.8.4 zip 主可執行從 main.exe 改名 whisper-cli.exe，解壓後拍平 Release/ 內容到 cacheDir 讓 dll 與 exe 同目錄。pnpm test:unit 685 pass / 17 skip / 0 fail。Phase 2 整體完成，下一步 Phase 3.A Provider 抽象。

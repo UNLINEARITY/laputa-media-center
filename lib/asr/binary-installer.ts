@@ -17,9 +17,9 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { WHISPER_CPP_RELEASE_TAG } from './types'
+import { WHISPER_CPP_GITHUB_REPO, WHISPER_CPP_RELEASE_TAG } from './types'
 
-const RELEASE_BASE = `https://github.com/ggerganov/whisper.cpp/releases/download/${WHISPER_CPP_RELEASE_TAG}`
+const RELEASE_BASE = `https://github.com/${WHISPER_CPP_GITHUB_REPO}/releases/download/${WHISPER_CPP_RELEASE_TAG}`
 
 export class WhisperBinaryUnavailableError extends Error {
   readonly code = 'WHISPER_BINARY_UNAVAILABLE'
@@ -38,6 +38,7 @@ export function getBinaryCacheDir(): string {
 }
 
 function getBinaryFilename(): string {
+  // v1.8.4 起统一改名 main → whisper-cli（解压后顶层即有 whisper-cli.exe）
   return process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli'
 }
 
@@ -130,15 +131,12 @@ async function unzipFile(zipPath: string, destDir: string): Promise<void> {
 }
 
 /**
- * 在解压后的目录里递归查找 whisper-cli(.exe) 或 main(.exe)
- * （whisper.cpp 历史上叫 main，v1.7.4 起改名 whisper-cli）
+ * v1.8.4 zip 解压后顶层即包含 whisper-cli.exe + 所有 ggml*.dll。
+ * 这函数返回 whisper-cli.exe 所在目录（含 dll），用于摊平到 cacheDir 顶层。
  */
-function findExecutableRecursive(rootDir: string): string | null {
+function findReleaseDir(rootDir: string): string | null {
   const { readdirSync } = require('node:fs') as typeof import('node:fs')
-  const targets =
-    process.platform === 'win32'
-      ? ['whisper-cli.exe', 'main.exe']
-      : ['whisper-cli', 'main']
+  const targets = process.platform === 'win32' ? ['whisper-cli.exe'] : ['whisper-cli']
 
   function walk(dir: string): string | null {
     let entries: ReturnType<typeof readdirSync<{ withFileTypes: true }>>
@@ -149,11 +147,12 @@ function findExecutableRecursive(rootDir: string): string | null {
     }
     for (const entry of entries) {
       const full = path.join(dir, entry.name)
+      if (entry.isFile() && targets.includes(entry.name.toLowerCase())) {
+        return dir
+      }
       if (entry.isDirectory()) {
         const found = walk(full)
         if (found) return found
-      } else if (targets.includes(entry.name.toLowerCase())) {
-        return full
       }
     }
     return null
@@ -215,17 +214,28 @@ export async function ensureWhisperBinary(opts: {
 
   await unzipFile(zipPath, cacheDir)
 
-  const exePath = findExecutableRecursive(cacheDir)
-  if (!exePath) {
+  const releaseDir = findReleaseDir(cacheDir)
+  if (!releaseDir) {
     throw new WhisperBinaryUnavailableError(
-      `解压后未找到 whisper-cli/main 可执行文件（${cacheDir}）。zip 结构可能已变化。`,
+      `解压后未找到 main 可执行文件（${cacheDir}）。zip 结构可能已变化。`,
     )
   }
 
-  // 把找到的 exe 复制/链接到 cachedExe 路径，方便下次直接读
-  if (exePath !== cachedExe) {
-    const { copyFileSync } = await import('node:fs')
-    copyFileSync(exePath, cachedExe)
+  // v1.8.4 真正可执行 + 依赖 dll 都在 Release/，把它们摊平到 cacheDir 顶层
+  // 让 cachedExe = cacheDir/main.exe 工作（Windows 找 ggml.dll 等只在 exe 同目录找）
+  if (releaseDir !== cacheDir) {
+    const { readdirSync, copyFileSync } = await import('node:fs')
+    for (const entry of readdirSync(releaseDir, { withFileTypes: true })) {
+      if (entry.isFile()) {
+        copyFileSync(path.join(releaseDir, entry.name), path.join(cacheDir, entry.name))
+      }
+    }
+  }
+
+  if (!existsSync(cachedExe)) {
+    throw new WhisperBinaryUnavailableError(
+      `解压拍平后仍未找到 ${cachedExe}。请检查 zip 结构。`,
+    )
   }
 
   return { path: cachedExe, source: 'downloaded' }

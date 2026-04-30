@@ -45,8 +45,15 @@ export interface WhisperCppResult {
   segmentsJsonPath: string
 }
 
-/** GitHub release tag（手动升级；避免 release URL schema 漂移） */
-export const WHISPER_CPP_RELEASE_TAG = 'v1.7.4'
+/**
+ * GitHub release tag（手动升级；避免 release URL schema 漂移）
+ * 注意：v1.7.4 之后官方 repo 由 ggerganov/whisper.cpp 改名为 ggml-org/whisper.cpp，
+ * v1.7.4 的 release assets 没有迁移（404），所以最低支持 v1.8.4。
+ */
+export const WHISPER_CPP_RELEASE_TAG = 'v1.8.4'
 
-/** HuggingFace ggml model repo（whisper.cpp 官方 repo） */
+/** GitHub repo owner/name（2025 改名后） */
+export const WHISPER_CPP_GITHUB_REPO = 'ggml-org/whisper.cpp'
+
+/** HuggingFace ggml model repo（HF 仍保留旧 owner，未改名） */
 export const WHISPER_CPP_MODEL_REPO = 'ggerganov/whisper.cpp'

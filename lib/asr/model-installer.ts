@@ -42,50 +42,86 @@ const MODEL_MIN_SIZE_BYTES: Record<WhisperModelSize, number> = {
   medium: 1.5 * 1024 * 1024 * 1024,
 }
 
+/**
+ * 用 curl 下载 + tail 进度（Node undici fetch 对 HuggingFace 的 cas-bridge 重定向链
+ * 有 UND_ERR_CONNECT_TIMEOUT 问题，用系统 curl 跨平台稳定）。
+ * Windows 10+ / macOS / Linux 默认预装 curl。
+ */
 async function downloadModelFile(
   url: string,
   destPath: string,
   onProgress?: (pct: number) => void,
 ): Promise<void> {
-  const response = await fetch(url, { redirect: 'follow' })
-  if (!response.ok || !response.body) {
-    throw new WhisperModelUnavailableError(
-      `Model download failed: ${url} returned ${response.status} ${response.statusText}`,
-    )
+  await mkdir(path.dirname(destPath), { recursive: true })
+
+  const { spawn } = await import('node:child_process')
+  const { stat } = await import('node:fs/promises')
+
+  // HEAD 请求拿 content-length 用于进度估算
+  let totalBytes = 0
+  try {
+    const head = await fetch(url, { method: 'HEAD', redirect: 'follow' })
+    totalBytes = Number(head.headers.get('content-length') || 0)
+  } catch {
+    // 拿不到也没关系，进度条会不准确
   }
 
-  const totalBytes = Number(response.headers.get('content-length') || 0)
-  let downloaded = 0
-  let lastReported = 0
-  const reader = response.body.getReader()
+  return new Promise<void>((resolve, reject) => {
+    const proc = spawn(
+      'curl',
+      [
+        '-sSL',
+        '--fail',
+        '--max-time',
+        '600',
+        '-o',
+        destPath,
+        url,
+      ],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    )
 
-  await mkdir(path.dirname(destPath), { recursive: true })
-  const writeStream = createWriteStream(destPath)
+    let stderrBuf = ''
+    proc.stderr.on('data', (d) => {
+      stderrBuf += d.toString()
+    })
 
-  const nodeReadable = new Readable({
-    async read() {
-      try {
-        const { done, value } = await reader.read()
-        if (done) {
-          this.push(null)
-          return
-        }
-        downloaded += value.byteLength
-        if (totalBytes > 0 && onProgress) {
-          const pct = Math.floor((downloaded / totalBytes) * 100)
-          if (pct - lastReported >= 5 || pct >= 100) {
+    let progressTimer: NodeJS.Timeout | null = null
+    let lastReported = 0
+    if (onProgress && totalBytes > 0) {
+      progressTimer = setInterval(async () => {
+        try {
+          const s = await stat(destPath)
+          const pct = Math.min(99, Math.floor((s.size / totalBytes) * 100))
+          if (pct - lastReported >= 5) {
             lastReported = pct
             onProgress(pct)
           }
+        } catch {
+          // 文件还没创建
         }
-        this.push(Buffer.from(value))
-      } catch (err) {
-        this.destroy(err as Error)
-      }
-    },
-  })
+      }, 500)
+    }
 
-  await pipeline(nodeReadable, writeStream)
+    proc.on('error', (err) => {
+      if (progressTimer) clearInterval(progressTimer)
+      reject(new WhisperModelUnavailableError(`spawn curl failed: ${err.message}`))
+    })
+
+    proc.on('close', (code) => {
+      if (progressTimer) clearInterval(progressTimer)
+      if (code === 0) {
+        if (onProgress) onProgress(100)
+        resolve()
+      } else {
+        reject(
+          new WhisperModelUnavailableError(
+            `curl exited with code ${code}: ${stderrBuf.slice(0, 500)}`,
+          ),
+        )
+      }
+    })
+  })
 }
 
 export interface EnsureModelResult {
