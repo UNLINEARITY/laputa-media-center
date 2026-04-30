@@ -63,10 +63,56 @@ function initializeDatabase(): void {
   console.log('[DB] ✅ 数据库初始化完成')
 }
 
+/**
+ * 迁移：如发现旧的 jobs.job_type CHECK 约束（只允许 4 种类型），重建表无 CHECK
+ *
+ * 旧 schema 漏掉 podcast_production / multi_platform_script / highlights_extraction，
+ * 导致 Phase 3.B/3.C 创建任务时被 SQLite 拒绝。
+ * 类型校验由 API 层 z.enum + workflow-ids 守门，SQLite 不需 CHECK。
+ */
+function migrateJobsTypeCheck(): void {
+  try {
+    const row = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='jobs'")
+      .get() as { sql?: string } | undefined
+    if (!row?.sql) return
+    if (!/CHECK\(job_type IN \(/i.test(row.sql)) return
+
+    console.log('[DB] 🔄 检测到旧 jobs.job_type CHECK 约束，重建表移除约束...')
+    const tableSql = row.sql
+    const newTableSql = tableSql
+      .replace(/job_type TEXT DEFAULT 'content_ingest' CHECK\(job_type IN \([^)]*\)\)/i, "job_type TEXT DEFAULT 'content_ingest'")
+      .replace(/CREATE TABLE\s+(IF NOT EXISTS\s+)?jobs\b/i, 'CREATE TABLE jobs_new')
+
+    const colsRow = db.prepare("PRAGMA table_info(jobs)").all() as { name: string }[]
+    const cols = colsRow.map((c) => c.name).join(', ')
+
+    db.exec('PRAGMA foreign_keys = OFF;')
+    db.exec('BEGIN;')
+    db.exec(newTableSql)
+    db.exec(`INSERT INTO jobs_new (${cols}) SELECT ${cols} FROM jobs;`)
+    db.exec('DROP TABLE jobs;')
+    db.exec('ALTER TABLE jobs_new RENAME TO jobs;')
+    db.exec('COMMIT;')
+    db.exec('PRAGMA foreign_keys = ON;')
+    console.log('[DB] ✅ jobs.job_type CHECK 约束已移除')
+  } catch (err) {
+    console.error('[DB] ⚠️ jobs.job_type 迁移失败（不阻止启动）:', err instanceof Error ? err.message : String(err))
+    try {
+      db.exec('ROLLBACK;')
+    } catch {
+      // ignore
+    }
+  }
+}
+
 // 初始化：只在数据库为空时执行 schema.sql
 if (!isDatabaseInitialized()) {
   initializeDatabase()
 }
+
+// 自动迁移：清理旧 CHECK 约束（幂等：检测到才执行）
+migrateJobsTypeCheck()
 
 export default db
 export { initializeDatabase as initDatabase }

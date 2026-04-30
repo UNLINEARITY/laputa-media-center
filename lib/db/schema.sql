@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS jobs (
     config TEXT NOT NULL,
 
     -- 任务类型。single_video / multi_video 仅保留历史读取兼容；新任务由 jobsRepo.create 显式写入主线类型。
-    job_type TEXT DEFAULT 'content_ingest' CHECK(job_type IN ('single_video', 'multi_video', 'translation_dubbing', 'content_ingest')),
+    -- 类型在 API 层用 z.enum + JOB_TYPE_TO_WORKFLOW_ID 校验（lib/workflow/workflow-ids.ts），不在 SQLite 层 CHECK
+    -- （旧 CHECK 漏掉 podcast_production / multi_platform_script / highlights_extraction，已移除）
+    job_type TEXT DEFAULT 'content_ingest',
     input_videos TEXT,  -- JSON 数组
     remix_mode TEXT CHECK(remix_mode IN ('story_driven', 'theme_driven', 'visual_optimized')),
     remix_config TEXT,  -- JSON
