@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 3.A（進行中，後端完成；UI deferred 到 Claude Design）
-**下次從哪裡繼續**：Phase 1 deferred 兩個大檔重寫（closed-loop-readiness 760→~250 / provider-smoke-audit 1351→~400）+ UI 切換器
+**當前 Phase**：Phase 3.A ✅ 完成 → Phase 3.B 待開始
+**下次從哪裡繼續**：Phase 3.B — MD/PDF 入口 + 播客模式（A1 決議，v1.0 包含播客）
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -262,7 +262,7 @@
 
 ---
 
-### Phase 3.A：ASR + LLM Provider 抽象 🟡 進行中（後端完成 2026-04-30）
+### Phase 3.A：ASR + LLM Provider 抽象 ✅ 完成（2026-04-30）
 
 **目標**：把「多供應商統一控制台」核心賣點代碼化（ASR + LLM 後端）。
 
@@ -469,8 +469,13 @@
 - [x] 改 lib/ingest/runner.ts:runWhisper() + lib/workflow/steps/dubbing/whisper-asr.ts 走 registry
 - [x] 改 lib/workflow/steps/dubbing/translate-text.ts 走 registry.getActiveLlmProviderId()
 - [x] 4 個 API routes：GET/POST `/api/providers/{asr,llm}` + POST `/api/providers/{asr,llm}/test`
-- [ ] **UI 切換器 deferred 到 Claude Design**（用戶要求等 Claude Design 重新設計）
-- [ ] **Phase 1 deferred 兩個大檔重寫**：closed-loop-readiness.ts 760→~250 + provider-smoke-audit.ts 1351→~400 ← 下次
+- [x] **UI 切換器**（Claude Design 風格完成 2026-04-30）：
+      asr-provider-switcher.tsx + llm-provider-switcher.tsx，集成到 settings system tab。
+      Tier badge / Ready chip / 測試連接 / 切換 active / OpenAI 付費確認 checkbox / Mistral 開源 / 配置編輯器
+- [x] **closed-loop-readiness.ts 重寫** 760 → 730（4% reduction，inline fallback + dict-driven detail）。
+      **不達 ~250 目標**：Agent L 評估後保 8 個 consumer 完整序列化 + 5 個 provider gate（受保護資產邊界）使進一步削減 risk 太高
+- [ ] **provider-smoke-audit.ts 重寫 deferred 到 Phase 4**（Agent M 坦誠評估：reservation/permit 450 行被
+      dubbing-readiness/route.ts 深度耦合，最多砍到 ~830，達不到 ~400 目標，且觸發 8 個 consumer 回歸風險）
 
 ### Phase 3.B：MD/PDF 入口 + 播客模式
 - [ ] MD 入口（gray-matter + remark）
@@ -684,3 +689,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：Phase 2 代碼層集成完成（TEAM 模式：3 個 agent 並行盤點 + 設計）。新建 `lib/asr/` 6 個檔（WhisperCppRunner + binary-installer 自動下載 GitHub releases v1.7.4 prebuild + model-installer 從 HuggingFace 拉 ggml-base / 共 ~150MB 緩存到 ~/.laputa/whisper/）。改 `lib/ingest/runner.ts:runWhisper()` 和 `lib/workflow/steps/dubbing/whisper-asr.ts` 兩個 ASR 入口都用 WhisperCppRunner，segments.json schema 保持與 translator.py 兼容。Phase 2 默認純 CPU（Blackwell sm_120 cuBLAS prebuild 不穩，base 模型 i5-14600KF 跑 1 分鐘音頻 ~3-5 秒夠用）。`scripts/whisper_asr.py` 加 DEPRECATED 注釋作 fallback。pnpm test:unit 685 pass / 17 skip / 0 fail。Phase 2 收尾待做：真實 YT 轉錄驗收 + install API + UI 按鈕。
 - **2026-04-30**：Phase 2 收尾完成（TEAM 模式：3 個 agent 並行 — E 驗證 release URL / F 設計 install API / G 盤點 settings UI 風格）。新建 `app/api/runtime/whisper-cpp/install/route.ts`（SSE + session-only + 1/min rate + single-flight）+ `status/route.ts`（GET JSON）+ `components/settings/whisper-cpp-installer.tsx`（進度條 UI），集成到 settings/maintenance tab。**真實驗收**：自動下載 ~5MB whisper-cli.exe + 148MB ggml-base.bin 到 ~/.laputa/whisper/，1 秒 wav 轉錄 748ms 完成（CPU AVX2/FMA），JSON 輸出格式對齊。**修 3 個發現的問題**：(1) v1.7.4 release assets 沒遷到改名後的 ggml-org/whisper.cpp，升級到 v1.8.4；(2) Node undici fetch 對 HuggingFace cas-bridge redirect 有 timeout，model-installer 改用 spawn curl；(3) v1.8.4 zip 主可執行從 main.exe 改名 whisper-cli.exe，解壓後拍平 Release/ 內容到 cacheDir 讓 dll 與 exe 同目錄。pnpm test:unit 685 pass / 17 skip / 0 fail。Phase 2 整體完成，下一步 Phase 3.A Provider 抽象。
 - **2026-04-30**：Phase 3.A 後端完成（TEAM 模式：3 個 agent 並行 — H 盤點 LLM 調用點 / I 設計 Provider 架構 / K 驗證 translator.py 契約）。新建 `lib/providers/{asr,llm}/` 9 個檔（types + 5 個 provider impl + registry）。ASR：whisper-cpp（默認，包 WhisperCppRunner）+ gemini-audio（Hybrid 模式：whisper 時間戳 + Gemini 文本對齊）。LLM：gemini（默認，包 lib/ai/gemini）+ openai（SDK）+ mistral（SDK）。**openai-whisper 砍**（朋友用 whisper.cpp 已夠）。改 `scripts/translator.py:L719` 擴展 provider 分支：accept gemini/openai/mistral（OpenAI/Mistral 走 OpenAI-compatible 路徑，call_gemini_json 已內建判斷），**兩階段 prompt 0 動**。改 `lib/ingest/runner.ts:runWhisper()` + `lib/workflow/steps/dubbing/{whisper-asr,translate-text}.ts` 走 registry。新建 4 個 API routes（GET/POST list + POST test）。**真實驗收**：GET `/api/providers/asr` 列出 2 個 + GET `/api/providers/llm` 列出 3 個 + POST `/api/providers/asr/test {whisper-cpp}` 1117ms ok=true。pnpm test:unit 685 pass / 17 skip / 0 fail。**UI deferred 到 Claude Design 階段**（用戶要求）。**Phase 1 deferred 兩個大檔重寫**：留下次（closed-loop-readiness 760→~250 + provider-smoke-audit 1351→~400）。
+- **2026-04-30**：Phase 3.A 收尾完成（TEAM 模式：3 個 agent 並行 — L 重寫 closed-loop / M 評估 provider-smoke-audit / N 設計 UI）。**closed-loop-readiness 重寫**：760→730（4% reduction，inline fallback + dict-driven detail；保 8 個 consumer 序列化 + 5 個 provider gate 邊界）。Agent M 坦誠評估後 **provider-smoke-audit deferred 到 Phase 4**（reservation/permit 450 行深度耦合 dubbing-readiness/route.ts，砍會破壞付費 gate）。**UI 切換器（Claude Design）**：新建 `asr-provider-switcher.tsx` + `llm-provider-switcher.tsx`（Tier 🟢🟡🔴 badge / Ready chip / 測試連接按鈕 / 切換 active 按鈕 / OpenAI 付費確認 inline checkbox / Mistral 開源備選 / OpenAI+Mistral 凭證編輯器走 POST /api/configs / 配置入口跳轉 maintenance/ai-studio tab），集成到 settings system tab 內「運行 Provider」分組（不新開 tab）。pnpm test:unit 685 pass / 17 skip / 0 fail；/settings + GET/POST /api/providers/* 全部 200 OK。Phase 3.A 整體完成，下一步 Phase 3.B（MD/PDF 入口 + 播客模式）。

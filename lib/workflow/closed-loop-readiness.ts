@@ -22,6 +22,10 @@ import {
   validateProviderGateConfirmations,
 } from './provider-gate-confirmation'
 
+// ============================================================
+// 类型定义（保持向后兼容；8 个外部 consumer 序列化依赖）
+// ============================================================
+
 export type ReadinessTone = 'ready' | 'warning' | 'blocked'
 export type ClosedLoopRuntimeReadinessLevel = 'blocked' | 'dry_run' | 'live'
 export type ClosedLoopProviderRuntime = 'ingest' | 'dubbing'
@@ -53,16 +57,8 @@ export interface ClosedLoopProviderGate {
   run_mode: ClosedLoopProviderRunMode
   detail: string
   blockers: string[]
-  risk: {
-    external_call: boolean
-    may_spend_money: boolean
-    writes_artifacts: boolean
-  }
-  confirmation: {
-    required: boolean
-    id?: string
-    label?: string
-  }
+  risk: { external_call: boolean; may_spend_money: boolean; writes_artifacts: boolean }
+  confirmation: { required: boolean; id?: string; label?: string }
   dry_run_available: boolean
   live_run_available: boolean
   external_call: boolean
@@ -80,7 +76,6 @@ export interface ClosedLoopDeliveryAuditReadiness {
 }
 
 export interface ClosedLoopReadiness {
-  /** 运行链路完整可跑；不代表声线披露等交付审计已完整。 */
   production_ready: boolean
   smoke_ready: boolean
   dry_run_ready: boolean
@@ -108,7 +103,6 @@ export interface ClosedLoopReadiness {
 }
 
 export type ClosedLoopProviderConfirmationValidation = ProviderGateConfirmationValidation
-
 export type ClosedLoopTtsCredentialStatus = Omit<MiniMaxCredentialStatus, 'path'>
 export type ClosedLoopTranslationCredentialStatus = DubbingTranslationCredentialStatus
 
@@ -132,6 +126,10 @@ export interface GetClosedLoopReadinessOptions {
   voiceRegistryEntries?: BuildClosedLoopReadinessInput['voiceRegistryEntries']
 }
 
+// ============================================================
+// 公开 API
+// ============================================================
+
 export function validateClosedLoopProviderConfirmations(
   readiness: Pick<ClosedLoopReadiness, 'required_confirmations'>,
   confirmedGateIds: readonly string[] | undefined,
@@ -145,19 +143,17 @@ export function validateClosedLoopProviderConfirmations(
   })
 }
 
-function findCheck(
-  checks: Array<{ name: string; exists: boolean }>,
-  name: string,
-): { name: string; exists: boolean } | undefined {
-  return checks.find((check) => check.name === name)
-}
+// ============================================================
+// 辅助函数（精简后）
+// ============================================================
 
-function statusFromMissing(requiredMissing: string[], warning: boolean): ReadinessTone {
-  if (requiredMissing.length > 0) return 'blocked'
-  return warning ? 'warning' : 'ready'
-}
+const findCheck = (checks: { name: string; exists: boolean }[], name: string) =>
+  checks.find((c) => c.name === name)
 
-function buildProviderGate(options: {
+const statusFromMissing = (required: string[], warning: boolean): ReadinessTone =>
+  required.length > 0 ? 'blocked' : warning ? 'warning' : 'ready'
+
+interface ProviderGateInput {
   id: string
   label: string
   runtime: ClosedLoopProviderRuntime
@@ -175,36 +171,39 @@ function buildProviderGate(options: {
   writesArtifacts?: boolean
   confirmationId?: string
   confirmationLabel?: string
-}): ClosedLoopProviderGate {
-  const dryRunReady = options.dryRunReady === true
-  const optionalSkip = options.optionalSkip === true
-  const runMode: ClosedLoopProviderRunMode = options.liveReady
+}
+
+function buildProviderGate(opt: ProviderGateInput): ClosedLoopProviderGate {
+  const dryRunReady = opt.dryRunReady === true
+  const optionalSkip = opt.optionalSkip === true
+  const runMode: ClosedLoopProviderRunMode = opt.liveReady
     ? 'real'
     : dryRunReady
       ? 'dry_run'
       : optionalSkip
         ? 'optional_skip'
         : 'blocked'
-  const externalCall = options.externalCall === true && options.liveReady
-  const maySpendMoney = options.maySpendMoney === true && options.liveReady
+  const externalCall = opt.externalCall === true && opt.liveReady
+  const maySpendMoney = opt.maySpendMoney === true && opt.liveReady
   const writesArtifacts =
-    options.writesArtifacts === true && (options.liveReady || dryRunReady || optionalSkip)
+    opt.writesArtifacts === true && (opt.liveReady || dryRunReady || optionalSkip)
   const requiresConfirmation = externalCall || maySpendMoney
+  const detail = opt.liveReady
+    ? opt.liveDetail
+    : dryRunReady
+      ? opt.dryRunDetail || opt.liveDetail
+      : opt.blockedDetail
 
   return {
-    id: options.id,
-    label: options.label,
-    runtime: options.runtime,
-    provider: options.provider,
-    capability: options.capability,
-    status: options.liveReady ? 'ready' : dryRunReady || optionalSkip ? 'warning' : 'blocked',
+    id: opt.id,
+    label: opt.label,
+    runtime: opt.runtime,
+    provider: opt.provider,
+    capability: opt.capability,
+    status: opt.liveReady ? 'ready' : dryRunReady || optionalSkip ? 'warning' : 'blocked',
     run_mode: runMode,
-    detail: options.liveReady
-      ? options.liveDetail
-      : dryRunReady
-        ? options.dryRunDetail || options.liveDetail
-        : options.blockedDetail,
-    blockers: options.liveReady ? [] : options.blockers,
+    detail,
+    blockers: opt.liveReady ? [] : opt.blockers,
     risk: {
       external_call: externalCall,
       may_spend_money: maySpendMoney,
@@ -212,31 +211,27 @@ function buildProviderGate(options: {
     },
     confirmation: {
       required: requiresConfirmation,
-      id: requiresConfirmation ? options.confirmationId || options.id : undefined,
-      label: requiresConfirmation ? options.confirmationLabel : undefined,
+      id: requiresConfirmation ? opt.confirmationId || opt.id : undefined,
+      label: requiresConfirmation ? opt.confirmationLabel : undefined,
     },
     dry_run_available: dryRunReady,
-    live_run_available: options.liveReady,
+    live_run_available: opt.liveReady,
     external_call: externalCall,
     may_spend_money: maySpendMoney,
     requires_confirmation: requiresConfirmation,
-    confirmation_label: requiresConfirmation ? options.confirmationLabel : undefined,
+    confirmation_label: requiresConfirmation ? opt.confirmationLabel : undefined,
   }
 }
 
-function hasVoiceDisclosureMetadata(
-  entry: Pick<
-    MiniMaxVoiceRegistryEntry,
-    'voice_id' | 'category' | 'requires_disclosure' | 'usage_label'
-  >,
-): boolean {
-  return Boolean(
-    entry.voice_id.trim() &&
-      entry.category &&
-      typeof entry.requires_disclosure === 'boolean' &&
-      entry.usage_label.trim(),
+const hasVoiceDisclosureMetadata = (
+  e: Pick<MiniMaxVoiceRegistryEntry, 'voice_id' | 'category' | 'requires_disclosure' | 'usage_label'>,
+) =>
+  Boolean(
+    e.voice_id.trim() &&
+      e.category &&
+      typeof e.requires_disclosure === 'boolean' &&
+      e.usage_label.trim(),
   )
-}
 
 function buildVoiceMetadataStage(input: {
   ttsConfigured: boolean
@@ -246,23 +241,23 @@ function buildVoiceMetadataStage(input: {
     'voice_id' | 'category' | 'requires_disclosure' | 'usage_label'
   >[]
 }): ClosedLoopReadinessStage & { ready: boolean } {
-  const registryEntries = input.registryEntries || []
-  const creatorDefaultVoiceId = input.creatorDefaultVoiceId?.trim()
-  const hasDefaultOrRegistry = Boolean(creatorDefaultVoiceId) || registryEntries.length > 0
-  const hasDisclosureMetadata = registryEntries.some(hasVoiceDisclosureMetadata)
+  const entries = input.registryEntries || []
+  const defaultVoiceId = input.creatorDefaultVoiceId?.trim()
+  const hasDefaultOrRegistry = Boolean(defaultVoiceId) || entries.length > 0
+  const hasDisclosure = entries.some(hasVoiceDisclosureMetadata)
   const missing = [
     ...(input.ttsConfigured ? [] : ['MiniMax TTS 凭证']),
     ...(hasDefaultOrRegistry ? [] : ['创作者默认声线或本地声线注册表']),
-    ...(hasDisclosureMetadata ? [] : ['声线用途/披露元数据']),
+    ...(hasDisclosure ? [] : ['声线用途/披露元数据']),
   ]
-  const ready = input.ttsConfigured && hasDefaultOrRegistry && hasDisclosureMetadata
+  const ready = input.ttsConfigured && hasDefaultOrRegistry && hasDisclosure
 
   return {
     id: 'voice_metadata',
     label: '声线元数据与披露',
     status: ready ? 'ready' : 'warning',
     detail: ready
-      ? `已登记 ${registryEntries.length} 条声线元数据，可在交付 README、QA 和报告中追踪用途与披露。`
+      ? `已登记 ${entries.length} 条声线元数据，可在交付 README、QA 和报告中追踪用途与披露。`
       : input.ttsConfigured
         ? 'MiniMax 可用于配音，但声线用途或披露元数据不完整；正式交付前建议补齐本地声线注册表。'
         : 'MiniMax 尚未配置；声线用途和披露元数据暂不能用于正式交付审计。',
@@ -271,12 +266,12 @@ function buildVoiceMetadataStage(input: {
   }
 }
 
-function buildDeliveryAuditReadiness(params: {
+function buildDeliveryAuditReadiness(p: {
   productionReady: boolean
   voiceMetadataReady: boolean
   voiceMetadataMissing: string[]
 }): ClosedLoopDeliveryAuditReadiness {
-  if (!params.productionReady) {
+  if (!p.productionReady) {
     return {
       ready: false,
       status: 'blocked',
@@ -285,18 +280,16 @@ function buildDeliveryAuditReadiness(params: {
       missing: [],
     }
   }
-
-  if (!params.voiceMetadataReady) {
+  if (!p.voiceMetadataReady) {
     return {
       ready: false,
       status: 'warning',
       label: '可跑，待审计',
       guidance:
         '运行链路已可跑正式成片，但声线用途或披露元数据不完整；交付前应补齐本地声线注册表。',
-      missing: params.voiceMetadataMissing,
+      missing: p.voiceMetadataMissing,
     }
   }
-
   return {
     ready: true,
     status: 'ready',
@@ -306,178 +299,149 @@ function buildDeliveryAuditReadiness(params: {
   }
 }
 
-function buildFallbackTtsCredentialStatus(ttsConfigured: boolean): ClosedLoopTtsCredentialStatus {
-  if (!ttsConfigured) {
-    return {
-      configured: false,
-      verified: false,
-      source: null,
-      verification_state: 'missing',
-      detail: '未配置 MiniMax TTS 凭证。',
-    }
-  }
+// fallback credential 状态（合并 TTS / Translation 的对称实现）
+const emptyTranslationRuntime = (): DubbingTranslationRuntimeSummary => ({
+  provider: 'gemini',
+  api_key_source: null,
+  model_id: null,
+  model_source: null,
+  api_base_url_configured: false,
+  api_base_url_source: null,
+})
 
-  return {
-    configured: true,
-    verified: false,
-    source: null,
-    verification_state: 'not_tracked',
-    detail: 'MiniMax 凭证已配置，但当前 readiness 输入没有付费验证记录。',
-  }
-}
+const fallbackTtsCredential = (configured: boolean): ClosedLoopTtsCredentialStatus =>
+  configured
+    ? {
+        configured: true,
+        verified: false,
+        source: null,
+        verification_state: 'not_tracked',
+        detail: 'MiniMax 凭证已配置，但当前 readiness 输入没有付费验证记录。',
+      }
+    : {
+        configured: false,
+        verified: false,
+        source: null,
+        verification_state: 'missing',
+        detail: '未配置 MiniMax TTS 凭证。',
+      }
 
-function buildEmptyTranslationRuntimeSummary(): DubbingTranslationRuntimeSummary {
-  return {
-    provider: 'gemini',
-    api_key_source: null,
-    model_id: null,
-    model_source: null,
-    api_base_url_configured: false,
-    api_base_url_source: null,
-  }
-}
+const fallbackTranslationCredential = (
+  configured: boolean,
+): ClosedLoopTranslationCredentialStatus =>
+  configured
+    ? {
+        configured: true,
+        verified: false,
+        source: null,
+        verification_state: 'not_tracked',
+        detail: 'Gemini 翻译凭证已配置，但当前 readiness 输入没有真实 provider 验证记录。',
+        runtime: { ...emptyTranslationRuntime(), api_key_source: 'env:GEMINI_API_KEY' },
+      }
+    : {
+        configured: false,
+        verified: false,
+        source: null,
+        verification_state: 'missing',
+        detail: '未配置 Gemini 翻译凭证。',
+        runtime: emptyTranslationRuntime(),
+      }
 
-function buildFallbackTranslationCredentialStatus(
-  translationConfigured: boolean,
-): ClosedLoopTranslationCredentialStatus {
-  if (!translationConfigured) {
-    return {
-      configured: false,
-      verified: false,
-      source: null,
-      verification_state: 'missing',
-      detail: '未配置 Gemini 翻译凭证。',
-      runtime: buildEmptyTranslationRuntimeSummary(),
-    }
-  }
-
-  return {
-    configured: true,
-    verified: false,
-    source: null,
-    verification_state: 'not_tracked',
-    detail: 'Gemini 翻译凭证已配置，但当前 readiness 输入没有真实 provider 验证记录。',
-    runtime: {
-      ...buildEmptyTranslationRuntimeSummary(),
-      api_key_source: 'env:GEMINI_API_KEY',
+// 统一的 stage detail builder（按 verification_state 派生不同语境的描述）
+function buildStageDetail(opt: {
+  kind: 'translation' | 'tts'
+  envMissing: boolean
+  credentialMissing: boolean
+  bypassAllowed: boolean
+  state: ClosedLoopTranslationCredentialStatus['verification_state']
+}): string {
+  const dict = {
+    translation: {
+      envMissing: '翻译配音脚本环境未完整。',
+      missingBypass: '未配置 Gemini 翻译凭证；已允许原文占位，可做 smoke 但不能算正式本地化。',
+      missingNoBypass: '未配置 Gemini 翻译凭证；当前不会创建原文占位任务，需先配置翻译 provider。',
+      verified: 'Gemini 翻译凭证已配置并已通过设置页真实 provider 验证，可做口语化翻译。',
+      saved: 'Gemini 翻译凭证已保存但未真实 provider 验证；可在任务级费用确认后尝试口语化翻译。',
+      notTracked:
+        'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，可在任务级费用确认后尝试口语化翻译。',
+      fallback: 'Gemini 翻译凭证已配置，可在任务级费用确认后尝试口语化翻译。',
     },
-  }
+    tts: {
+      envMissing: '配音脚本环境未完整。',
+      missingBypass: '未配置 MiniMax；已允许静音占位，可做 smoke 但不能输出正式配音。',
+      missingNoBypass: '未配置 MiniMax；当前不会创建静音占位任务，需先配置 TTS。',
+      verified: 'MiniMax TTS 凭证已配置并已通过设置页付费验证，可在确认费用后输出正式配音。',
+      saved: 'MiniMax TTS 凭证已保存但未付费验证；可在任务级费用确认后尝试正式配音。',
+      notTracked:
+        'MiniMax TTS 凭证来自环境变量或本地文件；设置页没有付费验证记录，可在任务级费用确认后尝试正式配音。',
+      fallback: 'MiniMax TTS 凭证已配置，可在任务级费用确认后尝试正式配音。',
+    },
+  } as const
+  const t = dict[opt.kind]
+  if (opt.envMissing) return t.envMissing
+  if (opt.credentialMissing) return opt.bypassAllowed ? t.missingBypass : t.missingNoBypass
+  if (opt.state === 'verified') return t.verified
+  if (opt.state === 'saved_unverified') return t.saved
+  if (opt.state === 'not_tracked') return t.notTracked
+  return t.fallback
 }
 
-function buildTranslationStageDetail(params: {
-  dubbingMissing: string[]
-  translationMissing: string[]
-  passthroughTranslationAllowed: boolean
-  credentialStatus: ClosedLoopTranslationCredentialStatus
-}): string {
-  if (params.dubbingMissing.length > 0) {
-    return '翻译配音脚本环境未完整。'
-  }
-
-  if (params.translationMissing.length > 0) {
-    return params.passthroughTranslationAllowed
-      ? '未配置 Gemini 翻译凭证；已允许原文占位，可做 smoke 但不能算正式本地化。'
-      : '未配置 Gemini 翻译凭证；当前不会创建原文占位任务，需先配置翻译 provider。'
-  }
-
-  if (params.credentialStatus.verification_state === 'verified') {
-    return 'Gemini 翻译凭证已配置并已通过设置页真实 provider 验证，可做口语化翻译。'
-  }
-
-  if (params.credentialStatus.verification_state === 'saved_unverified') {
-    return 'Gemini 翻译凭证已保存但未真实 provider 验证；可在任务级费用确认后尝试口语化翻译。'
-  }
-
-  if (params.credentialStatus.verification_state === 'not_tracked') {
-    return 'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，可在任务级费用确认后尝试口语化翻译。'
-  }
-
-  return 'Gemini 翻译凭证已配置，可在任务级费用确认后尝试口语化翻译。'
-}
-
-function buildTtsStageDetail(params: {
-  dubbingMissing: string[]
-  ttsMissing: string[]
-  placeholderTtsAllowed: boolean
-  credentialStatus: ClosedLoopTtsCredentialStatus
-}): string {
-  if (params.dubbingMissing.length > 0) {
-    return '配音脚本环境未完整。'
-  }
-
-  if (params.ttsMissing.length > 0) {
-    return params.placeholderTtsAllowed
-      ? '未配置 MiniMax；已允许静音占位，可做 smoke 但不能输出正式配音。'
-      : '未配置 MiniMax；当前不会创建静音占位任务，需先配置 TTS。'
-  }
-
-  if (params.credentialStatus.verification_state === 'verified') {
-    return 'MiniMax TTS 凭证已配置并已通过设置页付费验证，可在确认费用后输出正式配音。'
-  }
-
-  if (params.credentialStatus.verification_state === 'saved_unverified') {
-    return 'MiniMax TTS 凭证已保存但未付费验证；可在任务级费用确认后尝试正式配音。'
-  }
-
-  if (params.credentialStatus.verification_state === 'not_tracked') {
-    return 'MiniMax TTS 凭证来自环境变量或本地文件；设置页没有付费验证记录，可在任务级费用确认后尝试正式配音。'
-  }
-
-  return 'MiniMax TTS 凭证已配置，可在任务级费用确认后尝试正式配音。'
-}
-
-function buildTranslationProviderGateDetail(
-  credentialStatus: ClosedLoopTranslationCredentialStatus,
+// 统一的 provider gate detail builder（仅 paid TTS / translation 用）
+function buildPaidProviderGateDetail(
+  kind: 'translation' | 'tts',
+  state: ClosedLoopTranslationCredentialStatus['verification_state'],
 ): string {
-  if (credentialStatus.verification_state === 'verified') {
-    return 'Gemini 翻译凭证已配置并已通过设置页真实 provider 验证；真实 smoke 会调用外部翻译服务，可能产生费用。'
-  }
-
-  if (credentialStatus.verification_state === 'saved_unverified') {
-    return 'Gemini 翻译凭证已保存但未真实 provider 验证；真实 smoke 仍会调用外部翻译服务，可能产生费用。'
-  }
-
-  if (credentialStatus.verification_state === 'not_tracked') {
-    return 'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，真实 smoke 会调用外部翻译服务并可能产生费用。'
-  }
-
-  return '翻译 provider 已配置；真实 smoke 会调用外部翻译服务。'
+  const dict = {
+    translation: {
+      verified:
+        'Gemini 翻译凭证已配置并已通过设置页真实 provider 验证；真实 smoke 会调用外部翻译服务，可能产生费用。',
+      saved:
+        'Gemini 翻译凭证已保存但未真实 provider 验证；真实 smoke 仍会调用外部翻译服务，可能产生费用。',
+      notTracked:
+        'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，真实 smoke 会调用外部翻译服务并可能产生费用。',
+      fallback: '翻译 provider 已配置；真实 smoke 会调用外部翻译服务。',
+    },
+    tts: {
+      verified:
+        'MiniMax TTS 已配置并已通过设置页付费验证；真实 smoke 会调用 MiniMax 生成语音，可能产生费用。',
+      saved:
+        'MiniMax TTS 凭证已保存但未付费验证；真实 smoke 仍会调用 MiniMax 生成语音，可能产生费用。',
+      notTracked:
+        'MiniMax TTS 凭证来自环境变量或本地文件；设置页没有付费验证记录，真实 smoke 会调用 MiniMax 并可能产生费用。',
+      fallback: 'MiniMax TTS 已配置；真实 smoke 会调用 MiniMax 生成语音，可能产生费用。',
+    },
+  } as const
+  const t = dict[kind]
+  if (state === 'verified') return t.verified
+  if (state === 'saved_unverified') return t.saved
+  if (state === 'not_tracked') return t.notTracked
+  return t.fallback
 }
 
-function buildMiniMaxProviderGateDetail(credentialStatus: ClosedLoopTtsCredentialStatus): string {
-  if (credentialStatus.verification_state === 'verified') {
-    return 'MiniMax TTS 已配置并已通过设置页付费验证；真实 smoke 会调用 MiniMax 生成语音，可能产生费用。'
-  }
-
-  if (credentialStatus.verification_state === 'saved_unverified') {
-    return 'MiniMax TTS 凭证已保存但未付费验证；真实 smoke 仍会调用 MiniMax 生成语音，可能产生费用。'
-  }
-
-  if (credentialStatus.verification_state === 'not_tracked') {
-    return 'MiniMax TTS 凭证来自环境变量或本地文件；设置页没有付费验证记录，真实 smoke 会调用 MiniMax 并可能产生费用。'
-  }
-
-  return 'MiniMax TTS 已配置；真实 smoke 会调用 MiniMax 生成语音，可能产生费用。'
-}
-
-function getRuntimeReadinessLevel(params: {
+const getRuntimeReadinessLevel = (p: {
   productionReady: boolean
   smokeReady: boolean
-}): ClosedLoopRuntimeReadinessLevel {
-  if (!params.smokeReady) return 'blocked'
-  if (params.productionReady) return 'live'
-  return 'dry_run'
-}
+}): ClosedLoopRuntimeReadinessLevel =>
+  !p.smokeReady ? 'blocked' : p.productionReady ? 'live' : 'dry_run'
+
+// ============================================================
+// 主函数
+// ============================================================
 
 export function buildClosedLoopReadiness(
   input: BuildClosedLoopReadinessInput,
 ): ClosedLoopReadiness {
   const placeholderTtsAllowed = input.placeholderTtsAllowed === true
   const passthroughTranslationAllowed = input.passthroughTranslationAllowed === true
+
   const translationCredentialStatus =
     input.translationCredentialStatus ??
-    buildFallbackTranslationCredentialStatus(input.translationConfigured)
+    fallbackTranslationCredential(input.translationConfigured)
   const translationConfigured = translationCredentialStatus.configured
+  const ttsCredentialStatus =
+    input.ttsCredentialStatus ?? fallbackTtsCredential(input.ttsConfigured)
+
+  // 缺失项归集
   const ytDlp = findCheck(input.ingest.checks, 'INGEST_YTDLP_EXE')
   const youtubeMissing = [
     ...input.ingest.missing_required,
@@ -485,15 +449,11 @@ export function buildClosedLoopReadiness(
   ]
   const youtubeCookiesMissing = !input.ingest.youtube_cookies_configured
   const ingestMissing = input.ingest.missing_required
-  const dubbingMissing = input.dubbing.missing_required.filter(
-    (name) => name !== 'MiniMax TTS 凭证',
-  )
+  const dubbingMissing = input.dubbing.missing_required.filter((n) => n !== 'MiniMax TTS 凭证')
   const translationMissing = translationConfigured ? [] : ['Gemini 翻译凭证']
   const translationBlockingMissing =
     translationConfigured || passthroughTranslationAllowed ? [] : ['Gemini 翻译凭证']
   const ttsMissing = input.ttsConfigured ? [] : ['MiniMax TTS 凭证']
-  const ttsCredentialStatus =
-    input.ttsCredentialStatus ?? buildFallbackTtsCredentialStatus(input.ttsConfigured)
   const ttsBlockingMissing =
     input.ttsConfigured || placeholderTtsAllowed ? [] : ['MiniMax TTS 凭证']
   const wav2lip = findCheck(input.dubbing.checks, 'Wav2Lip inference.py')
@@ -510,6 +470,7 @@ export function buildClosedLoopReadiness(
     registryEntries: input.voiceRegistryEntries,
   })
 
+  // 阶段（用户 UI 可读）
   const stages: ClosedLoopReadinessStage[] = [
     {
       id: 'youtube_ingest',
@@ -545,11 +506,12 @@ export function buildClosedLoopReadiness(
         [...dubbingMissing, ...translationBlockingMissing],
         translationMissing.length > 0,
       ),
-      detail: buildTranslationStageDetail({
-        dubbingMissing,
-        translationMissing,
-        passthroughTranslationAllowed,
-        credentialStatus: translationCredentialStatus,
+      detail: buildStageDetail({
+        kind: 'translation',
+        envMissing: dubbingMissing.length > 0,
+        credentialMissing: translationMissing.length > 0,
+        bypassAllowed: passthroughTranslationAllowed,
+        state: translationCredentialStatus.verification_state,
       }),
       missing: [...dubbingMissing, ...translationMissing],
     },
@@ -557,11 +519,12 @@ export function buildClosedLoopReadiness(
       id: 'tts',
       label: '配音与声线',
       status: statusFromMissing([...dubbingMissing, ...ttsBlockingMissing], ttsMissing.length > 0),
-      detail: buildTtsStageDetail({
-        dubbingMissing,
-        ttsMissing,
-        placeholderTtsAllowed,
-        credentialStatus: ttsCredentialStatus,
+      detail: buildStageDetail({
+        kind: 'tts',
+        envMissing: dubbingMissing.length > 0,
+        credentialMissing: ttsMissing.length > 0,
+        bypassAllowed: placeholderTtsAllowed,
+        state: ttsCredentialStatus.verification_state,
       }),
       missing: [...dubbingMissing, ...ttsMissing],
     },
@@ -589,7 +552,8 @@ export function buildClosedLoopReadiness(
   ]
   const productionMissing = [...hardMissing, ...translationMissing, ...ttsMissing]
   const smokeReady = hardMissing.length === 0
-  const productionReady = smokeReady && translationMissing.length === 0 && ttsMissing.length === 0
+  const productionReady =
+    smokeReady && translationMissing.length === 0 && ttsMissing.length === 0
   const deliveryAudit = buildDeliveryAuditReadiness({
     productionReady,
     voiceMetadataReady: voiceMetadataStage.ready,
@@ -598,6 +562,8 @@ export function buildClosedLoopReadiness(
   const runtimeReadinessLevel = getRuntimeReadinessLevel({ productionReady, smokeReady })
   const youtubeReady = youtubeMissing.length === 0
   const lipsyncReady = lipsyncMissing.length === 0
+
+  // Provider gates（5 家固定 — yt_dlp/whisper/gemini/minimax/wav2lip 是受保护资产边界）
   const providerGates: ClosedLoopProviderGate[] = [
     buildProviderGate({
       id: 'youtube_download',
@@ -635,7 +601,10 @@ export function buildClosedLoopReadiness(
       capability: 'translate',
       liveReady: translationConfigured && dubbingMissing.length === 0,
       dryRunReady: passthroughTranslationAllowed && dubbingMissing.length === 0,
-      liveDetail: buildTranslationProviderGateDetail(translationCredentialStatus),
+      liveDetail: buildPaidProviderGateDetail(
+        'translation',
+        translationCredentialStatus.verification_state,
+      ),
       dryRunDetail: '未配置翻译 provider；可用原文占位 dry-run 验证流程结构。',
       blockedDetail: '翻译 provider 未配置，且未允许原文占位 dry-run。',
       blockers: [...dubbingMissing, ...translationMissing],
@@ -653,7 +622,7 @@ export function buildClosedLoopReadiness(
       capability: 'tts',
       liveReady: input.ttsConfigured && dubbingMissing.length === 0,
       dryRunReady: placeholderTtsAllowed && dubbingMissing.length === 0,
-      liveDetail: buildMiniMaxProviderGateDetail(ttsCredentialStatus),
+      liveDetail: buildPaidProviderGateDetail('tts', ttsCredentialStatus.verification_state),
       dryRunDetail: '未配置 MiniMax；可用静音占位 dry-run 验证字幕、合成与交付结构。',
       blockedDetail: 'MiniMax 未配置，且未允许静音占位 dry-run。',
       blockers: [...dubbingMissing, ...ttsMissing],
@@ -677,10 +646,11 @@ export function buildClosedLoopReadiness(
       writesArtifacts: true,
     }),
   ]
+
   const providerSmokeReady =
     smokeReady && translationConfigured && input.ttsConfigured && youtubeReady
   const providerSmokeRequiresConfirmation =
-    providerSmokeReady && providerGates.some((gate) => gate.requires_confirmation)
+    providerSmokeReady && providerGates.some((g) => g.requires_confirmation)
   const requiredConfirmations = getRequiredProviderConfirmationsFromGates(providerGates)
 
   return {

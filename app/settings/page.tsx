@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiTokenManager } from '@/components/settings/api-token-manager'
+import { AsrProviderSwitcher } from '@/components/settings/asr-provider-switcher'
 import { CreatorAssetsConfig } from '@/components/settings/creator-assets-config'
 import { GeminiAIStudioConfig } from '@/components/settings/gemini-ai-studio-config'
 import { GeminiVertexConfig } from '@/components/settings/gemini-vertex-config'
+import { LlmProviderSwitcher } from '@/components/settings/llm-provider-switcher'
 import { MiniMaxConfig } from '@/components/settings/minimax-config'
 import { StatusBadge, StatusChip } from '@/components/settings/status-badge'
 import { StorageCleanup } from '@/components/settings/storage-cleanup'
@@ -454,6 +456,14 @@ export default function SettingsPage() {
             </div>
 
             <SystemConfig onConfigChange={handleSystemConfigSave} />
+
+            {/* Phase 3.A：运行 Provider 切换器（ASR + LLM） */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-claude-dark-400">运行 Provider</h3>
+              <AsrProviderSwitcher onActiveTabChange={setActiveTab} />
+              <LlmProviderSwitcher onActiveTabChange={setActiveTab} />
+            </div>
+
             <div id="minimax_tts" className="scroll-mt-24">
               <MiniMaxConfig
                 apiKey={miniMaxKey}
