@@ -7,12 +7,14 @@ import type { WorkflowDefinition } from '../types'
 import {
   CONTENT_INGEST_WORKFLOW_ID,
   getWorkflowIdForJobType,
+  HIGHLIGHTS_EXTRACTION_WORKFLOW_ID,
   isMainlineWorkflowId,
   MULTI_PLATFORM_SCRIPT_WORKFLOW_ID,
   PODCAST_PRODUCTION_WORKFLOW_ID,
   TRANSLATION_DUBBING_WORKFLOW_ID,
 } from '../workflow-ids'
 import { contentIngestWorkflow } from './content-ingest'
+import { highlightsExtractionWorkflow } from './highlights-extraction'
 import { multiPlatformScriptWorkflow } from './multi-platform-script'
 import { podcastProductionWorkflow } from './podcast-production'
 import { translationDubbingWorkflow } from './translation-dubbing'
@@ -29,7 +31,7 @@ export function selectWorkflow(_videoCount: number, taskType?: string): Workflow
     if (workflow) return workflow
   }
 
-  throw new Error('旧剪辑工作流已下架；请显式使用 content_ingest / translation_dubbing / podcast_production / multi_platform_script 工作流。')
+  throw new Error('旧剪辑工作流已下架；请显式使用 content_ingest / translation_dubbing / podcast_production / multi_platform_script / highlights_extraction 工作流。')
 }
 
 /**
@@ -47,6 +49,8 @@ export function getWorkflowById(workflowId: string): WorkflowDefinition | null {
       return podcastProductionWorkflow
     case MULTI_PLATFORM_SCRIPT_WORKFLOW_ID:
       return multiPlatformScriptWorkflow
+    case HIGHLIGHTS_EXTRACTION_WORKFLOW_ID:
+      return highlightsExtractionWorkflow
   }
 }
 
@@ -56,4 +60,5 @@ export {
   contentIngestWorkflow,
   podcastProductionWorkflow,
   multiPlatformScriptWorkflow,
+  highlightsExtractionWorkflow,
 }

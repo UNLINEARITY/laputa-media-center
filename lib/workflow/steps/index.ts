@@ -18,6 +18,9 @@ import { BuildPodcastBriefStep } from './podcast/build-podcast-brief'
 import { GeneratePodcastScriptStep } from './podcast/generate-podcast-script'
 import { PodcastDeliveryStep } from './podcast/podcast-delivery'
 import { PodcastTtsStep } from './podcast/podcast-tts'
+import { ExtractHighlightsStep } from './highlights/extract-highlights'
+import { FindHighlightsStep } from './highlights/find-highlights'
+import { HighlightsDeliveryStep } from './highlights/highlights-delivery'
 import { stepRegistry } from './registry'
 import { BuildMultiPlatformBriefStep } from './script-rewrite/build-multi-platform-brief'
 import { GeneratePlatformScriptsStep } from './script-rewrite/generate-platform-scripts'
@@ -53,6 +56,11 @@ export function registerAllSteps(): void {
     build_multi_platform_brief: BuildMultiPlatformBriefStep,
     generate_platform_scripts: GeneratePlatformScriptsStep,
     script_delivery: ScriptDeliveryStep,
+
+    // 高亮自动切片步骤（Highlights Extraction Workflow，Phase 3.C-A）
+    find_highlights: FindHighlightsStep,
+    extract_highlights: ExtractHighlightsStep,
+    highlights_delivery: HighlightsDeliveryStep,
   })
 }
 
@@ -75,4 +83,7 @@ export {
   BuildMultiPlatformBriefStep,
   GeneratePlatformScriptsStep,
   ScriptDeliveryStep,
+  FindHighlightsStep,
+  ExtractHighlightsStep,
+  HighlightsDeliveryStep,
 }

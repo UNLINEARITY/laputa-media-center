@@ -88,6 +88,23 @@ export const WORKFLOW_ARTIFACTS = {
     filename: 'podcast.mp3',
     contentType: 'audio/mpeg',
   },
+  // Phase 3.C-A：高亮自动切片
+  'highlights.brief': {
+    id: 'highlights.brief',
+    kind: 'file',
+    filename: 'highlights_brief.json',
+    contentType: 'application/json; charset=utf-8',
+  },
+  'highlights.cuts': {
+    id: 'highlights.cuts',
+    kind: 'collection',
+  },
+  'highlights.manifest': {
+    id: 'highlights.manifest',
+    kind: 'file',
+    filename: 'highlights_manifest.json',
+    contentType: 'application/json; charset=utf-8',
+  },
   // Phase 3.C-B：短视频脚本适配（4 平台）
   'script.multi_platform_brief': {
     id: 'script.multi_platform_brief',
@@ -141,6 +158,8 @@ export const WORKFLOW_ARTIFACT_ID_BY_FILE = {
   'script_brief.json': 'script.multi_platform_brief',
   'platform_scripts.json': 'script.multi_platform_json',
   'script_manifest.json': 'script.manifest',
+  'highlights_brief.json': 'highlights.brief',
+  'highlights_manifest.json': 'highlights.manifest',
 } as const satisfies Record<string, WorkflowArtifactId>
 
 export type WorkflowArtifactManifestEntry = {

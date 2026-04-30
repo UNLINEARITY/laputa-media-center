@@ -51,7 +51,9 @@ export class TranscribeMediaStep extends BaseStep {
       source: isTextDraft ? 'text://draft' : ctx.input.videos[0]?.url,
       source_type: ctx.input.config.source_type,
       source_language: ctx.input.config.source_language,
-      keep_video: !isTextDraft && ctx.input.config.ingest_goal === 'localize',
+      keep_video: !isTextDraft &&
+        (ctx.input.config.ingest_goal === 'localize' ||
+          ctx.input.config.ingest_goal === 'highlights'),
       source_text_chars: isTextDraft ? ctx.input.config.source_text?.trim().length || 0 : undefined,
       whisper_runtime: 'whisper.cpp',
       whisper_model: process.env.WHISPER_CPP_MODEL?.trim() || 'base',
@@ -77,7 +79,9 @@ export class TranscribeMediaStep extends BaseStep {
         source,
         sourceType,
         sourceLanguage: ctx.input.config.source_language || 'auto',
-        keepVideo: !isTextDraft && ctx.input.config.ingest_goal === 'localize',
+        keepVideo: !isTextDraft &&
+        (ctx.input.config.ingest_goal === 'localize' ||
+          ctx.input.config.ingest_goal === 'highlights'),
       })
       const readyForDubbing =
         !isTextDraft &&

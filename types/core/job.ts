@@ -49,6 +49,7 @@ export type JobType =
   | 'content_ingest'
   | 'podcast_production'
   | 'multi_platform_script'
+  | 'highlights_extraction'
 export type LanguageStyleSource = 'creator_profile' | 'request' | 'merged'
 
 // 翻译配音配置
@@ -222,6 +223,23 @@ export interface JobConfig {
   ingest_goal?: 'transcript' | 'highlights' | 'podcast' | 'short_video' | 'localize'
   preserve_timestamps?: boolean
   generate_highlights?: boolean
+
+  /**
+   * 多平台脚本适配（Phase 3.C-B）
+   */
+  script_platforms?: ('youtube' | 'douyin' | 'xhs' | 'wechat')[]
+  script_target_minutes_youtube?: number
+  script_target_seconds_douyin?: number
+
+  /**
+   * 高亮自动切片（Phase 3.C-A）
+   * - highlights_target_count: 期望切出的片段数（默认 5，可调 3-10）
+   * - highlights_subtitle_preset: 字幕预设 ID（默认 'xhs_fresh'，复用 Phase 3.C-D 字幕预设库）
+   * - highlights_aspect: '16:9' 保持原宽高 / '9:16' 竖屏裁剪给抖音/小红书
+   */
+  highlights_target_count?: number
+  highlights_subtitle_preset?: string
+  highlights_aspect?: '16:9' | '9:16'
 
   /**
    * 翻译配音配置
