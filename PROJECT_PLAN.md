@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 3.C（進行中，C+D 完成；A+B 留下次）
-**下次從哪裡繼續**：Phase 3.C 收尾 — A 高亮自動切片（4 stage workflow）+ B 短視頻腳本適配（4 平台）
+**當前 Phase**：Phase 3.C（進行中，B+C+D 完成；A 留下次，需用戶確認啟動）
+**下次從哪裡繼續**：Phase 3.C-A 高亮自動切片（4 stage workflow + 手動微調 start/end UI）
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -397,7 +397,7 @@
 
 ---
 
-### Phase 3.C：自媒體爆款工具（v1.x，2026-04-30 加入計劃）🟡 進行中（C+D 完成）
+### Phase 3.C：自媒體爆款工具（v1.x，2026-04-30 加入計劃）🟡 進行中（B+C+D 完成）
 
 **目標**：在現有 ingest + LLM provider 基礎上加 4 個自媒體創作高 ROI 工具。**核心策略**：復用 Phase 3.A registry 的 LLM 抽象 + Phase 3.B 的 rewrite step 模式（podcast 已建好參考），新組件最小化。
 
@@ -408,10 +408,16 @@
 - UI：`app/highlights/page.tsx` + 候選片段列表 + 預覽 + 一鍵導出 + **手動微調 start/end**（Agent R 設計）
 - 限制：只接受 video 類素材（不接 text/md/pdf）
 
-**B. 短視頻腳本適配** ⚪ 未開始（v1.x 主推）
-- 同一觀點稿 → **單次 LLM call** 輸出 4 個版本（YT 長 / 抖音 60s / 小紅書 / 公眾號）
-- 新建 4 stage：ingest → analyze (build-multi-platform-brief) → rewrite (generate-platform-scripts) → delivery
-- UI：`app/script-rewrite/page.tsx` + 4 平台 tab + 複製按鈕
+**B. 短視頻腳本適配** ✅ 完成（commit `5a67d30`）
+- 同一觀點稿 → **單次 LLM call** 輸出 4 個版本（YT 長 / 抖音 60s / 小紅書 / 公眾號）+ 平台 subset 支援（4 選 N）
+- 兩階段 LLM rewrite：Stage 1 brief（核心觀點 + 鉤子候選 + 4 平台 hint + glossary）+ Stage 2 generate（單次 call 出選定平台）
+- 4 stages workflow：ingest → analyze (build-multi-platform-brief) → rewrite (generate-platform-scripts) → delivery
+- 新建 step：`lib/workflow/steps/script-rewrite/{artifact-paths,build-multi-platform-brief,generate-platform-scripts,script-delivery}.ts`
+- 新建 workflow：`lib/workflow/workflows/multi-platform-script.ts`
+- API：`app/api/script-rewrite/route.ts`（z.schema：source_type 6 種 / script_platforms enum / 可選 target 時長）
+- UI：`app/script-rewrite/page.tsx` + `components/script-rewrite/{script-workbench,script-form}.tsx`（3 種素材 + 4 平台 toggle）
+- 走 LLM Provider Registry（自動 fallback 到 mock 兜底，避免空白頁）
+- 交付：4 個 .md（youtube_script / douyin_script / xhs_post / wechat_article）+ script_manifest.json
 
 **C. 標題/封面建議 + 開頭鉤子優化器** ✅ 完成（commit `8896468`）
 - 5 候選標題（含 SEO 關鍵詞 + 鉤子強度 1-5）+ 開頭前 30 秒對比優化
@@ -435,7 +441,13 @@
 - POST /api/title-hooks 200 + 兜底 5 條候選
 - /title-hooks 演示頁 200
 
-**預估對話次數**：A+B 還需 1-2 次
+**驗收（Phase 3.C-B）**：
+- pnpm test:unit ✅ 685 pass / 17 skip / 0 fail
+- /script-rewrite HTTP 200
+- POST /api/script-rewrite 空 body 返回 400 + Zod schema 校驗訊息（path: ["source"]）
+- 4 個新 step + 1 個新 workflow + API + UI 全部 wire 通
+
+**預估對話次數**：A 還需 1-2 次（需用戶確認啟動）
 
 ---
 
@@ -743,3 +755,5 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：Phase 3.A 收尾完成（TEAM 模式：3 個 agent 並行 — L 重寫 closed-loop / M 評估 provider-smoke-audit / N 設計 UI）。**closed-loop-readiness 重寫**：760→730（4% reduction，inline fallback + dict-driven detail；保 8 個 consumer 序列化 + 5 個 provider gate 邊界）。Agent M 坦誠評估後 **provider-smoke-audit deferred 到 Phase 4**（reservation/permit 450 行深度耦合 dubbing-readiness/route.ts，砍會破壞付費 gate）。**UI 切換器（Claude Design）**：新建 `asr-provider-switcher.tsx` + `llm-provider-switcher.tsx`（Tier 🟢🟡🔴 badge / Ready chip / 測試連接按鈕 / 切換 active 按鈕 / OpenAI 付費確認 inline checkbox / Mistral 開源備選 / OpenAI+Mistral 凭證編輯器走 POST /api/configs / 配置入口跳轉 maintenance/ai-studio tab），集成到 settings system tab 內「運行 Provider」分組（不新開 tab）。pnpm test:unit 685 pass / 17 skip / 0 fail；/settings + GET/POST /api/providers/* 全部 200 OK。Phase 3.A 整體完成，下一步 Phase 3.B（MD/PDF 入口 + 播客模式）。
 - **2026-04-30**：Phase 3.B 後端完成（TEAM 模式：3 agent 並行 — O 盤點 ingest 鏈 / P 設計播客 / Q 受保護資產守門員）。**MD/PDF 入口**：types `source_type` 加 `md_draft|pdf_draft` + JobType 加 `podcast_production`；source-classifier 加 .md/.markdown/.pdf 識別；runner.ts 新增 `createMarkdownDraftTranscription`（gray-matter 解析 frontmatter + 標題/段落）+ `createPdfDraftTranscription`（unpdf 純 JS 按頁提取）；新建 `app/api/upload/document/route.ts` (.md/.pdf 上傳)。**播客模式 4 stages**：ingest → rewrite → tts → delivery；新建 4 step + artifact-paths：`build-podcast-brief.ts`（LLM 第一階段，走 registry，獨立 prompt schema）+ `generate-podcast-script.ts`（LLM 第二階段，含 opening/body/transition/closing role + pacing_hint + pause_after_ms）+ `podcast-tts.ts`（**直接 fetch MiniMax t2a_v2**，沿用 voice-registry/boundary/gate，不走 voice_cloner.py）+ `podcast-delivery.ts`（ffmpeg concat + manifest）。新建 `lib/workflow/workflows/podcast-production.ts` + workflow-ids/artifact-manifest 全鏈路註冊。pnpm test:unit 685 pass / 17 skip / 0 fail。**未動受保護資產**：translator.py 兩階段邏輯 / voice-registry / creator-profile / source-classifier 核心邏輯（只擴展 enum + case，符合 PROJECT_PLAN line 305-309 計劃）。**UI deferred 到下次**：app/podcast/page.tsx + podcast-form + podcast-workbench + app/api/podcast/route.ts。
 - **2026-04-30**：Phase 3.B 收尾完成。新建 `app/api/podcast/route.ts`（z.enum schema 校驗：source_type 限 text/md/pdf_draft + tone 4 種 + speaker_mode 雙人/單人 + voice_id 必填 + creator_context + boundary_ack + confirmed_gate_ids；taskQueue.enqueue + initState 完整鏈路）。新建 `components/podcast/podcast-form.tsx` ~480 行（3 種素材切換 / textarea 50 字下限 / .md/.pdf 走 /api/upload/document / 4 風格卡片 + 5 時長 chip + 雙人模式 / VoiceSelect 從 /api/dubbing/voices 拉本地聲線 / 雙重 inline checkbox 確認 / sonner toast）+ `podcast-workbench.tsx`（4-stage 進度卡）+ `app/podcast/page.tsx`。**驗收**：/podcast 200 + /api/podcast schema 400 校驗 + pnpm test:unit 685 pass / 0 fail。Phase 3.B 整體完成。**用戶決定加入 Phase 3.C**（自媒體爆款工具：高亮切片 / 短視頻腳本適配 / 標題鉤子優化 / 字幕樣式預設庫）作為下一階段。
+- **2026-04-30**：Phase 3.C-CD 完成（commit `8896468`）。**C 標題鉤子優化器**：`lib/title-hooks/{types,optimizer}.ts`（走 LLM Provider Registry，5 候選標題 + SEO 關鍵詞 + 鉤子強度 1-5 + 開頭前 30 秒對比優化，含兜底）+ `app/api/title-hooks/route.ts`（POST，z.schema + rate limit + 同步返回）+ `components/title-hooks/{title-hook-modal,use-title-hooks}.tsx`（modal + 一鍵複製）+ `app/title-hooks/page.tsx`（獨立演示頁，粘貼任意文稿即可使用）。**按需觸發**（不自動跑、不創 job）。**D 字幕樣式預設庫**：`lib/subtitle/presets.ts`（4+1 套：default / cantonese_trendy / serious_political / variety_explainer / xhs_fresh）+ 擴展 `lib/subtitle/{types,adaptive-size,generator}.ts`（presetId 可選，保默認行為不變）+ `app/api/subtitle-presets/route.ts` + `components/subtitle/subtitle-preset-selector.tsx`。**全部基於既有 Noto Sans SC family，靠 size/color/outline/shadow/weight 差異化**（零新字體 + 零 license 風險）。dubbing-form 集成 deferred（2000+ 行，待專項對話）。pnpm test:unit 685 pass / 17 skip / 0 fail。
+- **2026-04-30**：Phase 3.C-B 完成（commit `5a67d30`）。**多平台腳本適配**（YT 長 / 抖音 60s / 小紅書 / 公眾號，4 選 N）。**兩階段 LLM rewrite**：Stage 1 `build-multi-platform-brief`（核心觀點 + 鉤子候選 + 4 平台 hint + glossary，走 registry，含 fallback brief 兜底）；Stage 2 `generate-platform-scripts`（**單次 LLM call** 輸出選定平台版本，subset 支援；4 個平台 schema：YoutubeLongScript / DouyinShortScript / XhsPost / WechatArticle）；`script-delivery` 寫 4 個 .md（youtube_script / douyin_script / xhs_post / wechat_article）+ script_manifest.json。**4 stages workflow**：ingest → analyze → rewrite → delivery（`lib/workflow/workflows/multi-platform-script.ts`）。**API**：`app/api/script-rewrite/route.ts`（z.schema：6 種 source_type / platform enum / 可選 target 時長 + auth + rate limit + taskQueue.enqueue）。**UI**：`app/script-rewrite/page.tsx` + `components/script-rewrite/{script-workbench,script-form}.tsx`（3 種素材：text/md/pdf + 4 平台 toggle 多選）。**types/manifest 擴展**：`multi_platform_script` JobType + `script_platforms` config + 4 條 script.* artifact + workflow-ids 全鏈路常量。pnpm test:unit 685 pass / 17 skip / 0 fail；/script-rewrite HTTP 200；POST /api/script-rewrite 空 body 返回 400 + Zod schema 校驗。**Phase 3.C 只剩 A 高亮切片**（需用戶確認啟動）。
