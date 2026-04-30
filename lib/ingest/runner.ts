@@ -1,13 +1,11 @@
 import { spawn } from 'node:child_process'
-import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { WhisperCppRunner } from '@/lib/asr'
 import { toWhisperLanguageCode } from '@/lib/config/languages'
 import { getIngestArtifactDir, getIngestArtifactUrl } from './artifacts'
 import {
   getIngestFfmpeg,
-  getIngestPython,
-  getIngestWhisperCli,
-  getIngestWhisperModel,
   getIngestYtDlp,
   getIngestYtDlpAuthArgs,
   getIngestYtDlpJsRuntimeArgs,
@@ -242,21 +240,6 @@ function createTextDraftTranscription(options: {
   }
 }
 
-function findWhisperJson(outputDir: string, audioPath: string): string {
-  const preferred = path.join(outputDir, `${path.parse(audioPath).name}.json`)
-  if (existsSync(preferred)) return preferred
-
-  const jsonFiles = readdirSync(outputDir)
-    .filter((file) => file.endsWith('.json'))
-    .map((file) => path.join(outputDir, file))
-
-  if (jsonFiles.length === 0) {
-    throw new Error('Whisper 没有生成 JSON 转录文件')
-  }
-
-  return jsonFiles[0]
-}
-
 async function downloadRemoteVideo(
   source: string,
   outputDir: string,
@@ -438,36 +421,24 @@ async function runWhisper(
   outputDir: string,
   language: string,
 ): Promise<WhisperJson> {
-  const python = getIngestPython()
-  const whisper = getIngestWhisperCli()
-  const model = getIngestWhisperModel()
-  const whisperArgs = [
-    audioPath,
-    '--model',
-    model,
-    '--output_dir',
-    outputDir,
-    '--output_format',
-    'all',
-    '--fp16',
-    'False',
-  ]
-
+  // Phase 2：whisper.cpp 二进制 + ggml 模型，免 Python 依赖。
+  // 首次调用会自动下载（~5MB binary + ~142MB base model）。
+  const runner = new WhisperCppRunner()
   const whisperLanguage = toWhisperLanguageCode(language)
-  if (whisperLanguage) {
-    whisperArgs.push('--language', whisperLanguage)
-  }
+  const result = await runner.transcribe(audioPath, {
+    outputDir,
+    language: whisperLanguage || 'auto',
+  })
 
-  if (python) {
-    await runCommand(python, ['-m', 'whisper', ...whisperArgs], {
-      timeoutMs: 2 * 60 * 60 * 1000,
-    })
-  } else {
-    await runCommand(whisper, whisperArgs, { timeoutMs: 2 * 60 * 60 * 1000 })
+  return {
+    text: result.text,
+    language: result.language,
+    segments: result.segments.map((seg) => ({
+      start: seg.start,
+      end: seg.end,
+      text: seg.text,
+    })),
   }
-
-  const jsonPath = findWhisperJson(outputDir, audioPath)
-  return JSON.parse(readFileSync(jsonPath, 'utf-8')) as WhisperJson
 }
 
 export async function transcribeIngestSource(options: {

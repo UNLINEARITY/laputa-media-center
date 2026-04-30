@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Minimal ASR bridge for LaputaMediaCenter dubbing workflows.
 
+DEPRECATED (LaputaMediaCenter Phase 2):
+    主线 ASR 已迁移到 lib/asr/whisper-cpp-runner.ts (whisper.cpp 二进制)。
+    此脚本保留作 Python fallback；不在主流程被调用。
+    若需启用，需手动 spawn 此脚本（Phase 2 后没有 production 路径走这条）。
+
 Outputs segments.json as an array:
 [
-  {"start": 0.0, "end": 2.4, "text": "..."}
+  {"id": 0, "start": 0.0, "end": 2.4, "text": "..."}
 ]
 """
 

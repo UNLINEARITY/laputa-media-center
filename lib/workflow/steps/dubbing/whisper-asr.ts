@@ -1,19 +1,21 @@
 /**
- * Whisper ASR 语音识别步骤
+ * Whisper ASR 语音识别步骤（Phase 2 后由 whisper.cpp 取代 Python 后端）。
  *
- * 调用 Python whisper_asr.py 脚本进行语音转文字
- * 输出 segments.json 到任务临时目录
+ * - 调用 WhisperCppRunner 进行语音转文字
+ * - 输出 dubbing.segments artifact 到任务临时目录
+ * - segments schema 与 translator.py 契约对齐：[{id, start, end, text}]
  */
 
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
+import path from 'node:path'
+import { WhisperCppRunner } from '@/lib/asr'
 import { getLanguageLabel, toWhisperLanguageCode } from '@/lib/config/languages'
-import { findDubbingScript, getDubbingPythonExe } from '@/lib/dubbing/runtime'
 import { getDubbingSampleMediaPath } from '@/lib/dubbing/sample-media'
 import { getDubbingSampleDurationSeconds } from '@/lib/dubbing/sample-mode'
-import { appendScriptOption } from '@/lib/dubbing/script-args'
 import { getIngestFfmpeg } from '@/lib/ingest/runtime'
+import { getWorkflowArtifactFilename } from '@/lib/jobs/workflow-artifact-manifest'
 import { getJobTempDir } from '@/lib/utils/paths'
 import type { WorkflowContext } from '../../types'
 import { BaseStep } from '../base'
@@ -23,8 +25,9 @@ import { getDubbingFileArtifactOutputPath } from './artifact-paths'
 // 类型定义
 // ============================================================================
 
-/** ASR 分段 */
+/** ASR 分段（与 translator.py segments_file schema 对齐） */
 export interface AsrSegment {
+  id?: number
   start: number
   end: number
   text: string
@@ -43,45 +46,6 @@ export interface WhisperAsrOutput {
 // ============================================================================
 // 辅助函数
 // ============================================================================
-
-/**
- * 执行 Python 脚本
- */
-function execPython(
-  scriptPath: string,
-  args: string[],
-  timeout = 30 * 60 * 1000,
-): Promise<{ stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(getDubbingPythonExe('dub'), [scriptPath, ...args], {
-      timeout,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    proc.stdout.on('data', (data) => {
-      stdout += data.toString()
-    })
-
-    proc.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr })
-      } else {
-        reject(new Error(`Python script exited with code ${code}: ${stderr}`))
-      }
-    })
-
-    proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn Python process: ${err.message}`))
-    })
-  })
-}
 
 function execProcess(
   command: string,
@@ -170,11 +134,11 @@ async function createDubbingSampleMedia(
 
 /**
  * Whisper ASR 语音识别步骤
- * 调用 whisper_asr.py 将视频音频转为文字分段
+ * Phase 2：调用 whisper.cpp 二进制（WhisperCppRunner）将视频音频转为文字分段
  */
 export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
   readonly id = 'asr_transcribe'
-  readonly name = '语音识别 (Whisper)'
+  readonly name = '语音识别 (whisper.cpp)'
 
   getInputSummary(ctx: WorkflowContext): Record<string, unknown> {
     const videoUrl = ctx.input.videos[0]?.url || ''
@@ -182,7 +146,8 @@ export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
     const sampleDurationSeconds = getDubbingSampleDurationSeconds(config)
     return {
       video_url: videoUrl,
-      whisper_model: config.whisper_model || 'large-v3',
+      whisper_model: config.whisper_model || process.env.WHISPER_CPP_MODEL || 'base',
+      whisper_runtime: 'whisper.cpp',
       source_language: config.source_language || 'en',
       sample_mode: Boolean(sampleDurationSeconds),
       sample_duration_seconds: sampleDurationSeconds,
@@ -208,68 +173,57 @@ export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
         )
       : undefined
     const effectiveVideoUrl = sampleSource || videoUrl
-    const whisperModel = (config.whisper_model as string) || 'large-v3'
     const sourceLanguage = (config.source_language as string) || 'auto'
-    const whisperLanguage = toWhisperLanguageCode(sourceLanguage)
-    const scriptPath = findDubbingScript('whisper_asr.py')
-    const args = [effectiveVideoUrl, '--output-dir', outputDir, '--model', whisperModel]
-    const languageOption = appendScriptOption(
-      args,
-      scriptPath,
-      ['--language', '--source-lang', '--source-language'],
-      whisperLanguage,
-      'source language',
-    )
+    const whisperLanguage = toWhisperLanguageCode(sourceLanguage) || 'auto'
 
-    this.log(ctx, '开始语音识别', {
+    // dubbing.segments artifact 文件名（与历史保持一致）
+    const segmentsArtifactFilename = getWorkflowArtifactFilename('dubbing.segments')
+    const segmentsFile = getDubbingFileArtifactOutputPath(ctx.jobId, 'dubbing.segments')
+
+    this.log(ctx, '开始语音识别 (whisper.cpp)', {
       videoUrl,
       effectiveVideoUrl,
-      model: whisperModel,
       sourceLanguage,
       sourceLanguageLabel: getLanguageLabel(sourceLanguage),
       whisperLanguage,
-      languageOption,
       outputDir,
       sampleMode: Boolean(sampleDurationSeconds),
       sampleDurationSeconds,
     })
 
-    this.logApiCall(ctx, 'Whisper', 'asr_transcribe', {
+    this.logApiCall(ctx, 'WhisperCpp', 'asr_transcribe', {
       video: effectiveVideoUrl,
       original_video: sampleSource ? videoUrl : undefined,
-      model: whisperModel,
       source_language: sourceLanguage,
       whisper_language: whisperLanguage,
-      language_option: languageOption,
+      runtime: 'whisper.cpp',
     })
 
     const startTime = Date.now()
 
     try {
-      const { stdout, stderr } = await execPython(scriptPath, args)
+      const runner = new WhisperCppRunner()
+      const result = await runner.transcribe(effectiveVideoUrl, {
+        outputDir: path.dirname(segmentsFile),
+        language: whisperLanguage,
+        segmentsFilename: segmentsArtifactFilename,
+      })
 
       const duration = Date.now() - startTime
 
-      if (stderr) {
-        this.log(ctx, 'Whisper ASR stderr 输出', { stderr: stderr.slice(0, 2000) })
-      }
-
-      // 读取输出的 ASR manifest artifact。
-      const segmentsFile = getDubbingFileArtifactOutputPath(ctx.jobId, 'dubbing.segments')
       if (!existsSync(segmentsFile)) {
         throw new Error(`ASR output file not found: ${segmentsFile}`)
       }
 
-      const raw = await readFile(segmentsFile, 'utf-8')
-      const segments: AsrSegment[] = JSON.parse(raw)
+      const segments: AsrSegment[] = result.segments
 
       this.logApiResponse(
         ctx,
-        'Whisper',
+        'WhisperCpp',
         'asr_transcribe',
         {
           segment_count: segments.length,
-          stdout_preview: stdout.slice(0, 500),
+          detected_language: result.language,
         },
         duration,
       )
@@ -290,7 +244,7 @@ export class WhisperAsrStep extends BaseStep<WhisperAsrOutput> {
     } catch (error) {
       const duration = Date.now() - startTime
       this.logError(ctx, '语音识别失败', error)
-      this.logApiResponse(ctx, 'Whisper', 'asr_transcribe', undefined, duration)
+      this.logApiResponse(ctx, 'WhisperCpp', 'asr_transcribe', undefined, duration)
       throw error
     }
   }
