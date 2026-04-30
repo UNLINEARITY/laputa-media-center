@@ -46,7 +46,7 @@ function getProxySessionSecret(): string | null {
 function isAuthEnabled(): boolean {
   const rawValue = process.env.AUTH_ENABLED
   if (!rawValue || rawValue.trim() === '') {
-    return true // 默认启用
+    return false // LaputaMediaCenter 默认关闭（本地优先）
   }
   const normalized = rawValue.trim().toLowerCase()
   return !['false', '0', 'no', 'off', 'disabled'].includes(normalized)

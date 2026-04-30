@@ -3,7 +3,6 @@ import type { ApiKeyService } from '@/types'
 const GOOGLE_PROVIDER_SERVICES = new Set<ApiKeyService>([
   'google_vertex',
   'google_ai_studio',
-  'google_storage',
 ])
 const LEGACY_TTS_PROVIDER_SERVICES = new Set<ApiKeyService>([
   'fish_audio_vertex',
@@ -67,17 +66,6 @@ export function validateApiKeyCredentialShape(
         return 'Google Vertex Service Account JSON 不能为空'
       }
       return parseJsonObject(credentials.service_account_json, 'Google Vertex Service Account JSON')
-
-    case 'google_storage':
-      if (!hasValue(credentials, 'bucket_name')) return 'Google Storage Bucket Name 不能为空'
-      if (credentials.bucket_name.trim().length < 3) return 'Google Storage Bucket Name 格式错误'
-      if (!hasValue(credentials, 'service_account_json')) {
-        return 'Google Storage Service Account JSON 不能为空'
-      }
-      return parseJsonObject(
-        credentials.service_account_json,
-        'Google Storage Service Account JSON',
-      )
 
     case 'minimax_tts':
       if (!hasValue(credentials, 'api_key')) return 'MiniMax API Key 不能为空'

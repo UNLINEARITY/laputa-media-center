@@ -47,7 +47,6 @@ function isInternalRequest(request: NextRequest): boolean {
  * 使用场景：
  * 1. 服务器启动时自动调用（通过启动脚本）
  * 2. 手动触发初始化（调试/测试）
- * 3. Zeabur/Vercel 等平台首次部署时自动初始化
  *
  * 安全限制：生产环境仅允许内部网络调用
  */

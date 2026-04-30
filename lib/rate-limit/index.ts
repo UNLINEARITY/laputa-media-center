@@ -45,32 +45,35 @@ const MAX_RATE_LIMIT_RECORDS = 10_000
 
 /**
  * 速率限制预设配置
+ *
+ * LaputaMediaCenter Phase 1：本地优先，朋友单机使用，
+ * 全部预设放宽到「不卡正常使用」级别。仍保留限流机制以防意外死循环。
  */
 export const RATE_LIMIT_PRESETS = {
-  /** 创建任务：6 请求/分钟（每 10 秒可创建 1 个） */
+  /** 创建任务：60 请求/分钟（朋友单机够用） */
   CREATE_JOB: {
-    windowMs: 60 * 1000,
-    maxRequests: 6,
-  },
-  /** 查询接口：60 请求/分钟（支持每秒轮询） */
-  QUERY: {
     windowMs: 60 * 1000,
     maxRequests: 60,
   },
-  /** 修改操作：20 请求/分钟 */
+  /** 查询接口：600 请求/分钟（10/秒轮询无压力） */
+  QUERY: {
+    windowMs: 60 * 1000,
+    maxRequests: 600,
+  },
+  /** 修改操作：120 请求/分钟 */
   MODIFY: {
     windowMs: 60 * 1000,
-    maxRequests: 20,
+    maxRequests: 120,
   },
-  /** 文件上传：1 请求/分钟（防止滥用） */
+  /** 文件上传：30 请求/分钟（本地批量上传放开） */
   UPLOAD: {
     windowMs: 60 * 1000,
-    maxRequests: 1,
+    maxRequests: 30,
   },
-  /** 测试接口：5 请求/分钟 */
+  /** 测试接口：30 请求/分钟 */
   TEST: {
     windowMs: 60 * 1000,
-    maxRequests: 5,
+    maxRequests: 30,
   },
 } as const
 

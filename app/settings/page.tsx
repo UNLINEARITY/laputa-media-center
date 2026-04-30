@@ -5,7 +5,6 @@ import { PageHeader } from '@/components/layout/page-header'
 import { ApiTokenManager } from '@/components/settings/api-token-manager'
 import { CreatorAssetsConfig } from '@/components/settings/creator-assets-config'
 import { FishAudioConfig } from '@/components/settings/fish-audio-config'
-import { GCSConfig } from '@/components/settings/gcs-config'
 import { GeminiAIStudioConfig } from '@/components/settings/gemini-ai-studio-config'
 import { GeminiVertexConfig } from '@/components/settings/gemini-vertex-config'
 import { MiniMaxConfig } from '@/components/settings/minimax-config'
@@ -20,7 +19,6 @@ import type {
   ApiKeyService,
   GeminiAIStudioCredentials,
   GeminiVertexCredentials,
-  GoogleStorageCredentials,
 } from '@/types'
 
 export default function SettingsPage() {
@@ -35,7 +33,6 @@ export default function SettingsPage() {
     fish_audio_vertex: null,
     fish_audio_ai_studio: null,
     minimax_tts: null,
-    google_storage: null,
   })
 
   // 系统设置状态
@@ -81,12 +78,6 @@ export default function SettingsPage() {
   const [miniMaxSavingOperation, setMiniMaxSavingOperation] = useState<
     'save_only' | 'verify_and_save' | null
   >(null)
-
-  // Google Storage
-  const [googleStorage, setGoogleStorage] = useState<GoogleStorageCredentials>({
-    service_account_json: '',
-    bucket_name: '',
-  })
 
   const updateMessage = (
     service: ApiKeyService | 'system_config',
@@ -401,70 +392,6 @@ export default function SettingsPage() {
       }
     }
 
-  // Google Storage 保存处理
-  const createGCSSaveHandler =
-    (credentials: GoogleStorageCredentials, requiredFields: string[], successMessage: string) =>
-    async () => {
-      const missingFields = requiredFields.filter(
-        (field) => !credentials[field as keyof typeof credentials],
-      )
-      if (missingFields.length > 0) {
-        updateMessage('google_storage', { type: 'error', text: '请填写完整的配置信息。' })
-        return
-      }
-
-      try {
-        JSON.parse(credentials.service_account_json)
-      } catch {
-        updateMessage('google_storage', {
-          type: 'error',
-          text: 'Service Account JSON 格式不正确。',
-        })
-        return
-      }
-
-      updateMessage('google_storage', null)
-      setSavingService('google_storage')
-
-      try {
-        const response = await fetch('/api/api-keys', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service: 'google_storage',
-            operation: 'save_only',
-            credentials,
-          }),
-        })
-
-        const result = await response.json()
-
-        if (response.ok) {
-          updateMessage('google_storage', {
-            type: 'success',
-            text: `${successMessage}已保存，尚未执行真实 GCS 上传/删除验证。`,
-          })
-          await fetchStatuses()
-        } else {
-          updateMessage('google_storage', {
-            type: 'error',
-            text:
-              result.message ||
-              result.verification?.message ||
-              result.error ||
-              '保存失败，请稍后再试。',
-          })
-        }
-      } catch (error: unknown) {
-        updateMessage('google_storage', {
-          type: 'error',
-          text: `保存失败：${error instanceof Error ? error.message : '未知错误'}`,
-        })
-      } finally {
-        setSavingService(null)
-      }
-    }
-
   const handleSaveMiniMax = async (operation: 'save_only' | 'verify_and_save') => {
     const trimmedKey = miniMaxKey.trim()
     const trimmedVoiceId = miniMaxVoiceId.trim()
@@ -671,10 +598,6 @@ export default function SettingsPage() {
                   label="google_vertex"
                   badge={<StatusBadge service="google_vertex" statuses={statuses} />}
                 />
-                <StatusChip
-                  label="google_storage"
-                  badge={<StatusBadge service="google_storage" statuses={statuses} />}
-                />
                 {legacyTtsEnabled && (
                   <StatusChip
                     label="fish_audio_vertex"
@@ -699,18 +622,6 @@ export default function SettingsPage() {
               onSave={handleSaveGeminiVertex}
               message={messages.google_vertex}
               isSaving={savingService === 'google_vertex'}
-            />
-
-            <GCSConfig
-              credentials={googleStorage}
-              setCredentials={setGoogleStorage}
-              onSave={createGCSSaveHandler(
-                googleStorage,
-                ['service_account_json', 'bucket_name'],
-                'Google Storage 配置',
-              )}
-              message={messages.google_storage}
-              isSaving={savingService === 'google_storage'}
             />
 
             {legacyTtsEnabled && (

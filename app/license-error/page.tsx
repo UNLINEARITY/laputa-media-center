@@ -56,7 +56,7 @@ function LicenseErrorContent() {
               <div>
                 <p className="text-gray-700 font-medium">配置环境变量</p>
                 <p className="text-gray-500 text-sm">
-                  在 Zeabur 或 Docker 中设置{' '}
+                  在 .env.local 中设置{' '}
                   <code className="bg-gray-100 px-1 rounded">LICENSE_KEY</code>
                 </p>
               </div>

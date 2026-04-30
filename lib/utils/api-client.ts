@@ -1,6 +1,6 @@
 /**
  * 统一 API 客户端
- * 自动处理 baseUrl，避免 Zeabur 云端 HTTP 自调用问题
+ * 自动处理 baseUrl，避免服务端自调用问题
  */
 
 /**
@@ -8,7 +8,7 @@
  * 优先级：环境变量 > 浏览器当前域名 > 空字符串（相对路径）
  */
 export function getBaseUrl(): string {
-  // 1. 优先使用环境变量（Zeabur 会自动设置为 ${ZEABUR_WEB_URL}）
+  // 1. 优先使用环境变量
   if (process.env.NEXT_PUBLIC_BASE_URL) {
     return process.env.NEXT_PUBLIC_BASE_URL
   }

@@ -167,7 +167,6 @@ export class ApiKeysRepository {
       'fish_audio_vertex',
       'fish_audio_ai_studio',
       'minimax_tts',
-      'google_storage',
     ]
 
     return services.map((service) => {

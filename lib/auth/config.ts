@@ -14,8 +14,8 @@ import { getSessionSecret as getSessionSecretFromDb } from '@/lib/db/core/system
  * - true, 1, yes, on, enabled（启用鉴权）
  * - false, 0, no, off, disabled（禁用鉴权）
  *
- * 安全策略：
- * - 未设置或空值：默认 true（安全优先）
+ * 安全策略（LaputaMediaCenter Phase 1 调整）：
+ * - 未设置或空值：默认 false（朋友本地用免登录，符合「免费优先」）
  * - 大小写混合（如 TRUE, True）：接受但发出警告
  * - 无效值：抛出异常（强制用户修正配置）
  *
@@ -25,9 +25,9 @@ import { getSessionSecret as getSessionSecretFromDb } from '@/lib/db/core/system
 export function isAuthEnabled(): boolean {
   const rawValue = process.env.AUTH_ENABLED
 
-  // 未设置或空值：默认 true（安全优先）
+  // 未设置或空值：默认 false（本地优先 / 免登录体验）
   if (!rawValue || rawValue.trim() === '') {
-    return true
+    return false
   }
 
   const normalized = rawValue.trim().toLowerCase()

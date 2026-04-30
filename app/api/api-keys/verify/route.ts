@@ -30,7 +30,6 @@ const verifyKeySchema = z.object({
     'google_ai_studio',
     'fish_audio_vertex',
     'fish_audio_ai_studio',
-    'google_storage',
   ]),
   credentials: z.record(z.string(), z.string()),
   confirmLegacyTts: z.boolean().optional(),

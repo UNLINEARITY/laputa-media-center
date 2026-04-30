@@ -76,32 +76,3 @@ export interface ITTSManager extends ITTSClient {
   /** 获取当前默认 Provider */
   getDefaultProvider(): TTSProvider
 }
-
-// ========== GCS 客户端接口 ==========
-
-export interface GCSUploadOptions {
-  destination?: string
-  contentType?: string
-  publicRead?: boolean
-}
-
-export interface GCSUploadBufferOptions {
-  destination: string
-  contentType?: string
-  publicRead?: boolean
-}
-
-export interface GCSUploadResult {
-  gsUri: string
-  publicUrl: string
-}
-
-export interface IGCSClient {
-  uploadFile(localPath: string, options?: GCSUploadOptions): Promise<GCSUploadResult>
-  uploadBuffer(buffer: Buffer, options: GCSUploadBufferOptions): Promise<GCSUploadResult>
-  uploadFromUrl(sourceUrl: string, options: GCSUploadBufferOptions): Promise<GCSUploadResult>
-  uploadFromUrlStreaming(
-    sourceUrl: string,
-    options: GCSUploadBufferOptions,
-  ): Promise<GCSUploadResult>
-}

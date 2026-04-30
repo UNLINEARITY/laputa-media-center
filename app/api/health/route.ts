@@ -1,6 +1,6 @@
 /**
  * 健康检查 API 端点
- * 用于 Zeabur 部署时的健康检查和服务状态监控
+ * 用于本地服务状态监控
  */
 
 import { NextResponse } from 'next/server'

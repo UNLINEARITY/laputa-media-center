@@ -40,7 +40,6 @@ const saveKeySchema = z.object({
     'fish_audio_vertex',
     'fish_audio_ai_studio',
     'minimax_tts',
-    'google_storage',
   ]),
   credentials: z.record(z.string(), z.string()),
   confirmPaidVerification: z.boolean().optional(),
@@ -78,7 +77,7 @@ function buildPaidVerificationConfirmationRequiredError(service: ApiKeyService) 
 
   return {
     error: 'Paid verification confirmation required',
-    message: '凭证验证会调用真实 Google/Gemini/GCS provider；请先明确确认可能产生费用或外部写入。',
+    message: '凭证验证会调用真实 Google/Gemini provider；请先明确确认可能产生费用或外部写入。',
   }
 }
 
@@ -89,7 +88,7 @@ function buildPaidDynamicTestsRequiredMessage(service: ApiKeyService): string {
   if (service === 'fish_audio_vertex' || service === 'fish_audio_ai_studio') {
     return 'Fish Audio 旧兼容验证会调用外部 TTS provider；请先在服务端显式设置 ALLOW_PAID_DYNAMIC_TESTS=true。'
   }
-  return 'Google/Gemini/GCS 凭证验证会调用真实 provider；请先在服务端显式设置 ALLOW_PAID_DYNAMIC_TESTS=true。'
+  return 'Google/Gemini 凭证验证会调用真实 provider；请先在服务端显式设置 ALLOW_PAID_DYNAMIC_TESTS=true。'
 }
 
 export async function GET(request: NextRequest) {
@@ -168,7 +167,7 @@ export async function POST(req: NextRequest) {
           message:
             service === 'minimax_tts'
               ? '未调用 MiniMax；如需确认 API Key 与测试声线可用，请单独执行付费验证。'
-              : '未调用 Google/Gemini/GCS provider；如需确认凭证可用，请单独执行付费验证。',
+              : '未调用 Google/Gemini provider；如需确认凭证可用，请单独执行付费验证。',
         },
       })
     }

@@ -8,8 +8,6 @@ export type ApiKeyService =
   | 'fish_audio_ai_studio' // AI Studio 模式的 Fish Audio
   // MiniMax 配音配置
   | 'minimax_tts'
-  // Google Cloud Storage（仅 Vertex AI）
-  | 'google_storage'
 
 // API密钥验证状态正常形
 export type ApiKeyVerificationState = 'missing' | 'saved_unverified' | 'verified' | 'not_tracked'
@@ -46,12 +44,6 @@ export interface MiniMaxCredentials {
   api_key: string
   /** 验证 MiniMax API Key 时使用的测试 voice_id；正式配音声线由任务或创作者资产决定。 */
   voice_id?: string
-}
-
-// Google Storage凭据
-export interface GoogleStorageCredentials {
-  service_account_json: string // JSON字符串
-  bucket_name: string
 }
 
 // API密钥记录

@@ -71,7 +71,6 @@ export function StatusChip({ label, badge }: StatusChipProps) {
     fish_audio_ai_studio: 'Fish Audio（兼容）',
     fish_audio_vertex: 'Fish Audio（兼容）',
     minimax_tts: 'MiniMax 配音',
-    google_storage: 'Google Storage',
   }
 
   // 优先使用映射表，否则自动生成
@@ -82,7 +81,7 @@ export function StatusChip({ label, badge }: StatusChipProps) {
       .map((segment) => {
         const upper = segment.toUpperCase()
         // 保持已知缩写词全大写
-        if (['AI', 'API', 'GCS'].includes(upper)) {
+        if (['AI', 'API'].includes(upper)) {
           return upper
         }
         // 其他单词首字母大写

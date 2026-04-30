@@ -47,11 +47,6 @@ interface GeminiAIStudioVerifyCredentials {
   api_base_url?: string
 }
 
-interface GoogleStorageVerifyCredentials {
-  service_account_json: string
-  bucket_name: string
-}
-
 // ============================================================
 // 辅助函数
 // ============================================================
@@ -503,99 +498,6 @@ export async function verifyGeminiAIStudio(
   }
 }
 
-/** 验证 Google Cloud Storage */
-export async function verifyGoogleStorage(
-  credentials: GoogleStorageVerifyCredentials,
-): Promise<VerifyResult> {
-  try {
-    let serviceAccount: ServiceAccountCredentials
-    try {
-      serviceAccount = parseServiceAccountJson(credentials.service_account_json)
-    } catch (error: unknown) {
-      return {
-        valid: false,
-        message: error instanceof Error ? error.message : 'Service Account JSON 格式错误',
-      }
-    }
-
-    if (!credentials.bucket_name || credentials.bucket_name.length < 3) {
-      return { valid: false, message: 'Bucket Name 格式错误' }
-    }
-
-    let accessToken: string
-    try {
-      accessToken = await getAccessTokenFromServiceAccount(serviceAccount)
-    } catch (error: unknown) {
-      return {
-        valid: false,
-        message: `获取访问令牌失败: ${error instanceof Error ? error.message : '认证错误'}`,
-      }
-    }
-
-    const testFileName = `test-verification-${Date.now()}.txt`
-    const uploadUrl = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(credentials.bucket_name)}/o?uploadType=media&name=${encodeURIComponent(testFileName)}`
-
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'text/plain',
-      },
-      body: 'GCS verification test',
-    })
-
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text()
-      let errorMessage = `上传失败 (${uploadResponse.status})`
-
-      try {
-        const errorJson = JSON.parse(errorText)
-        errorMessage = errorJson.error?.message || errorMessage
-      } catch {
-        errorMessage = errorText || errorMessage
-      }
-
-      if (uploadResponse.status === 404) {
-        return {
-          valid: false,
-          message: `存储桶 ${credentials.bucket_name} 不存在`,
-        }
-      }
-
-      if (uploadResponse.status === 403) {
-        return {
-          valid: false,
-          message: 'Service Account 缺少 GCS 上传权限',
-        }
-      }
-
-      return {
-        valid: false,
-        message: `GCS 上传测试失败: ${errorMessage}`,
-      }
-    }
-
-    // 删除测试文件
-    const deleteUrl = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(credentials.bucket_name)}/o/${encodeURIComponent(testFileName)}`
-    await fetch(deleteUrl, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }).catch(() => {})
-
-    return {
-      valid: true,
-      message: '验证成功（存储桶访问 + 上传权限已确认）',
-    }
-  } catch (error: unknown) {
-    return {
-      valid: false,
-      message: `验证失败: ${error instanceof Error ? error.message : '未知错误'}`,
-    }
-  }
-}
-
 // ============================================================
 // 统一验证入口
 // ============================================================
@@ -618,9 +520,6 @@ export async function verifyApiKey(
 
     case 'google_ai_studio':
       return verifyGeminiAIStudio(credentials as unknown as GeminiAIStudioVerifyCredentials)
-
-    case 'google_storage':
-      return verifyGoogleStorage(credentials as unknown as GoogleStorageVerifyCredentials)
 
     default:
       return { valid: false, message: `未知的服务类型: ${service}` }
