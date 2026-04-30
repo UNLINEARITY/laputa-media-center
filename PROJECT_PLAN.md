@@ -4,6 +4,18 @@
 **當前 Phase**：Phase 3.C 完成 + 收尾修補（11 fix + DB CHECK 修復，實機建任務跑通）
 **下次從哪裡繼續**：實機跑通 LLM 端到端（讓現有 highlights job 跑完看 LLM 質量）→ Phase 4（清理 + reset）或 Phase 5（開源準備）
 
+**📅 2026-05-14 自我提醒（remote schedule 暫不可用，手寫於此）**：
+- 跑 `git log --oneline -20` 看最近 2 週 Phase 3.C 實機驗收狀態
+- 跑 `pnpm test:unit` 確認 685 pass / 0 fail 仍 hold
+- 4 工具實機驗收清單：
+  1. POST /api/podcast 真實 transcript → 看 podcast brief LLM 質量
+  2. POST /api/script-rewrite 真實觀點稿 → 4 平台 .md 質量
+  3. POST /api/title-hooks 真實文稿 → 5 候選標題 + 開頭優化
+  4. POST /api/highlights 真實視頻 → 5 段切片 + 微調 recut
+- 如全 OK：開 Phase 4 TEAM 模式（V/W/X agent 重做 closed-loop / provider-smoke-audit deferred 重寫）
+- 如有 prompt 質量問題：改 prompt 不動架構，重跑驗收
+- 用 `/schedule` 試試 remote 是否恢復，能用就轉 background agent 自動跑
+
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
 / 砍 Zeabur 文檔 / 砍 GCS 全鏈路 / package.json 移除 `@google-cloud/storage` + `javascript-obfuscator`
