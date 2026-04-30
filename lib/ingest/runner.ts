@@ -11,7 +11,15 @@ import {
   getIngestYtDlpJsRuntimeArgs,
 } from './runtime'
 
-type SourceType = 'youtube' | 'local_video' | 'local_audio' | 'web_video' | 'text_draft' | 'unknown'
+type SourceType =
+  | 'youtube'
+  | 'local_video'
+  | 'local_audio'
+  | 'web_video'
+  | 'text_draft'
+  | 'md_draft'
+  | 'pdf_draft'
+  | 'unknown'
 
 interface RunCommandOptions {
   cwd?: string
@@ -240,6 +248,160 @@ function createTextDraftTranscription(options: {
   }
 }
 
+// ============================================================
+// Phase 3.B：MD / PDF 草稿解析（不走 whisper.cpp）
+// ============================================================
+
+async function createMarkdownDraftTranscription(options: {
+  jobId: string
+  source: string
+  sourceLanguage: string
+}): Promise<IngestTranscriptionResult> {
+  const outputDir = getIngestArtifactDir(options.jobId)
+  const { readFile } = await import('node:fs/promises')
+  const raw = await readFile(options.source, 'utf-8')
+
+  // 解析 frontmatter + 主体
+  const matter = (await import('gray-matter')).default
+  const { data: frontmatter, content } = matter(raw)
+
+  // 提取标题/列表/段落结构
+  const lines = content.split(/\r?\n/)
+  const headings: { level: number; text: string }[] = []
+  const paragraphs: string[] = []
+  let buffer: string[] = []
+  for (const line of lines) {
+    const heading = /^(#{1,6})\s+(.+)$/.exec(line.trim())
+    if (heading) {
+      if (buffer.length) {
+        const text = buffer.join('\n').trim()
+        if (text) paragraphs.push(text)
+        buffer = []
+      }
+      headings.push({ level: heading[1].length, text: heading[2].trim() })
+      continue
+    }
+    if (line.trim()) {
+      buffer.push(line)
+    } else if (buffer.length) {
+      const text = buffer.join('\n').trim()
+      if (text) paragraphs.push(text)
+      buffer = []
+    }
+  }
+  if (buffer.length) {
+    const text = buffer.join('\n').trim()
+    if (text) paragraphs.push(text)
+  }
+
+  const text = content.trim()
+  const language = resolveTextDraftLanguage(options.sourceLanguage)
+  const markdownPath = path.join(outputDir, 'transcript.md')
+  const jsonPath = path.join(outputDir, 'transcript.json')
+
+  writeFileSync(markdownPath, raw, 'utf-8')
+  writeFileSync(
+    jsonPath,
+    JSON.stringify(
+      {
+        source: options.source,
+        source_type: 'md_draft',
+        language,
+        text,
+        frontmatter,
+        headings,
+        paragraphs,
+        segments: [],
+      },
+      null,
+      2,
+    ),
+    'utf-8',
+  )
+
+  return {
+    source: options.source,
+    source_type: 'md_draft',
+    transcript_text: text,
+    language,
+    segment_count: paragraphs.length,
+    artifacts: {
+      markdown: markdownPath,
+      json: jsonPath,
+    },
+    artifact_urls: {
+      markdown: getIngestArtifactUrl(options.jobId, 'transcript.md'),
+      json: getIngestArtifactUrl(options.jobId, 'transcript.json'),
+    },
+  }
+}
+
+async function createPdfDraftTranscription(options: {
+  jobId: string
+  source: string
+  sourceLanguage: string
+}): Promise<IngestTranscriptionResult> {
+  const outputDir = getIngestArtifactDir(options.jobId)
+  const { readFile } = await import('node:fs/promises')
+  const buffer = await readFile(options.source)
+
+  // unpdf：纯 JS 提取 PDF 文本
+  const { extractText } = await import('unpdf')
+  const result = await extractText(new Uint8Array(buffer), { mergePages: false })
+  const pageTexts = (Array.isArray(result.text) ? result.text : [result.text]).map((t) =>
+    String(t || '').trim(),
+  )
+  const fullText = pageTexts.filter(Boolean).join('\n\n')
+  const paragraphs = fullText
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+
+  const language = resolveTextDraftLanguage(options.sourceLanguage)
+  const markdownPath = path.join(outputDir, 'transcript.md')
+  const jsonPath = path.join(outputDir, 'transcript.json')
+
+  // 写一份 markdown 视图（每页一段）
+  const md = pageTexts
+    .map((text, idx) => `## Page ${idx + 1}\n\n${text || '(空)'}`)
+    .join('\n\n')
+  writeFileSync(markdownPath, md, 'utf-8')
+  writeFileSync(
+    jsonPath,
+    JSON.stringify(
+      {
+        source: options.source,
+        source_type: 'pdf_draft',
+        language,
+        text: fullText,
+        page_count: pageTexts.length,
+        page_texts: pageTexts,
+        paragraphs,
+        segments: [],
+      },
+      null,
+      2,
+    ),
+    'utf-8',
+  )
+
+  return {
+    source: options.source,
+    source_type: 'pdf_draft',
+    transcript_text: fullText,
+    language,
+    segment_count: paragraphs.length,
+    artifacts: {
+      markdown: markdownPath,
+      json: jsonPath,
+    },
+    artifact_urls: {
+      markdown: getIngestArtifactUrl(options.jobId, 'transcript.md'),
+      json: getIngestArtifactUrl(options.jobId, 'transcript.json'),
+    },
+  }
+}
+
 async function downloadRemoteVideo(
   source: string,
   outputDir: string,
@@ -450,6 +612,22 @@ export async function transcribeIngestSource(options: {
 }): Promise<IngestTranscriptionResult> {
   if (options.sourceType === 'text_draft') {
     return createTextDraftTranscription({
+      jobId: options.jobId,
+      source: options.source,
+      sourceLanguage: options.sourceLanguage,
+    })
+  }
+
+  if (options.sourceType === 'md_draft') {
+    return createMarkdownDraftTranscription({
+      jobId: options.jobId,
+      source: options.source,
+      sourceLanguage: options.sourceLanguage,
+    })
+  }
+
+  if (options.sourceType === 'pdf_draft') {
+    return createPdfDraftTranscription({
       jobId: options.jobId,
       source: options.source,
       sourceLanguage: options.sourceLanguage,

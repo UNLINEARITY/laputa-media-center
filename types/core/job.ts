@@ -35,10 +35,19 @@ export type JobStep =
   | 'ingest'
   | 'transcribe'
   | 'package'
+  // Phase 3.B: 播客生产
+  | 'rewrite'
+  | 'tts'
+  | 'delivery'
 
 // 任务类型。
 // single_video / multi_video 仅用于历史记录读取兼容；新建任务必须走主线 JobType 映射。
-export type JobType = 'single_video' | 'multi_video' | 'translation_dubbing' | 'content_ingest'
+export type JobType =
+  | 'single_video'
+  | 'multi_video'
+  | 'translation_dubbing'
+  | 'content_ingest'
+  | 'podcast_production'
 export type LanguageStyleSource = 'creator_profile' | 'request' | 'merged'
 
 // 翻译配音配置

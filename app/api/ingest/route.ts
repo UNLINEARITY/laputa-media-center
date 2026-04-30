@@ -28,6 +28,8 @@ const ingestSourceTypeSchema = z.enum([
   'local_audio',
   'web_video',
   'text_draft',
+  'md_draft',
+  'pdf_draft',
   'unknown',
 ])
 

@@ -59,6 +59,35 @@ export const WORKFLOW_ARTIFACTS = {
     kind: 'file',
     allowedFilenames: ['final.mp4', 'final_with_bgm.mp4'],
   },
+  // Phase 3.B：播客生产
+  'podcast.brief': {
+    id: 'podcast.brief',
+    kind: 'file',
+    filename: 'podcast_brief.json',
+    contentType: 'application/json; charset=utf-8',
+  },
+  'podcast.script': {
+    id: 'podcast.script',
+    kind: 'file',
+    filename: 'podcast_script.json',
+    contentType: 'application/json; charset=utf-8',
+  },
+  'podcast.script_markdown': {
+    id: 'podcast.script_markdown',
+    kind: 'file',
+    filename: 'podcast_script.md',
+    contentType: 'text/markdown; charset=utf-8',
+  },
+  'podcast.audio_segments': {
+    id: 'podcast.audio_segments',
+    kind: 'collection',
+  },
+  'podcast.final_audio': {
+    id: 'podcast.final_audio',
+    kind: 'file',
+    filename: 'podcast.mp3',
+    contentType: 'audio/mpeg',
+  },
 } as const
 
 export type WorkflowArtifactId = keyof typeof WORKFLOW_ARTIFACTS
@@ -82,6 +111,10 @@ export const WORKFLOW_ARTIFACT_ID_BY_FILE = {
   'segments.json': 'dubbing.segments',
   'translations.json': 'dubbing.translations',
   'script.txt': 'dubbing.script',
+  'podcast_brief.json': 'podcast.brief',
+  'podcast_script.json': 'podcast.script',
+  'podcast_script.md': 'podcast.script_markdown',
+  'podcast.mp3': 'podcast.final_audio',
 } as const satisfies Record<string, WorkflowArtifactId>
 
 export type WorkflowArtifactManifestEntry = {
