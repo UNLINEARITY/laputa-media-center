@@ -243,7 +243,7 @@ describe('DeliveryPackageSection', () => {
               status: 'ready',
               summary: '真实 provider smoke · 可用 · 通过 3 · 阻断 0 · 跳过 0。',
               detail:
-                '检查时间：2026/4/29 12:00:00；已调用外部 provider；latest dry-run epoch：2026/4/29 11:00:00；之后真实 smoke 1 次，外呼 1 次；运行指纹：chuangcut-video-workflow@16.0.0 · build test-build。',
+                '检查时间：2026/4/29 12:00:00；已调用外部 provider；latest dry-run epoch：2026/4/29 11:00:00；之后真实 smoke 1 次，外呼 1 次；运行指纹：laputa-media-center@0.1.0 · build test-build。',
               href: '/jobs/job123/report#provider-smoke',
             },
           ],
@@ -256,7 +256,7 @@ describe('DeliveryPackageSection', () => {
     expectTextContent('人工终听：未记录人工终听确认。')
     expect(screen.getByText(/Provider Smoke：真实 provider smoke/)).toBeTruthy()
     expect(screen.getByText(/latest dry-run epoch：2026\/4\/29 11:00:00/)).toBeTruthy()
-    expect(screen.getByText(/运行指纹：chuangcut-video-workflow@16\.0\.0/)).toBeTruthy()
+    expect(screen.getByText(/运行指纹：laputa-media-center@0\.1\.0/)).toBeTruthy()
     expect(screen.getByText('交付审计待补')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /记录通过|记录阻断/ })).toBeNull()
     expect(screen.getByRole('link', { name: /成片 MP4/ }).getAttribute('href')).toBe(

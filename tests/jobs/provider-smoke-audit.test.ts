@@ -34,8 +34,8 @@ function gate(overrides: Partial<ProviderSmokeGateAuditInput> = {}): ProviderSmo
 }
 
 const runtimeFingerprint = {
-  package_name: 'chuangcut-video-workflow',
-  package_version: '16.0.0',
+  package_name: 'laputa-media-center',
+  package_version: '0.1.0',
   next_build_id: 'test-build',
 }
 

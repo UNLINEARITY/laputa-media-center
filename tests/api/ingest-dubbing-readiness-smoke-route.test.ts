@@ -28,8 +28,8 @@ const summarizeRealProviderSmokeAuditsSinceLatestReadyDryRunMock = vi.hoisted(()
 const reserveRealProviderSmokeAttemptMock = vi.hoisted(() => vi.fn())
 const completeRealProviderSmokeAttemptReservationMock = vi.hoisted(() => vi.fn())
 const bootRuntimeFingerprintMock = vi.hoisted(() => ({
-  package_name: 'chuangcut-video-workflow',
-  package_version: '16.0.0',
+  package_name: 'laputa-media-center',
+  package_version: '0.1.0',
   next_build_id: 'test-build',
 }))
 const verifyApiKeyMock = vi.hoisted(() => vi.fn(async () => ({ valid: true, message: 'ok' })))

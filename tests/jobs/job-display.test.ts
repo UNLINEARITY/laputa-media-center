@@ -70,8 +70,8 @@ function providerSmokeAudit(overrides: Partial<ProviderSmokeAudit> = {}): Provid
     verdict: 'ready',
     external_calls_executed: true,
     runtime_fingerprint: {
-      package_name: 'chuangcut-video-workflow',
-      package_version: '16.0.0',
+      package_name: 'laputa-media-center',
+      package_version: '0.1.0',
       next_build_id: 'test-build',
     },
     result_counts: {
@@ -524,7 +524,7 @@ describe('job display helpers', () => {
     expect(readme).toContain('QA 新鲜度：未知')
     expect(readme).toContain('人工终听：未记录')
     expect(readme).toContain('Provider Smoke：已确认')
-    expect(readme).toContain('运行指纹：chuangcut-video-workflow@16.0.0 · build test-build')
+    expect(readme).toContain('运行指纹：laputa-media-center@0.1.0 · build test-build')
     expect(readme).toContain('latest dry-run epoch')
   })
 

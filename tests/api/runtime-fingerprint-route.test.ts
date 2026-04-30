@@ -29,8 +29,8 @@ describe('runtime fingerprint route', () => {
       schema_version: 1,
       runtime_contract: 'laputa-runtime-fingerprint',
       runtime_fingerprint: {
-        package_name: 'chuangcut-video-workflow',
-        package_version: '16.0.0',
+        package_name: 'laputa-media-center',
+        package_version: '0.1.0',
       },
     })
     expect(

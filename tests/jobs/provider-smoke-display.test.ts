@@ -12,8 +12,8 @@ function providerSmokeAudit(overrides: Partial<ProviderSmokeAudit> = {}): Provid
     verdict: 'ready',
     external_calls_executed: false,
     runtime_fingerprint: {
-      package_name: 'chuangcut-video-workflow',
-      package_version: '16.0.0',
+      package_name: 'laputa-media-center',
+      package_version: '0.1.0',
       next_build_id: 'test-build',
     },
     result_counts: {
@@ -41,7 +41,7 @@ describe('provider smoke display normal form', () => {
     expect(display.externalCallLabel).toBe('未调用外部 provider')
     expect(display.evidenceEpochLabel).toContain('当前 dry-run 可作为真实 provider smoke 前置证据')
     expect(display.runtimeFingerprintLabel).toBe(
-      '运行指纹：chuangcut-video-workflow@16.0.0 · build test-build',
+      '运行指纹：laputa-media-center@0.1.0 · build test-build',
     )
   })
 

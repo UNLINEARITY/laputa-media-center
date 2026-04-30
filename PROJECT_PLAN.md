@@ -1,16 +1,20 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 1（進行中，1.A 完成）
-**下次從哪裡繼續**：Phase 1.B — Fish Audio TTS 砍除 + 兩個大檔簡化 + 修測試 hardcode
+**當前 Phase**：Phase 1 ✅ 完成 → Phase 2 待開始
+**下次從哪裡繼續**：Phase 2 — 替換 Python 依賴，集成 whisper.cpp 取代 GPT-SoVITS
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
 / 砍 Zeabur 文檔 / 砍 GCS 全鏈路 / package.json 移除 `@google-cloud/storage` + `javascript-obfuscator`
-（License V1/V2 前身項目已收斂為 V3-only，無 V1/V2 殘留可砍）
+**Phase 1.B 完成**：砍 Fish Audio 全鏈路（provider/UI/verify/types/legacy-constants）+ 修測試 hardcode
++ 砍考古測試（docs guard / Fish Audio runtime / GCS verification）
 
-**Phase 0 + 1.A 驗收結果**：`pnpm install` / `pnpm db:init` / `pnpm dev` 全部跑通，
-`http://localhost:8899` + `/settings` 返回 HTTP 200，無紅色 error。
+**Phase 0 + 1 驗收結果**：
+- `pnpm install` / `pnpm db:init` / `pnpm dev` 全部跑通
+- `http://localhost:8899` + `/settings` 返回 HTTP 200，無紅色 error
+- `pnpm test:unit` ✅ 101 文件 / 685 pass / 17 skip / **0 fail**
+- 受保護資產 8 個全保留
 
 ---
 
@@ -189,7 +193,7 @@
 
 ---
 
-### Phase 1：砍 SaaS 偽裝（保留率比之前計劃高）🟡 進行中（1.A 完成）
+### Phase 1：砍 SaaS 偽裝 ✅ 完成（2026-04-30，commits `d0ac9f3` + `3e7c7b5` + 收尾）
 
 **目標**：清理 SaaS 殘留，**但保護受保護資產**。
 
@@ -416,22 +420,25 @@
 - `laputa-video-chuangcut-editing` 引用 → 不改（用戶機器真實 skill 目錄路徑）
 - `lib/license/crypto.ts` SALT → 不改（避免破壞已生成 license）
 
-### Phase 1：砍 SaaS 偽裝（1.A 完成於 2026-04-30）
+### Phase 1：砍 SaaS 偽裝（完成於 2026-04-30）
 - [x] License V1/V2 砍掉（前身已收斂為 V3-only，無 V1/V2 殘留）
 - [x] 混淆構建砍掉（含 javascript-obfuscator dep + obfuscate-build.mjs）
-- [x] GCS 砍掉（gcs-client / tracking / api/google-storage / settings/gcs-config / verify.ts /
-      types/ai/clients GCS / types/api/api-key GoogleStorage / @google-cloud/storage dep）
-- [ ] Fish Audio 砍掉 ← Phase 1.B
-- [ ] Wav2Lip 默認啟用為主力（代碼保留並可用）← Phase 1.B 驗證
-- [ ] LatentSync stub 接口預留 ← Phase 1.B
+- [x] GCS 砍掉全鏈路
+- [x] Fish Audio 砍掉全鏈路（provider/UI/verify/types/legacy-constants）
+- [ ] Wav2Lip 默認啟用驗證 → Phase 2 一併驗（whisper.cpp 集成時整體驗收）
+- [ ] LatentSync stub 接口預留 → Phase 2
 - [x] Stress test 砍掉（5 個 stress 文件 + test:stress script）
-- [ ] provider-smoke-audit 簡化保留付費 gate ← Phase 1.B
-- [ ] closed-loop-readiness 簡化保留 MiniMax 校驗 ← Phase 1.B
+- [ ] **provider-smoke-audit 簡化 deferred 到 Phase 3.A**：
+      reservation + permit 邏輯被 dubbing-readiness/route.ts (1700+ 行) 深度使用，
+      Phase 1 砍會破壞主流程。Phase 3.A Provider 抽象階段一併重構。
+- [ ] **closed-loop-readiness 簡化 deferred 到 Phase 3.A**：同樣狀況。
 - [x] Auth 默認關（lib/auth/config.ts + proxy.ts isAuthEnabled() 默認 false）
 - [x] Rate limit 寬鬆（QUERY 60→600，CREATE_JOB 6→60，UPLOAD 1→30 等）
 - [x] Docker 多平台砍掉（build-multiplatform.sh / publish-docker.sh + provider-smoke CLI mjs）
 - [x] Zeabur 文檔砍掉（docs/agent/deployment.md / credentials.md / cloud-*.md）
-- [ ] 受保護資產驗證一次 ← Phase 1.B
+- [x] 受保護資產 8 個全部驗證保留：translator.py / voice-registry.ts /
+      creator-profile.ts / applied-asset-summary.ts / dubbing-qa.ts /
+      source-classifier.ts / workflow/engine.ts / config/languages.ts
 
 ### Phase 2：替換 Python
 - [ ] 集成 whisper.cpp
@@ -656,3 +663,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：項目計劃 v3 確立。納入：A1（v1.0 含播客）、B2（PDF 保留結構）、C2（MiniMax + Edge TTS）、D3 修訂（Wav2Lip 默認啟用 + v1.1 D-ID/Sync.so）、E（凍結舊項目）。資產保護清單建立。
 - **2026-04-30**：Phase 0 完成（commit `ac7dc06`）。代碼骨架從 ChuangCut 拷貝就位，受保護資產原封不動，dev server 跑通。proxy.ts 加 dev mode license bypass（保留 V3 機制）。下一步進 Phase 1。
 - **2026-04-30**：Phase 1.A 完成。砍 stress test (5)、混淆構建 (obfuscate-build + dep)、Docker scripts、Zeabur 文檔、GCS 全鏈路 (50+ 引用點)、provider-smoke CLI mjs；改 Auth 默認 false、Rate limit 寬鬆。License V1/V2 任務跳過（前身已收斂為 V3-only）。Phase 1.B 待做：Fish Audio 砍除 + provider-smoke-audit/closed-loop-readiness 簡化 + 修測試 hardcode。
+- **2026-04-30**：Phase 1.B 完成。砍 Fish Audio 全鏈路（provider 400 行/UI 105 行/verify ~70 行/types/legacy-constants/8 個 routes 引用清理）；修 8 個測試 hardcode（chuangcut@16.0.0 → laputa@0.1.0）；砍 4 個考古測試文件（mainline-positioning-guard / api-routes-safety-guard / tts-legacy-auth / settings-page-legacy-tts）；skip 17 個 Fish Audio + GCS 對象已砍的舊 case。**Phase 1 收尾驗收**：pnpm test:unit 685 pass / 17 skip / 0 fail；dev server 200 OK；受保護資產 8 個全保留。**Defer**：provider-smoke-audit / closed-loop-readiness 簡化任務超出 Phase 1 範圍（會傷主流程 dubbing-readiness/route.ts 1700+ 行），轉到 Phase 3.A Provider 抽象階段重構。

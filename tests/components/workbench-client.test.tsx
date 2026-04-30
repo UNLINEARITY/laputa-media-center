@@ -107,8 +107,8 @@ function providerSmokeAudit(overrides: Partial<ProviderSmokeAudit> = {}): Provid
     verdict: 'ready',
     external_calls_executed: false,
     runtime_fingerprint: {
-      package_name: 'chuangcut-video-workflow',
-      package_version: '16.0.0',
+      package_name: 'laputa-media-center',
+      package_version: '0.1.0',
       next_build_id: 'test-build',
     },
     result_counts: {
@@ -440,7 +440,7 @@ describe('WorkbenchClient delivery artifacts', () => {
       screen.getByText('latest dry-run epoch：当前 dry-run 可作为真实 provider smoke 前置证据'),
     ).toBeTruthy()
     expect(
-      screen.getByText('运行指纹：chuangcut-video-workflow@16.0.0 · build test-build'),
+      screen.getByText('运行指纹：laputa-media-center@0.1.0 · build test-build'),
     ).toBeTruthy()
     expect(screen.getByText('可用')).toBeTruthy()
     expect(document.body.textContent).toContain('必需确认：translation_provider')

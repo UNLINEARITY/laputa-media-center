@@ -115,8 +115,8 @@ function providerSmokeAudit(overrides: Partial<ProviderSmokeAudit> = {}): Provid
     verdict: 'ready',
     external_calls_executed: false,
     runtime_fingerprint: {
-      package_name: 'chuangcut-video-workflow',
-      package_version: '16.0.0',
+      package_name: 'laputa-media-center',
+      package_version: '0.1.0',
       next_build_id: 'test-build',
     },
     result_counts: {
@@ -236,7 +236,7 @@ describe('ReportLayout legacy report cleanup', () => {
     expect(screen.getByText('阻断 · 已调用外部 provider')).toBeTruthy()
     expect(screen.getByText(/latest dry-run epoch/)).toBeTruthy()
     expect(
-      screen.getByText('运行指纹：chuangcut-video-workflow@16.0.0 · build test-build'),
+      screen.getByText('运行指纹：laputa-media-center@0.1.0 · build test-build'),
     ).toBeTruthy()
     expect(screen.getByText('阻断：YouTube metadata probe failed')).toBeTruthy()
     expect(screen.getByText('阻断：MiniMax TTS smoke skipped')).toBeTruthy()
