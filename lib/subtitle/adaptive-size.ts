@@ -11,6 +11,7 @@ import {
   BASE_HEIGHT,
   DEFAULT_FONT_FILE,
   DEFAULT_SUBTITLE_STYLE,
+  type SubtitleFontFile,
   type SubtitleStyle,
   type VideoSize,
 } from './types'
@@ -32,30 +33,29 @@ const CHAR_WIDTH_FACTOR = 0.9
 // 字体文件管理
 // ============================================================================
 
-/** 字体文件缓存 */
-let cachedFontPath: string | null = null
+/** 字体文件缓存（按 fontFile 分键） */
+const cachedFontPaths = new Map<string, string>()
 
 /**
  * 获取字体文件路径
  *
- * 优先使用项目内置字体，确保跨平台一致性
+ * Phase 3.C-D：可选 fontFile 参数支持 preset 切换
+ * 不传 = 默认 NotoSansSC-Bold.ttf（保持向后兼容）
  */
-export function getFontPath(): string {
-  // 使用缓存避免重复检查
-  if (cachedFontPath) return cachedFontPath
+export function getFontPath(fontFile?: SubtitleFontFile): string {
+  const targetFile = fontFile || DEFAULT_FONT_FILE
+  const cached = cachedFontPaths.get(targetFile)
+  if (cached) return cached
 
-  // 项目内置字体路径
-  const localFont = path.join(process.cwd(), 'resource/fonts', DEFAULT_FONT_FILE)
-
+  const localFont = path.join(process.cwd(), 'resource/fonts', targetFile)
   if (fs.existsSync(localFont)) {
-    cachedFontPath = localFont
-    return cachedFontPath
+    cachedFontPaths.set(targetFile, localFont)
+    return localFont
   }
 
-  // 字体文件不存在，抛出明确错误
   throw new Error(
     `字体文件不存在: ${localFont}\n` +
-      `请下载 Noto Sans SC 字体并放置到 resource/fonts/ 目录\n` +
+      `请确认 resource/fonts/ 下含 ${targetFile}\n` +
       `下载地址: https://fonts.google.com/noto/specimen/Noto+Sans+SC`,
   )
 }
@@ -63,12 +63,11 @@ export function getFontPath(): string {
 /**
  * 获取字体 family 名称（用于 ASS 字幕）
  *
- * 注意：FFmpeg ass filter 通过 fontconfig 匹配字体
- * 必须使用字体的 family 名称，而不是文件名
- *
- * NotoSansSC-Bold.ttf 的 family 名称是 "Noto Sans SC"（带空格）
+ * NotoSansSC-Bold.ttf 与 NotoSansSC-Regular.ttf 共用 family name "Noto Sans SC"，
+ * FFmpeg fontconfig 通过 weight 自动匹配。Phase 3.C-D 的 preset 通过 fontFile 字段
+ * 传给 ass filter 的 fontsdir，自动选 weight。
  */
-export function getFontName(): string {
+export function getFontName(_fontFile?: SubtitleFontFile): string {
   return 'Noto Sans SC'
 }
 

@@ -54,9 +54,41 @@ export interface SubtitleConfig {
   duration: number
   /** 视频分辨率 */
   videoSize: VideoSize
-  /** 可选样式覆盖 */
+  /** 可选样式覆盖（与 presetId 互斥；都传时 style 覆盖优先） */
   style?: Partial<SubtitleStyle>
+  /** Phase 3.C-D：字幕样式预设 ID，缺省走 DEFAULT_SUBTITLE_STYLE */
+  presetId?: SubtitlePresetId
 }
+
+// ============================================================================
+// Phase 3.C-D：字幕样式预设
+// ============================================================================
+
+/** 字幕预设 ID */
+export type SubtitlePresetId =
+  | 'default'
+  | 'cantonese_trendy'
+  | 'serious_political'
+  | 'variety_explainer'
+  | 'xhs_fresh'
+
+/** 预设元数据（UI 列出 + 描述） */
+export interface SubtitlePresetMeta {
+  id: SubtitlePresetId
+  displayName: string
+  description: string
+  tags: string[]
+  scenarios: string[]
+  /** UI 预览：色块演示 */
+  preview: {
+    primaryColor: string
+    outlineColor: string
+    backgroundHint: string
+  }
+}
+
+/** 字体文件名（NotoSansSC-Bold.ttf / NotoSansSC-Regular.ttf） */
+export type SubtitleFontFile = 'NotoSansSC-Bold.ttf' | 'NotoSansSC-Regular.ttf'
 
 // ============================================================================
 // 默认配置

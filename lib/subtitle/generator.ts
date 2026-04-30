@@ -8,9 +8,22 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 import { mergeStyles } from './adaptive-size'
+import { resolvePresetStyle } from './presets'
 import type { SubtitleSegment } from './segment-splitter'
 import { escapeASS, processSubtitleText, removePunctuation, wrapText } from './text-wrapper'
 import type { SubtitleConfig, SubtitleStyle, VideoSize } from './types'
+
+/**
+ * 解析最终 SubtitleStyle 来源
+ * 优先级：style 覆盖 > presetId > 默认 mergeStyles
+ */
+function resolveStyle(config: SubtitleConfig): SubtitleStyle {
+  if (config.presetId && config.presetId !== 'default' && !config.style) {
+    return resolvePresetStyle(config.presetId, config.videoSize)
+  }
+  // 兼容历史调用：style 覆盖优先（同时显式 default 走默认）
+  return mergeStyles(config.videoSize, config.style)
+}
 
 // ============================================================================
 // 时间格式化
@@ -45,8 +58,8 @@ export function formatASSTime(seconds: number): string {
  * @returns ASS 格式字幕内容
  */
 export function generateASS(config: SubtitleConfig): string {
-  // 合并样式
-  const style = mergeStyles(config.videoSize, config.style)
+  // 合并样式（preset 优先，其次 style 覆盖，最后默认）
+  const style = resolveStyle(config)
 
   // 处理文本（转义 + 换行）
   const processedText = processSubtitleText(config.text, style.maxCharsPerLine)
@@ -149,8 +162,10 @@ export interface SegmentedSubtitleConfig {
   segments: SubtitleSegment[]
   /** 视频尺寸 */
   videoSize: VideoSize
-  /** 可选样式覆盖 */
+  /** 可选样式覆盖（与 presetId 互斥；都传时 style 覆盖优先） */
   style?: Partial<SubtitleStyle>
+  /** Phase 3.C-D：字幕样式预设 ID */
+  presetId?: import('./types').SubtitlePresetId
 }
 
 /**
@@ -163,8 +178,11 @@ export interface SegmentedSubtitleConfig {
  * @returns ASS 格式字幕内容
  */
 export function generateSegmentedASS(config: SegmentedSubtitleConfig): string {
-  // 合并样式
-  const style = mergeStyles(config.videoSize, config.style)
+  // 合并样式（preset 优先，其次 style 覆盖，最后默认）
+  const style =
+    config.presetId && config.presetId !== 'default' && !config.style
+      ? resolvePresetStyle(config.presetId, config.videoSize)
+      : mergeStyles(config.videoSize, config.style)
 
   // 生成多条 Dialogue
   const dialogues = config.segments
