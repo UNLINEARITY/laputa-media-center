@@ -11,18 +11,13 @@ import { jobsRepo } from '@/lib/db/core/jobs'
 import { initState } from '@/lib/db/managers/state-manager'
 import { classifyIngestSource, getLocalIngestFileInfo } from '@/lib/ingest/source-classifier'
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
+import { SUBTITLE_PRESET_IDS } from '@/lib/subtitle/types'
 import { logger } from '@/lib/utils/logger'
 import { QUEUE_FULL_ERROR, taskQueue } from '@/lib/workflow/task-queue'
 import { selectWorkflow } from '@/lib/workflow/workflows'
 import type { JobConfig } from '@/types'
 
-const subtitlePresetSchema = z.enum([
-  'default',
-  'cantonese_trendy',
-  'serious_political',
-  'variety_explainer',
-  'xhs_fresh',
-])
+const subtitlePresetSchema = z.enum(SUBTITLE_PRESET_IDS)
 const aspectSchema = z.enum(['16:9', '9:16'])
 const sourceTypeSchema = z.enum(['youtube', 'local_video', 'local_audio', 'web_video'])
 

@@ -4,6 +4,7 @@
  * 使用 FFmpeg 将 ASS 字幕硬烧到视频中
  */
 
+import { escapeFFmpegPath } from '@/lib/utils/ffmpeg-utils'
 import type { FFmpegExecOptions, FFmpegServiceConfig, VideoEncodingOptions } from '../types'
 import { execFFmpeg } from '../utils/exec'
 
@@ -129,23 +130,4 @@ function buildBurnSubtitleArgs(
   return args
 }
 
-/**
- * 转义 FFmpeg 滤镜路径中的特殊字符
- *
- * FFmpeg 滤镜语法中的特殊字符：
- * - : 冒号（参数分隔符）
- * - \ 反斜杠（转义字符）
- * - ' 单引号
- * - [ ] 方括号（流选择器）
- *
- * @param filePath 原始路径
- * @returns 转义后的路径
- */
-function escapeFFmpegPath(filePath: string): string {
-  return filePath
-    .replace(/\\/g, '/') // Windows 路径统一为正斜杠
-    .replace(/:/g, '\\:') // 转义冒号
-    .replace(/'/g, "\\'") // 转义单引号
-    .replace(/\[/g, '\\[') // 转义左方括号
-    .replace(/\]/g, '\\]') // 转义右方括号
-}
+// escapeFFmpegPath 已抽到 lib/utils/ffmpeg-utils.ts（Phase 3.C-A 收尾統一）

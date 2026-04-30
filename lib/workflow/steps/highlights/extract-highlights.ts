@@ -9,13 +9,13 @@
  * 输出：highlight_cuts/highlight_{idx}_{slug}.mp4 + cuts.json
  */
 
-import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getIngestFfmpeg } from '@/lib/ingest/runtime'
 import { generateSegmentedASS } from '@/lib/subtitle/generator'
+import { escapeFFmpegPath, execFfmpeg } from '@/lib/utils/ffmpeg-utils'
 import type { SubtitlePresetId } from '@/lib/subtitle/types'
 import type { WorkflowContext } from '../../types'
 import { BaseStep } from '../base'
@@ -53,38 +53,12 @@ export interface ExtractHighlightsOutput {
 
 const VIDEO_BASE_SIZE = { width: 1920, height: 1080 }
 
-function escapeFFmpegPath(filePath: string): string {
-  return filePath
-    .replace(/\\/g, '/')
-    .replace(/:/g, '\\:')
-    .replace(/'/g, "\\'")
-    .replace(/\[/g, '\\[')
-    .replace(/\]/g, '\\]')
-}
-
 function slugify(text: string): string {
   const cleaned = text
     .replace(/[^一-龥\w\s-]/g, '')
     .replace(/\s+/g, '_')
     .slice(0, 16)
   return cleaned || 'clip'
-}
-
-function execFfmpeg(
-  ffmpeg: string,
-  args: string[],
-  timeoutMs = 5 * 60 * 1000,
-): Promise<{ stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(ffmpeg, args, { timeout: timeoutMs, stdio: ['ignore', 'pipe', 'pipe'] })
-    let stderr = ''
-    proc.stderr.on('data', (d) => (stderr += d.toString()))
-    proc.on('error', (err) => reject(new Error(`spawn ffmpeg failed: ${err.message}`)))
-    proc.on('close', (code) => {
-      if (code === 0) resolve({ stderr })
-      else reject(new Error(`ffmpeg exit ${code}: ${stderr.slice(-500)}`))
-    })
-  })
 }
 
 function pickSegmentsForClip(
@@ -160,7 +134,7 @@ async function cutAndBurnClip(opt: {
     opt.outputPath,
   )
 
-  await execFfmpeg(opt.ffmpeg, args)
+  await execFfmpeg(opt.ffmpeg, args, 5 * 60 * 1000)
 }
 
 export async function processHighlightCandidate(opt: {

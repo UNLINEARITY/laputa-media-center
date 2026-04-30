@@ -64,13 +64,20 @@ export interface SubtitleConfig {
 // Phase 3.C-D：字幕样式预设
 // ============================================================================
 
+/**
+ * 字幕预设 ID 列表（source of truth）
+ * Phase 3.C-A 收尾：API route + zod schema 全部派生自这里
+ */
+export const SUBTITLE_PRESET_IDS = [
+  'default',
+  'cantonese_trendy',
+  'serious_political',
+  'variety_explainer',
+  'xhs_fresh',
+] as const
+
 /** 字幕预设 ID */
-export type SubtitlePresetId =
-  | 'default'
-  | 'cantonese_trendy'
-  | 'serious_political'
-  | 'variety_explainer'
-  | 'xhs_fresh'
+export type SubtitlePresetId = (typeof SUBTITLE_PRESET_IDS)[number]
 
 /** 预设元数据（UI 列出 + 描述） */
 export interface SubtitlePresetMeta {

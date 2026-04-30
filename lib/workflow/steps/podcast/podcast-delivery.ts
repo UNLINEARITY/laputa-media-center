@@ -6,11 +6,11 @@
  * - 写 manifest.json
  */
 
-import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { getIngestFfmpeg } from '@/lib/ingest/runtime'
+import { execFfmpeg } from '@/lib/utils/ffmpeg-utils'
 import type { WorkflowContext } from '../../types'
 import { BaseStep } from '../base'
 import { getPodcastArtifactOutputPath, getPodcastSegmentsDir } from './artifact-paths'
@@ -23,28 +23,6 @@ interface PodcastDeliveryOutput {
   scriptMarkdownFile: string
   manifestFile: string
   durationSecondsEstimated: number
-}
-
-function execFfmpeg(
-  ffmpeg: string,
-  args: string[],
-  timeout = 30 * 60 * 1000,
-): Promise<{ stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(ffmpeg, args, {
-      timeout,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    let stdout = ''
-    let stderr = ''
-    proc.stdout.on('data', (d) => (stdout += d.toString()))
-    proc.stderr.on('data', (d) => (stderr += d.toString()))
-    proc.on('error', (err) => reject(new Error(`spawn ffmpeg failed: ${err.message}`)))
-    proc.on('close', (code) => {
-      if (code === 0) resolve({ stdout, stderr })
-      else reject(new Error(`ffmpeg exit ${code}: ${stderr.slice(-500)}`))
-    })
-  })
 }
 
 export class PodcastDeliveryStep extends BaseStep<PodcastDeliveryOutput> {
