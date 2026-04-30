@@ -1,9 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 3.B（進行中，後端完成；UI deferred 到下次）
-**下次從哪裡繼續**：Phase 3.B 收尾 — `app/podcast/page.tsx` + `podcast-form` + `podcast-workbench` UI + `app/api/podcast/route.ts`
-**Phase 3.B 之後**：Phase 3.C 自媒體爆款工具（4 個：高亮切片 / 短視頻腳本適配 / 標題鉤子優化 / 字幕樣式預設庫）
+**當前 Phase**：Phase 3.B ✅ 完成 → Phase 3.C 待開始
+**下次從哪裡繼續**：Phase 3.C 自媒體爆款工具（4 個：高亮切片 / 短視頻腳本適配 / 標題鉤子優化 / 字幕樣式預設庫）
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -297,7 +296,7 @@
 
 ---
 
-### Phase 3.B：MD/PDF 入口 + 播客模式（A1 決議）🟡 進行中（後端完成 2026-04-30）
+### Phase 3.B：MD/PDF 入口 + 播客模式（A1 決議）✅ 完成（2026-04-30）
 
 **目標**：擴展素材入口，實現播客 / 旁白生產線。
 
@@ -522,8 +521,10 @@
 - [x] `app/api/upload/document/route.ts` (.md/.pdf 上傳，50MB 限制)
 - [x] `app/api/ingest/route.ts` schema 加 md_draft/pdf_draft
 - [x] workflow-ids + artifact-manifest + steps registry 全鏈路註冊
-- [ ] **UI 部分 deferred 到下次**：app/podcast/page.tsx + podcast-form + podcast-workbench + app/api/podcast/route.ts
-- [ ] **真實驗收**：800 字觀點稿 → brief.json → script.md → final.mp3（下次 UI 完成後一起）
+- [x] **UI 完成**：`app/podcast/page.tsx` + `components/podcast/{podcast-form, podcast-workbench}.tsx`
+      （3 種素材 / 4 種風格 / 5 種時長 / 雙人模式 / 主+次聲線 / boundary + minimax_tts gate 雙重確認）
+- [x] **API 完成**：`app/api/podcast/route.ts` 創建 podcast job（schema 校驗 + voice_id 必填 + workflow 註冊）
+- [ ] **真實驗收**：留用戶手動跑（需要 Gemini key + MiniMax key + 已註冊聲線）
 
 ### Phase 4：清理 + 重置
 - [ ] Agent docs 合併
@@ -729,3 +730,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：Phase 3.A 後端完成（TEAM 模式：3 個 agent 並行 — H 盤點 LLM 調用點 / I 設計 Provider 架構 / K 驗證 translator.py 契約）。新建 `lib/providers/{asr,llm}/` 9 個檔（types + 5 個 provider impl + registry）。ASR：whisper-cpp（默認，包 WhisperCppRunner）+ gemini-audio（Hybrid 模式：whisper 時間戳 + Gemini 文本對齊）。LLM：gemini（默認，包 lib/ai/gemini）+ openai（SDK）+ mistral（SDK）。**openai-whisper 砍**（朋友用 whisper.cpp 已夠）。改 `scripts/translator.py:L719` 擴展 provider 分支：accept gemini/openai/mistral（OpenAI/Mistral 走 OpenAI-compatible 路徑，call_gemini_json 已內建判斷），**兩階段 prompt 0 動**。改 `lib/ingest/runner.ts:runWhisper()` + `lib/workflow/steps/dubbing/{whisper-asr,translate-text}.ts` 走 registry。新建 4 個 API routes（GET/POST list + POST test）。**真實驗收**：GET `/api/providers/asr` 列出 2 個 + GET `/api/providers/llm` 列出 3 個 + POST `/api/providers/asr/test {whisper-cpp}` 1117ms ok=true。pnpm test:unit 685 pass / 17 skip / 0 fail。**UI deferred 到 Claude Design 階段**（用戶要求）。**Phase 1 deferred 兩個大檔重寫**：留下次（closed-loop-readiness 760→~250 + provider-smoke-audit 1351→~400）。
 - **2026-04-30**：Phase 3.A 收尾完成（TEAM 模式：3 個 agent 並行 — L 重寫 closed-loop / M 評估 provider-smoke-audit / N 設計 UI）。**closed-loop-readiness 重寫**：760→730（4% reduction，inline fallback + dict-driven detail；保 8 個 consumer 序列化 + 5 個 provider gate 邊界）。Agent M 坦誠評估後 **provider-smoke-audit deferred 到 Phase 4**（reservation/permit 450 行深度耦合 dubbing-readiness/route.ts，砍會破壞付費 gate）。**UI 切換器（Claude Design）**：新建 `asr-provider-switcher.tsx` + `llm-provider-switcher.tsx`（Tier 🟢🟡🔴 badge / Ready chip / 測試連接按鈕 / 切換 active 按鈕 / OpenAI 付費確認 inline checkbox / Mistral 開源備選 / OpenAI+Mistral 凭證編輯器走 POST /api/configs / 配置入口跳轉 maintenance/ai-studio tab），集成到 settings system tab 內「運行 Provider」分組（不新開 tab）。pnpm test:unit 685 pass / 17 skip / 0 fail；/settings + GET/POST /api/providers/* 全部 200 OK。Phase 3.A 整體完成，下一步 Phase 3.B（MD/PDF 入口 + 播客模式）。
 - **2026-04-30**：Phase 3.B 後端完成（TEAM 模式：3 agent 並行 — O 盤點 ingest 鏈 / P 設計播客 / Q 受保護資產守門員）。**MD/PDF 入口**：types `source_type` 加 `md_draft|pdf_draft` + JobType 加 `podcast_production`；source-classifier 加 .md/.markdown/.pdf 識別；runner.ts 新增 `createMarkdownDraftTranscription`（gray-matter 解析 frontmatter + 標題/段落）+ `createPdfDraftTranscription`（unpdf 純 JS 按頁提取）；新建 `app/api/upload/document/route.ts` (.md/.pdf 上傳)。**播客模式 4 stages**：ingest → rewrite → tts → delivery；新建 4 step + artifact-paths：`build-podcast-brief.ts`（LLM 第一階段，走 registry，獨立 prompt schema）+ `generate-podcast-script.ts`（LLM 第二階段，含 opening/body/transition/closing role + pacing_hint + pause_after_ms）+ `podcast-tts.ts`（**直接 fetch MiniMax t2a_v2**，沿用 voice-registry/boundary/gate，不走 voice_cloner.py）+ `podcast-delivery.ts`（ffmpeg concat + manifest）。新建 `lib/workflow/workflows/podcast-production.ts` + workflow-ids/artifact-manifest 全鏈路註冊。pnpm test:unit 685 pass / 17 skip / 0 fail。**未動受保護資產**：translator.py 兩階段邏輯 / voice-registry / creator-profile / source-classifier 核心邏輯（只擴展 enum + case，符合 PROJECT_PLAN line 305-309 計劃）。**UI deferred 到下次**：app/podcast/page.tsx + podcast-form + podcast-workbench + app/api/podcast/route.ts。
+- **2026-04-30**：Phase 3.B 收尾完成。新建 `app/api/podcast/route.ts`（z.enum schema 校驗：source_type 限 text/md/pdf_draft + tone 4 種 + speaker_mode 雙人/單人 + voice_id 必填 + creator_context + boundary_ack + confirmed_gate_ids；taskQueue.enqueue + initState 完整鏈路）。新建 `components/podcast/podcast-form.tsx` ~480 行（3 種素材切換 / textarea 50 字下限 / .md/.pdf 走 /api/upload/document / 4 風格卡片 + 5 時長 chip + 雙人模式 / VoiceSelect 從 /api/dubbing/voices 拉本地聲線 / 雙重 inline checkbox 確認 / sonner toast）+ `podcast-workbench.tsx`（4-stage 進度卡）+ `app/podcast/page.tsx`。**驗收**：/podcast 200 + /api/podcast schema 400 校驗 + pnpm test:unit 685 pass / 0 fail。Phase 3.B 整體完成。**用戶決定加入 Phase 3.C**（自媒體爆款工具：高亮切片 / 短視頻腳本適配 / 標題鉤子優化 / 字幕樣式預設庫）作為下一階段。
