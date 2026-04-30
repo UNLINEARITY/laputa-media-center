@@ -3,9 +3,6 @@ export type ApiKeyService =
   // Google 配置
   | 'google_vertex' // Vertex AI 模式（企业级）
   | 'google_ai_studio' // AI Studio 模式（个人用户）
-  // Fish Audio 配置（两个平台独立）
-  | 'fish_audio_vertex' // Vertex AI 模式的 Fish Audio
-  | 'fish_audio_ai_studio' // AI Studio 模式的 Fish Audio
   // MiniMax 配音配置
   | 'minimax_tts'
 
@@ -30,13 +27,6 @@ export interface GeminiAIStudioCredentials {
   api_key: string // 从 Google AI Studio 或 Gemini-compatible 公益站获取
   model_id: string // 如 gemini-3-flash-preview
   api_base_url?: string // 可选：Gemini-compatible API Base URL，如 https://example.com/v1beta
-}
-
-// Fish Audio凭据
-export interface FishAudioCredentials {
-  api_key: string
-  voice_id?: string // 验证时使用默认音色，实际使用时由任务配置指定
-  model_id?: string
 }
 
 // MiniMax TTS 凭据

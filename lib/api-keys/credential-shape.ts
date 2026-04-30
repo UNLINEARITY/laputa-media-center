@@ -4,17 +4,9 @@ const GOOGLE_PROVIDER_SERVICES = new Set<ApiKeyService>([
   'google_vertex',
   'google_ai_studio',
 ])
-const LEGACY_TTS_PROVIDER_SERVICES = new Set<ApiKeyService>([
-  'fish_audio_vertex',
-  'fish_audio_ai_studio',
-])
 
 export function requiresPaidProviderVerificationGate(service: ApiKeyService): boolean {
-  return (
-    service === 'minimax_tts' ||
-    GOOGLE_PROVIDER_SERVICES.has(service) ||
-    LEGACY_TTS_PROVIDER_SERVICES.has(service)
-  )
+  return service === 'minimax_tts' || GOOGLE_PROVIDER_SERVICES.has(service)
 }
 
 export function requiresServerPaidDynamicTestsGate(service: ApiKeyService): boolean {
@@ -69,11 +61,6 @@ export function validateApiKeyCredentialShape(
 
     case 'minimax_tts':
       if (!hasValue(credentials, 'api_key')) return 'MiniMax API Key 不能为空'
-      return null
-
-    case 'fish_audio_vertex':
-    case 'fish_audio_ai_studio':
-      if (!hasValue(credentials, 'api_key')) return 'Fish Audio API Key 不能为空'
       return null
 
     default:

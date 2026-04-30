@@ -3,11 +3,6 @@ export const revalidate = 0
 
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import {
-  isLegacyTtsEnabled,
-  isLegacyTtsProviderService,
-  LEGACY_TTS_DISABLED_ERROR,
-} from '@/lib/ai/tts/legacy-policy'
 import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { apiKeysRepo } from '@/lib/db/core/api-keys'
 import { logger } from '@/lib/utils/logger'
@@ -20,10 +15,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ serv
 
     const { service: serviceName } = await params
     const service = serviceName as ApiKeyService
-
-    if (isLegacyTtsProviderService(service) && !isLegacyTtsEnabled()) {
-      return NextResponse.json(LEGACY_TTS_DISABLED_ERROR, { status: 410 })
-    }
 
     // 安全修复：使用脱敏预览代替完整凭证
     const maskedPreview = apiKeysRepo.getMaskedPreview(service)

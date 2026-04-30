@@ -6,13 +6,6 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { clearGeminiRuntimeCache } from '@/lib/ai/gemini/cache'
 import {
-  hasLegacyTtsBodyConfirmation,
-  isLegacyTtsEnabled,
-  isLegacyTtsProviderService,
-  LEGACY_TTS_CONFIRMATION_ERROR,
-  LEGACY_TTS_DISABLED_ERROR,
-} from '@/lib/ai/tts/legacy-policy'
-import {
   clearRuntimeCacheAfterSaveOnly,
   defaultsToSaveOnly,
   requiresPaidProviderVerificationGate,
@@ -37,17 +30,11 @@ const saveKeySchema = z.object({
   service: z.enum([
     'google_vertex',
     'google_ai_studio',
-    'fish_audio_vertex',
-    'fish_audio_ai_studio',
     'minimax_tts',
   ]),
   credentials: z.record(z.string(), z.string()),
   confirmPaidVerification: z.boolean().optional(),
   confirm_paid_verification: z.boolean().optional(),
-  confirmLegacyTts: z.boolean().optional(),
-  confirm_legacy_tts: z.boolean().optional(),
-  confirmLegacyFishAudio: z.boolean().optional(),
-  confirm_legacy_fish_audio: z.boolean().optional(),
 })
 
 function hasConfirmedPaidVerification(data: z.infer<typeof saveKeySchema>) {
@@ -68,12 +55,6 @@ function buildPaidVerificationConfirmationRequiredError(service: ApiKeyService) 
       message: 'MiniMax 凭证验证会调用一次测试 TTS；请先明确确认可能产生费用。',
     }
   }
-  if (service === 'fish_audio_vertex' || service === 'fish_audio_ai_studio') {
-    return {
-      error: 'Paid verification confirmation required',
-      message: 'Fish Audio 旧兼容验证会调用一次测试 TTS；请先明确确认可能产生费用。',
-    }
-  }
 
   return {
     error: 'Paid verification confirmation required',
@@ -84,9 +65,6 @@ function buildPaidVerificationConfirmationRequiredError(service: ApiKeyService) 
 function buildPaidDynamicTestsRequiredMessage(service: ApiKeyService): string {
   if (service === 'minimax_tts') {
     return 'MiniMax 凭证验证会调用一次测试 TTS；请先在服务端显式设置 ALLOW_PAID_DYNAMIC_TESTS=true。'
-  }
-  if (service === 'fish_audio_vertex' || service === 'fish_audio_ai_studio') {
-    return 'Fish Audio 旧兼容验证会调用外部 TTS provider；请先在服务端显式设置 ALLOW_PAID_DYNAMIC_TESTS=true。'
   }
   return 'Google/Gemini 凭证验证会调用真实 provider；请先在服务端显式设置 ALLOW_PAID_DYNAMIC_TESTS=true。'
 }
@@ -117,27 +95,6 @@ export async function POST(req: NextRequest) {
     const data = saveKeySchema.parse(body)
     const service = data.service as ApiKeyService
     const action = resolveSaveAction(data)
-
-    if (isLegacyTtsProviderService(service) && !isLegacyTtsEnabled()) {
-      return NextResponse.json(LEGACY_TTS_DISABLED_ERROR, { status: 410 })
-    }
-
-    if (isLegacyTtsProviderService(service)) {
-      if (!hasLegacyTtsBodyConfirmation(data)) {
-        return NextResponse.json(LEGACY_TTS_CONFIRMATION_ERROR, { status: 400 })
-      }
-
-      if (action === 'save_only') {
-        return NextResponse.json(
-          {
-            error: 'Legacy TTS save-only unsupported',
-            message:
-              'Fish Audio 旧兼容凭证不支持 save_only；如需维护历史凭证，请使用 verify_and_save 并完成旧兼容与付费验证确认。',
-          },
-          { status: 400 },
-        )
-      }
-    }
 
     if (action === 'save_only') {
       const validationError = validateApiKeyCredentialShape(service, data.credentials)

@@ -10,7 +10,6 @@ import {
   parseServiceAccountJson,
   type ServiceAccountCredentials,
 } from '@/lib/ai/gemini-utils'
-import { FISH_AUDIO_DEFAULT_VOICE_ID } from '@/lib/ai/tts/legacy-constants'
 import { CONFIG_DEFAULTS } from '@/lib/config'
 import type { ApiKeyService } from '@/types'
 
@@ -21,11 +20,6 @@ import type { ApiKeyService } from '@/types'
 export interface VerifyResult {
   valid: boolean
   message: string
-}
-
-interface FishAudioVerifyCredentials {
-  api_key: string
-  voice_id?: string
 }
 
 interface MiniMaxVerifyCredentials {
@@ -161,74 +155,6 @@ const safetySettings = [
 // ============================================================
 // 验证函数
 // ============================================================
-
-/** 验证 Fish Audio API */
-export async function verifyFishAudio(
-  credentials: FishAudioVerifyCredentials,
-): Promise<VerifyResult> {
-  try {
-    // 使用默认测试音色验证 API Key
-    const voiceId = credentials.voice_id || FISH_AUDIO_DEFAULT_VOICE_ID
-
-    const response = await fetch('https://api.fish.audio/v1/tts', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${credentials.api_key}`,
-        'Content-Type': 'application/json',
-        model: 'speech-1.6',
-      },
-      body: JSON.stringify({
-        text: '测试',
-        temperature: 0.7,
-        top_p: 0.7,
-        normalize: false,
-        format: 'mp3',
-        mp3_bitrate: 128,
-        reference_id: voiceId,
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-
-      if (response.status === 401) {
-        return {
-          valid: false,
-          message: 'API Key 无效或已过期，请检查 Fish Audio 控制台',
-        }
-      }
-
-      if (response.status === 404 || errorData.error?.includes('reference')) {
-        return {
-          valid: false,
-          message: '验证失败：测试音色不可用，请联系管理员',
-        }
-      }
-
-      if (response.status === 429) {
-        return {
-          valid: false,
-          message: 'TTS 请求配额已用尽，请稍后再试或升级套餐',
-        }
-      }
-
-      return {
-        valid: false,
-        message: `验证失败 (${response.status}): ${errorData.error || response.statusText}`,
-      }
-    }
-
-    return { valid: true, message: '验证成功（API Key 已确认）' }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      if (error.message.includes('fetch')) {
-        return { valid: false, message: '网络连接失败，无法访问 Fish Audio API' }
-      }
-      return { valid: false, message: `验证失败: ${error.message}` }
-    }
-    return { valid: false, message: '验证失败: 未知错误' }
-  }
-}
 
 /** 验证 MiniMax TTS API */
 export async function verifyMiniMax(credentials: MiniMaxVerifyCredentials): Promise<VerifyResult> {
@@ -508,10 +434,6 @@ export async function verifyApiKey(
   credentials: Record<string, string>,
 ): Promise<VerifyResult> {
   switch (service) {
-    case 'fish_audio_vertex':
-    case 'fish_audio_ai_studio':
-      return verifyFishAudio(credentials as unknown as FishAudioVerifyCredentials)
-
     case 'minimax_tts':
       return verifyMiniMax(credentials as unknown as MiniMaxVerifyCredentials)
 

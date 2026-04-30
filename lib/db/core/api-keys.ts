@@ -164,8 +164,6 @@ export class ApiKeysRepository {
     const services: ApiKeyService[] = [
       'google_vertex',
       'google_ai_studio',
-      'fish_audio_vertex',
-      'fish_audio_ai_studio',
       'minimax_tts',
     ]
 

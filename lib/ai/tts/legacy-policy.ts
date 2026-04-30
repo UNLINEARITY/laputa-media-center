@@ -1,11 +1,17 @@
-export const LEGACY_TTS_CONFIRMATION_HEADER = 'x-chuangcut-confirm-legacy-tts'
+/**
+ * Legacy TTS（Edge TTS 旧兼容）默认关闭策略。
+ *
+ * LaputaMediaCenter Phase 1.B：Fish Audio 全砍后，此 policy 仅控制
+ * Edge TTS 旧兼容层（langauge voices API）的启用，并保留付费前确认 gate。
+ * 主线 TTS（MiniMax）走独立链，不受此 policy 影响。
+ */
+
+export const LEGACY_TTS_CONFIRMATION_HEADER = 'x-laputa-confirm-legacy-tts'
 export const LEGACY_TTS_ENABLED_ENV = 'LEGACY_TTS_ENABLED'
 
 type LegacyTtsConfirmationBody = {
   confirmLegacyTts?: unknown
   confirm_legacy_tts?: unknown
-  confirmLegacyFishAudio?: unknown
-  confirm_legacy_fish_audio?: unknown
 }
 
 type EnvLike = Record<string, string | undefined>
@@ -18,10 +24,6 @@ export function isLegacyTtsEnabled(env: EnvLike = process.env): boolean {
   return env[LEGACY_TTS_ENABLED_ENV] === 'true'
 }
 
-export function isLegacyTtsProviderService(service: string): boolean {
-  return service === 'fish_audio_vertex' || service === 'fish_audio_ai_studio'
-}
-
 export function assertLegacyTtsEnabled(env: EnvLike = process.env): void {
   if (!isLegacyTtsEnabled(env)) {
     throw new Error(LEGACY_TTS_DISABLED_ERROR.message)
@@ -29,12 +31,7 @@ export function assertLegacyTtsEnabled(env: EnvLike = process.env): void {
 }
 
 export function hasLegacyTtsBodyConfirmation(body: LegacyTtsConfirmationBody): boolean {
-  return (
-    isConfirmed(body.confirmLegacyTts) ||
-    isConfirmed(body.confirm_legacy_tts) ||
-    isConfirmed(body.confirmLegacyFishAudio) ||
-    isConfirmed(body.confirm_legacy_fish_audio)
-  )
+  return isConfirmed(body.confirmLegacyTts) || isConfirmed(body.confirm_legacy_tts)
 }
 
 export function hasLegacyTtsRequestConfirmation(request: Request): boolean {
@@ -56,7 +53,7 @@ export const LEGACY_TTS_DISABLED_ERROR = {
   error: 'Legacy TTS disabled',
   code: 'LEGACY_TTS_DISABLED',
   message:
-    '旧 TTS 兼容接口默认关闭；如需读取历史 Fish/Edge 兼容能力，请在服务端显式设置 LEGACY_TTS_ENABLED=true。',
+    '旧 TTS 兼容接口默认关闭；如需读取 Edge TTS 兼容能力，请在服务端显式设置 LEGACY_TTS_ENABLED=true。',
 } as const
 
 export const LEGACY_TTS_DISABLED_STATUS = {

@@ -1,4 +1,4 @@
-/** GET: 获取可用语音列表（?language=zh&provider=edge_tts|fish_audio） */
+/** GET: 获取可用语音列表（?language=zh） */
 
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
@@ -22,24 +22,13 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const language = searchParams.get('language') || undefined
-    const providerParam = searchParams.get('provider')
 
     if (!hasLegacyTtsRequestConfirmation(request)) {
       return NextResponse.json(LEGACY_TTS_CONFIRMATION_ERROR, { status: 400 })
     }
 
-    let voices: TTSVoiceInfo[]
-    const { EdgeTTSProvider, FishAudioProvider, ttsManager } = await import('@/lib/ai/tts')
-
-    if (providerParam === 'edge_tts') {
-      const edgeTTS = new EdgeTTSProvider()
-      voices = await edgeTTS.getVoices(language)
-    } else if (providerParam === 'fish_audio') {
-      const fishAudio = new FishAudioProvider()
-      voices = await fishAudio.getVoices()
-    } else {
-      voices = await ttsManager.getVoices(language)
-    }
+    const { ttsManager } = await import('@/lib/ai/tts')
+    const voices: TTSVoiceInfo[] = await ttsManager.getVoices(language)
 
     return NextResponse.json({
       voices,

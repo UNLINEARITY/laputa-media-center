@@ -108,10 +108,6 @@ export const TTS_CONFIG_KEYS = {
   EDGE_TTS_DEFAULT_VOICE: 'edge_tts_default_voice',
   /** Edge TTS 语速 */
   EDGE_TTS_RATE: 'edge_tts_rate',
-  /** Fish Audio 音色 ID */
-  FISH_AUDIO_VOICE_ID: 'fish_audio_voice_id',
-  /** Fish Audio 音色名称（验证后缓存） */
-  FISH_AUDIO_VOICE_NAME: 'fish_audio_voice_name',
   /** 配音音量（0.0-2.0，默认 1.0，0 静音，2.0 最大增益） */
   DUBBED_VOLUME: 'dubbed_volume',
   /** 配乐音量（0.0-1.2，默认 0.15，超过 1.0 时盖过配音） */

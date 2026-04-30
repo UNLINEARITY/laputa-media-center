@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiTokenManager } from '@/components/settings/api-token-manager'
 import { CreatorAssetsConfig } from '@/components/settings/creator-assets-config'
-import { FishAudioConfig } from '@/components/settings/fish-audio-config'
 import { GeminiAIStudioConfig } from '@/components/settings/gemini-ai-studio-config'
 import { GeminiVertexConfig } from '@/components/settings/gemini-vertex-config'
 import { MiniMaxConfig } from '@/components/settings/minimax-config'
@@ -25,13 +24,10 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('system')
   const [statuses, setStatuses] = useState<ApiKeyStatus[]>([])
   const [savingService, setSavingService] = useState<string | null>(null)
-  const [legacyTtsEnabled, setLegacyTtsEnabled] = useState(false)
-  const [legacyTtsMessage, setLegacyTtsMessage] = useState('')
+  // legacy-tts 兼容状态保留供 /api/tts/status 端点（Edge TTS 旧兼容层），UI 不再展示
   const [messages, setMessages] = useState<Record<ApiKeyService, ServiceMessage | null>>({
     google_vertex: null,
     google_ai_studio: null,
-    fish_audio_vertex: null,
-    fish_audio_ai_studio: null,
     minimax_tts: null,
   })
 
@@ -56,20 +52,6 @@ export default function SettingsPage() {
     model_id: CONFIG_DEFAULTS.DEFAULT_GEMINI_MODEL,
     api_base_url: '',
   })
-
-  // Fish Audio Vertex AI
-  const [fishAudioVertexKey, setFishAudioVertexKey] = useState('')
-  const [
-    fishAudioVertexLegacyVerificationConfirmed,
-    setFishAudioVertexLegacyVerificationConfirmed,
-  ] = useState(false)
-
-  // Fish Audio AI Studio
-  const [fishAudioAIStudioKey, setFishAudioAIStudioKey] = useState('')
-  const [
-    fishAudioAIStudioLegacyVerificationConfirmed,
-    setFishAudioAIStudioLegacyVerificationConfirmed,
-  ] = useState(false)
 
   // MiniMax TTS
   const [miniMaxKey, setMiniMaxKey] = useState('')
@@ -119,24 +101,6 @@ export default function SettingsPage() {
     }
   }
 
-  const fetchLegacyTtsStatus = async () => {
-    try {
-      const response = await fetch('/api/tts/status')
-      if (!response.ok) {
-        setLegacyTtsEnabled(false)
-        setLegacyTtsMessage('旧语音兼容状态读取失败，已按默认关闭处理。')
-        return
-      }
-
-      const data = await response.json()
-      setLegacyTtsEnabled(data.legacy_tts_enabled === true)
-      setLegacyTtsMessage(data.message || '')
-    } catch {
-      setLegacyTtsEnabled(false)
-      setLegacyTtsMessage('旧语音兼容状态读取失败，已按默认关闭处理。')
-    }
-  }
-
   const loadSavedCredentials = async () => {
     // 安全修复：不再从 API 获取凭证填充表单
     // 凭证现在只返回脱敏预览，用于显示配置状态
@@ -182,7 +146,6 @@ export default function SettingsPage() {
       setActiveTab('creator-assets')
     }
     fetchStatuses()
-    fetchLegacyTtsStatus()
     loadSavedCredentials()
     loadSystemConfigStatus()
   }, [])
@@ -316,82 +279,6 @@ export default function SettingsPage() {
     }
   }
 
-  // Fish Audio 保存处理（只需 API Key）
-  const createFishAudioSaveHandler =
-    (serviceName: 'fish_audio_vertex' | 'fish_audio_ai_studio', apiKey: string) => async () => {
-      const trimmedKey = apiKey.trim()
-      const legacyVerificationConfirmed =
-        serviceName === 'fish_audio_vertex'
-          ? fishAudioVertexLegacyVerificationConfirmed
-          : fishAudioAIStudioLegacyVerificationConfirmed
-
-      if (!trimmedKey) {
-        updateMessage(serviceName, { type: 'error', text: '请输入 API Key' })
-        return
-      }
-
-      if (!legacyTtsEnabled) {
-        updateMessage(serviceName, {
-          type: 'error',
-          text: legacyTtsMessage || '旧语音兼容默认关闭；请先在服务端显式启用后再维护历史凭证。',
-        })
-        return
-      }
-
-      if (!legacyVerificationConfirmed) {
-        updateMessage(serviceName, {
-          type: 'error',
-          text: 'Fish Audio 旧兼容验证会调用一次测试 TTS；请先确认可能产生费用。',
-        })
-        return
-      }
-
-      updateMessage(serviceName, null)
-      setSavingService(serviceName)
-
-      try {
-        const response = await fetch('/api/api-keys', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service: serviceName,
-            credentials: { api_key: trimmedKey },
-            confirmLegacyTts: true,
-            confirmLegacyFishAudio: true,
-            confirmPaidVerification: true,
-          }),
-        })
-
-        const result = await response.json()
-
-        if (response.ok) {
-          const verificationMessage = result.verification?.message as string | undefined
-          updateMessage(serviceName, {
-            type: 'success',
-            text: verificationMessage || 'Fish Audio 旧兼容 API Key 保存成功并已验证',
-          })
-          if (serviceName === 'fish_audio_vertex') {
-            setFishAudioVertexLegacyVerificationConfirmed(false)
-          } else {
-            setFishAudioAIStudioLegacyVerificationConfirmed(false)
-          }
-          await fetchStatuses()
-        } else {
-          updateMessage(serviceName, {
-            type: 'error',
-            text: result.message || result.verification?.message || result.error || '验证失败',
-          })
-        }
-      } catch (error: unknown) {
-        updateMessage(serviceName, {
-          type: 'error',
-          text: `保存失败：${error instanceof Error ? error.message : '未知错误'}`,
-        })
-      } finally {
-        setSavingService(null)
-      }
-    }
-
   const handleSaveMiniMax = async (operation: 'save_only' | 'verify_and_save') => {
     const trimmedKey = miniMaxKey.trim()
     const trimmedVoiceId = miniMaxVoiceId.trim()
@@ -463,7 +350,6 @@ export default function SettingsPage() {
   const handleSystemConfigSave = async () => {
     // 重新加载系统配置状态
     await loadSystemConfigStatus()
-    await fetchLegacyTtsStatus()
   }
 
   return (
@@ -598,22 +484,10 @@ export default function SettingsPage() {
                   label="google_vertex"
                   badge={<StatusBadge service="google_vertex" statuses={statuses} />}
                 />
-                {legacyTtsEnabled && (
-                  <StatusChip
-                    label="fish_audio_vertex"
-                    badge={<StatusBadge service="fish_audio_vertex" statuses={statuses} />}
-                  />
-                )}
               </div>
-              {legacyTtsEnabled ? (
-                <p className="mt-2 text-xs text-claude-dark-400">
-                  Fish Audio 仅用于历史项目兼容；翻译配音主线请在系统设置中配置 MiniMax。
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-claude-dark-400">
-                  旧语音兼容默认关闭；当前翻译配音主线请在系统设置中配置 MiniMax。
-                </p>
-              )}
+              <p className="mt-2 text-xs text-claude-dark-400">
+                翻译配音主线请在系统设置中配置 MiniMax。
+              </p>
             </div>
 
             <GeminiVertexConfig
@@ -623,19 +497,6 @@ export default function SettingsPage() {
               message={messages.google_vertex}
               isSaving={savingService === 'google_vertex'}
             />
-
-            {legacyTtsEnabled && (
-              <FishAudioConfig
-                apiKey={fishAudioVertexKey}
-                setApiKey={setFishAudioVertexKey}
-                confirmLegacyVerification={fishAudioVertexLegacyVerificationConfirmed}
-                setConfirmLegacyVerification={setFishAudioVertexLegacyVerificationConfirmed}
-                onSave={createFishAudioSaveHandler('fish_audio_vertex', fishAudioVertexKey)}
-                message={messages.fish_audio_vertex}
-                isSaving={savingService === 'fish_audio_vertex'}
-                platform="vertex"
-              />
-            )}
           </TabsContent>
 
           {/* ========== AI Studio 配置标签页 ========== */}
@@ -647,22 +508,10 @@ export default function SettingsPage() {
                   label="google_ai_studio"
                   badge={<StatusBadge service="google_ai_studio" statuses={statuses} />}
                 />
-                {legacyTtsEnabled && (
-                  <StatusChip
-                    label="fish_audio_ai_studio"
-                    badge={<StatusBadge service="fish_audio_ai_studio" statuses={statuses} />}
-                  />
-                )}
               </div>
-              {legacyTtsEnabled ? (
-                <p className="mt-2 text-xs text-claude-dark-400">
-                  Fish Audio 仅用于历史项目兼容；翻译配音主线请在系统设置中配置 MiniMax。
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-claude-dark-400">
-                  旧语音兼容默认关闭；当前翻译配音主线请在系统设置中配置 MiniMax。
-                </p>
-              )}
+              <p className="mt-2 text-xs text-claude-dark-400">
+                翻译配音主线请在系统设置中配置 MiniMax。
+              </p>
             </div>
 
             <GeminiAIStudioConfig
@@ -672,19 +521,6 @@ export default function SettingsPage() {
               message={messages.google_ai_studio}
               isSaving={savingService === 'google_ai_studio'}
             />
-
-            {legacyTtsEnabled && (
-              <FishAudioConfig
-                apiKey={fishAudioAIStudioKey}
-                setApiKey={setFishAudioAIStudioKey}
-                confirmLegacyVerification={fishAudioAIStudioLegacyVerificationConfirmed}
-                setConfirmLegacyVerification={setFishAudioAIStudioLegacyVerificationConfirmed}
-                onSave={createFishAudioSaveHandler('fish_audio_ai_studio', fishAudioAIStudioKey)}
-                message={messages.fish_audio_ai_studio}
-                isSaving={savingService === 'fish_audio_ai_studio'}
-                platform="ai-studio"
-              />
-            )}
           </TabsContent>
 
           <TabsContent value="maintenance" className="space-y-6">

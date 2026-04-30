@@ -1,9 +1,11 @@
 /**
  * TTS 配置解析器
  * 统一从系统配置读取 TTS 相关设置，供工作流使用
+ *
+ * LaputaMediaCenter Phase 1.B：Fish Audio 已砍，仅保留 Edge TTS 旧兼容链。
+ * 主线 TTS（MiniMax）走独立链。
  */
 
-import { FISH_AUDIO_DEFAULT_VOICE_ID } from '@/lib/ai/tts/legacy-constants'
 import { isLegacyTtsEnabled, LEGACY_TTS_DISABLED_ERROR } from '@/lib/ai/tts/legacy-policy'
 import { configsRepo } from '@/lib/db/core/configs'
 import type { TTSProvider } from '@/types/ai/tts'
@@ -15,7 +17,7 @@ export interface ResolvedTTSConfig {
   provider: TTSProvider
   /** 语言代码（如 zh-CN） */
   language: string
-  /** 音色 ID（Edge TTS 为 voice name，Fish Audio 为 voice_id） */
+  /** 音色 ID（Edge TTS voice name） */
   voiceId: string
   /** 语速（Edge TTS: -50% ~ +100%，如 '+10%'） */
   rate: string
@@ -30,26 +32,18 @@ export function resolveTTSConfig(): ResolvedTTSConfig {
     throw new Error(LEGACY_TTS_DISABLED_ERROR.message)
   }
 
-  // 1. 获取 Provider
-  const providerConfig = configsRepo.get(TTS_CONFIG_KEYS.DEFAULT_PROVIDER)
-  const provider: TTSProvider =
-    providerConfig === 'fish_audio' ? 'fish_audio' : TTS_DEFAULTS.DEFAULT_PROVIDER
+  // 1. Provider 固定为 Edge TTS
+  const provider: TTSProvider = TTS_DEFAULTS.DEFAULT_PROVIDER
 
   // 2. 获取语言
   const language =
     configsRepo.get(TTS_CONFIG_KEYS.DEFAULT_LANGUAGE) || TTS_DEFAULTS.DEFAULT_LANGUAGE
 
-  // 3. 获取 Voice ID（根据 Provider）
-  let voiceId: string
+  // 3. 获取 Voice ID（Edge TTS）
+  const voiceId =
+    configsRepo.get(TTS_CONFIG_KEYS.EDGE_TTS_DEFAULT_VOICE) || TTS_DEFAULTS.EDGE_TTS_DEFAULT_VOICE
 
-  if (provider === 'fish_audio') {
-    voiceId = configsRepo.get(TTS_CONFIG_KEYS.FISH_AUDIO_VOICE_ID) || FISH_AUDIO_DEFAULT_VOICE_ID
-  } else {
-    voiceId =
-      configsRepo.get(TTS_CONFIG_KEYS.EDGE_TTS_DEFAULT_VOICE) || TTS_DEFAULTS.EDGE_TTS_DEFAULT_VOICE
-  }
-
-  // 4. 获取语速（仅 Edge TTS 使用）
+  // 4. 获取语速（Edge TTS）
   const rate = configsRepo.get(TTS_CONFIG_KEYS.EDGE_TTS_RATE) || TTS_DEFAULTS.EDGE_TTS_RATE
 
   return { provider, language, voiceId, rate }
