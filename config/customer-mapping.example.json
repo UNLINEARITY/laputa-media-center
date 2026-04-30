@@ -1,0 +1,20 @@
+{
+  "1": {
+    "customer_id": "demo-customer",
+    "customer_name": "演示客户",
+    "contact": "demo@example.com",
+    "notes": "演示用授权码"
+  },
+  "2": {
+    "customer_id": "trial-customer",
+    "customer_name": "试用客户",
+    "contact": "trial@example.com",
+    "notes": "试用授权码"
+  },
+  "999": {
+    "customer_id": "enterprise-customer",
+    "customer_name": "企业客户",
+    "contact": "enterprise@example.com",
+    "notes": "企业级授权，无限制"
+  }
+}

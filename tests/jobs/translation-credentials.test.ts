@@ -1,0 +1,215 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const getApiKeyMock = vi.hoisted(() => vi.fn())
+const getAllStatusMock = vi.hoisted(() => vi.fn())
+const getConfigMock = vi.hoisted(() => vi.fn())
+const originalGeminiApiKey = process.env.GEMINI_API_KEY
+const originalGoogleAIStudioApiKey = process.env.GOOGLE_AI_STUDIO_API_KEY
+const originalGeminiModelId = process.env.GEMINI_MODEL_ID
+const originalGeminiApiBaseUrl = process.env.GEMINI_API_BASE_URL
+const originalGoogleAIStudioApiBaseUrl = process.env.GOOGLE_AI_STUDIO_API_BASE_URL
+
+vi.mock('@/lib/db/core/api-keys', () => ({
+  apiKeysRepo: {
+    get: getApiKeyMock,
+    getAllStatus: getAllStatusMock,
+  },
+}))
+
+vi.mock('@/lib/db/core/configs', () => ({
+  configsRepo: {
+    get: getConfigMock,
+  },
+}))
+
+import {
+  getDubbingTranslationCredential,
+  getDubbingTranslationCredentialStatus,
+} from '@/lib/dubbing/translation-credentials'
+
+describe('Gemini translation credential status', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    delete process.env.GEMINI_API_KEY
+    delete process.env.GOOGLE_AI_STUDIO_API_KEY
+    delete process.env.GEMINI_MODEL_ID
+    delete process.env.GEMINI_API_BASE_URL
+    delete process.env.GOOGLE_AI_STUDIO_API_BASE_URL
+    getApiKeyMock.mockReturnValue(null)
+    getAllStatusMock.mockReturnValue([])
+    getConfigMock.mockReturnValue(null)
+  })
+
+  afterEach(() => {
+    if (originalGeminiApiKey === undefined) {
+      delete process.env.GEMINI_API_KEY
+    } else {
+      process.env.GEMINI_API_KEY = originalGeminiApiKey
+    }
+    if (originalGoogleAIStudioApiKey === undefined) {
+      delete process.env.GOOGLE_AI_STUDIO_API_KEY
+    } else {
+      process.env.GOOGLE_AI_STUDIO_API_KEY = originalGoogleAIStudioApiKey
+    }
+    if (originalGeminiModelId === undefined) {
+      delete process.env.GEMINI_MODEL_ID
+    } else {
+      process.env.GEMINI_MODEL_ID = originalGeminiModelId
+    }
+    if (originalGeminiApiBaseUrl === undefined) {
+      delete process.env.GEMINI_API_BASE_URL
+    } else {
+      process.env.GEMINI_API_BASE_URL = originalGeminiApiBaseUrl
+    }
+    if (originalGoogleAIStudioApiBaseUrl === undefined) {
+      delete process.env.GOOGLE_AI_STUDIO_API_BASE_URL
+    } else {
+      process.env.GOOGLE_AI_STUDIO_API_BASE_URL = originalGoogleAIStudioApiBaseUrl
+    }
+  })
+
+  it('marks settings save-only credentials as saved but unverified', () => {
+    getApiKeyMock.mockReturnValue({ api_key: 'gemini-key', model_id: 'gemini-2.5-flash-lite' })
+    getAllStatusMock.mockReturnValue([
+      {
+        service: 'google_ai_studio',
+        is_configured: true,
+        is_verified: false,
+        verified_at: null,
+      },
+    ])
+
+    expect(getDubbingTranslationCredentialStatus()).toMatchObject({
+      configured: true,
+      verified: false,
+      source: 'settings',
+      verification_state: 'saved_unverified',
+      runtime: {
+        provider: 'gemini',
+        api_key_source: 'settings:google_ai_studio',
+        model_id: 'gemini-2.5-flash-lite',
+        model_source: 'settings:google_ai_studio.model_id',
+        api_base_url_configured: false,
+        api_base_url_source: null,
+      },
+    })
+  })
+
+  it('marks settings credentials as verified only when repo status is verified', () => {
+    getApiKeyMock.mockReturnValue({ api_key: 'gemini-key', model_id: 'gemini-2.5-flash-lite' })
+    getAllStatusMock.mockReturnValue([
+      {
+        service: 'google_ai_studio',
+        is_configured: true,
+        is_verified: true,
+        verified_at: 1760000000000,
+      },
+    ])
+
+    expect(getDubbingTranslationCredentialStatus()).toMatchObject({
+      configured: true,
+      verified: true,
+      source: 'settings',
+      verification_state: 'verified',
+      runtime: {
+        api_key_source: 'settings:google_ai_studio',
+        model_id: 'gemini-2.5-flash-lite',
+        model_source: 'settings:google_ai_studio.model_id',
+      },
+    })
+  })
+
+  it.each([
+    'GEMINI_API_KEY',
+    'GOOGLE_AI_STUDIO_API_KEY',
+  ] as const)('marks %s credentials as configured but not tracked by settings verification', (envName) => {
+    process.env[envName] = 'env-gemini-key'
+
+    expect(getDubbingTranslationCredentialStatus()).toMatchObject({
+      configured: true,
+      verified: false,
+      source: 'env',
+      verification_state: 'not_tracked',
+      runtime: {
+        api_key_source: `env:${envName}`,
+        model_id: 'gemini-3-flash-preview',
+        model_source: 'default:DEFAULT_GEMINI_MODEL',
+        api_base_url_configured: false,
+        api_base_url_source: null,
+      },
+    })
+    expect(getApiKeyMock).not.toHaveBeenCalled()
+  })
+
+  it('prefers Gemini env values in the documented runtime order', () => {
+    process.env.GEMINI_API_KEY = 'gemini-primary'
+    process.env.GOOGLE_AI_STUDIO_API_KEY = 'ai-studio-fallback'
+    process.env.GEMINI_MODEL_ID = 'models/gemini-env-model'
+    process.env.GEMINI_API_BASE_URL = 'https://gemini-primary.example/v1beta'
+    process.env.GOOGLE_AI_STUDIO_API_BASE_URL = 'https://ai-studio-fallback.example/v1beta'
+
+    expect(getDubbingTranslationCredential()).toMatchObject({
+      provider: 'gemini',
+      apiKey: 'gemini-primary',
+      apiKeySource: 'env:GEMINI_API_KEY',
+      modelId: 'gemini-env-model',
+      modelSource: 'env:GEMINI_MODEL_ID',
+      apiBaseUrl: 'https://gemini-primary.example/v1beta',
+      apiBaseUrlSource: 'env:GEMINI_API_BASE_URL',
+      source: 'env',
+    })
+    expect(getApiKeyMock).not.toHaveBeenCalled()
+  })
+
+  it('uses the Google AI Studio API Base URL alias when the primary env alias is absent', () => {
+    process.env.GOOGLE_AI_STUDIO_API_KEY = 'ai-studio-key'
+    process.env.GOOGLE_AI_STUDIO_API_BASE_URL = 'https://ai-studio-fallback.example/v1beta'
+
+    expect(getDubbingTranslationCredential()).toMatchObject({
+      apiKeySource: 'env:GOOGLE_AI_STUDIO_API_KEY',
+      apiBaseUrl: 'https://ai-studio-fallback.example/v1beta',
+      apiBaseUrlSource: 'env:GOOGLE_AI_STUDIO_API_BASE_URL',
+      source: 'env',
+    })
+  })
+
+  it('tracks AI Studio settings model and API Base URL sources without exposing the API key', () => {
+    getApiKeyMock.mockReturnValue({
+      api_key: 'gemini-key',
+      model_id: 'models/gemini-settings-model',
+      api_base_url: 'https://gemini-compatible.example/v1beta',
+    })
+
+    expect(getDubbingTranslationCredential()).toMatchObject({
+      provider: 'gemini',
+      apiKey: 'gemini-key',
+      apiKeySource: 'settings:google_ai_studio',
+      modelId: 'gemini-settings-model',
+      modelSource: 'settings:google_ai_studio.model_id',
+      apiBaseUrl: 'https://gemini-compatible.example/v1beta',
+      apiBaseUrlSource: 'settings:google_ai_studio.api_base_url',
+      source: 'settings',
+    })
+    expect(getDubbingTranslationCredentialStatus().runtime).toEqual({
+      provider: 'gemini',
+      api_key_source: 'settings:google_ai_studio',
+      model_id: 'gemini-settings-model',
+      model_source: 'settings:google_ai_studio.model_id',
+      api_base_url_configured: true,
+      api_base_url_source: 'settings:google_ai_studio.api_base_url',
+    })
+    expect(JSON.stringify(getDubbingTranslationCredentialStatus().runtime)).not.toContain(
+      'gemini-key',
+    )
+  })
+
+  it('falls back to the configured default Gemini model with source metadata', () => {
+    getApiKeyMock.mockReturnValue({ api_key: 'gemini-key', model_id: '' })
+    getConfigMock.mockReturnValue('models/gemini-default-from-config')
+
+    expect(getDubbingTranslationCredential()).toMatchObject({
+      modelId: 'gemini-default-from-config',
+      modelSource: 'settings:default_gemini_model',
+    })
+  })
+})

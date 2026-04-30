@@ -1,0 +1,53 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# production
+dist/
+build/
+
+# local env and secrets
+.env
+.env.local
+.env.*.local
+config/customer-mapping.json
+
+# runtime data
+data/
+logs/
+temp/
+tmp/
+output/
+uploads/
+docs/test-reports/
+
+# caches
+.cache/
+.turbo/
+coverage/
+.coverage/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# test artifacts
+playwright-report/
+test-results/
+.codex-dev-server*.log
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+.claude/
+
+# secrets/keys
+*.pem
+*.key
+secrets/
