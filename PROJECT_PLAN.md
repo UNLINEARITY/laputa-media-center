@@ -3,6 +3,7 @@
 **最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
 **當前 Phase**：Phase 3.B（進行中，後端完成；UI deferred 到下次）
 **下次從哪裡繼續**：Phase 3.B 收尾 — `app/podcast/page.tsx` + `podcast-form` + `podcast-workbench` UI + `app/api/podcast/route.ts`
+**Phase 3.B 之後**：Phase 3.C 自媒體爆款工具（4 個：高亮切片 / 短視頻腳本適配 / 標題鉤子優化 / 字幕樣式預設庫）
 
 **Phase 0 commit**：`ac7dc06` chore: Phase 0 — 從 ChuangCut 重構為 LaputaMediaCenter（636 文件，144685 行）
 **Phase 1.A 完成**：Auth 默認關 / Rate limit 寬鬆 / 砍 stress test / 砍混淆構建 / 砍 Docker 腳本
@@ -394,6 +395,36 @@
 - `ingest_goal: 'highlights'` 實現
 - LatentSync stub 實作（用戶想升級質量時）
 - 暫不寫具體計劃，留 v1.0 上線後評估
+
+---
+
+### Phase 3.C：自媒體爆款工具（v1.x，2026-04-30 加入計劃）⚪ 未開始
+
+**目標**：在現有 ingest + LLM provider 基礎上加 4 個自媒體創作高 ROI 工具。**核心策略**：復用 Phase 3.A registry 的 LLM 抽象 + Phase 3.B 的 rewrite step 模式（podcast 已建好參考），新組件最小化。
+
+**A. 高亮自動切片**（v1.x 主推）
+- 工作流：transcribe → LLM 標出「金句 / 笑點 / 反轉 / 情緒高潮」段落 → ffmpeg 切 30-60s 短視頻 + 自動配字幕
+- 新建：`lib/workflow/steps/highlights/find-highlights.ts`（LLM step，輸出 `[{start, end, hook_text, score}]`）+ `extract-highlights.ts`（ffmpeg 切片）
+- 新工作流：`highlights-extraction` (4 stages: ingest → score → cut → delivery)
+- UI：`app/highlights/page.tsx` + 候選片段列表 + 預覽 + 一鍵導出
+
+**B. 短視頻腳本適配**（v1.x 主推）
+- 同一觀點稿 → 一鍵生成 YT 長視頻 / 抖音 60s / 小紅書 / 公眾號 4 種版本
+- 新建：`lib/workflow/steps/script-rewrite/` 含 `short-video-script.ts` / `xhs-post.ts` / `wechat-article.ts`
+- 復用 podcast 的兩階段框架（brief → rewrite）
+- UI：`app/script-rewrite/page.tsx` + 多平台版本切換
+
+**C. 標題/封面建議 + 開頭鉤子優化器**
+- LLM 給 5 個備選標題（含 SEO 關鍵詞 + 鉤子強度評分） + 開頭前 30 秒文案優化
+- 純後端 step + 簡單 UI 卡片
+- 可作為 highlights / podcast / dubbing 的「後處理」共用組件
+
+**D. 字幕樣式預設庫**
+- 利用 Phase 0 保留的 21MB 字體
+- 預設模板：粵語潮流體 / 嚴肅政論體 / 解說綜藝體 / 小紅書清新體 / 4 套
+- 改 `lib/subtitle/generator.ts`：抽 ASS style 為 preset，UI 切換器
+
+**預估對話次數**：3-4 次（4 個功能各 1 次中段 + 收尾 commit）
 
 ---
 
