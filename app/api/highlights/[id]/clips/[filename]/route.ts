@@ -10,6 +10,8 @@ import { NextResponse } from 'next/server'
 import { Readable } from 'node:stream'
 import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { jobsRepo } from '@/lib/db/core/jobs'
+import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
+import { logger } from '@/lib/utils/logger'
 import { getHighlightCutsDir } from '@/lib/workflow/steps/highlights/artifact-paths'
 
 export async function GET(
@@ -18,6 +20,18 @@ export async function GET(
 ) {
   const authResult = await authenticateOrReject(req)
   if (authResult.response) return authResult.response
+  const { auth } = authResult
+
+  // Token 认证：rate limit（防止枚举 + DoS）
+  if (auth.source === 'token' && auth.tokenId) {
+    const rateLimit = checkRateLimit(`${auth.tokenId}:highlights-clip`, RATE_LIMIT_PRESETS.QUERY)
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limited', retry_after: Math.ceil(rateLimit.resetIn / 1000) },
+        { status: 429 },
+      )
+    }
+  }
 
   const { id: jobId, filename } = await params
   if (!jobId || !filename) {
@@ -27,7 +41,7 @@ export async function GET(
   if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
     return NextResponse.json({ error: 'Invalid filename' }, { status: 400 })
   }
-  if (!filename.endsWith('.mp4')) {
+  if (!filename.toLowerCase().endsWith('.mp4')) {
     return NextResponse.json({ error: 'Only .mp4 clips are served' }, { status: 400 })
   }
 
@@ -36,17 +50,34 @@ export async function GET(
     return NextResponse.json({ error: 'Job not found or wrong type' }, { status: 404 })
   }
 
+  // Token 认证：ownership 检查（防止枚举他人的 highlights）
+  if (auth.source === 'token' && auth.tokenId) {
+    if (!jobsRepo.isOwnedByToken(jobId, auth.tokenId)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+  }
+
   const cutsDir = getHighlightCutsDir(jobId)
   const filePath = path.join(cutsDir, filename)
   const resolved = path.resolve(filePath)
-  if (!resolved.startsWith(path.resolve(cutsDir) + path.sep) && resolved !== path.resolve(cutsDir)) {
+  const cutsDirResolved = path.resolve(cutsDir)
+  if (
+    !resolved.startsWith(cutsDirResolved + path.sep) &&
+    resolved !== cutsDirResolved
+  ) {
     return NextResponse.json({ error: 'Path traversal blocked' }, { status: 400 })
   }
   if (!existsSync(filePath)) {
     return NextResponse.json({ error: 'Clip not found' }, { status: 404 })
   }
 
-  const stat = statSync(filePath)
+  let stat
+  try {
+    stat = statSync(filePath)
+  } catch (err) {
+    logger.error('Highlights clip stat failed', { jobId, filename, error: String(err) })
+    return NextResponse.json({ error: 'Clip read failed' }, { status: 500 })
+  }
   const stream = createReadStream(filePath)
   const webStream = Readable.toWeb(stream) as unknown as ReadableStream
   return new NextResponse(webStream, {

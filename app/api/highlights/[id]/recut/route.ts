@@ -13,6 +13,7 @@ import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { jobsRepo } from '@/lib/db/core/jobs'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getIngestFfmpeg } from '@/lib/ingest/runtime'
+import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
 import { logger } from '@/lib/utils/logger'
 import {
   getHighlightCutsDir,
@@ -54,6 +55,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const authResult = await authenticateOrReject(req)
     if (authResult.response) return authResult.response
+    const { auth } = authResult
+
+    if (auth.source === 'token' && auth.tokenId) {
+      const rateLimit = checkRateLimit(`${auth.tokenId}:highlights-recut`, RATE_LIMIT_PRESETS.MODIFY)
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          { error: 'Rate limited', retry_after: Math.ceil(rateLimit.resetIn / 1000) },
+          { status: 429 },
+        )
+      }
+    }
 
     const { id: jobId } = await params
     if (!jobId) {
@@ -70,6 +82,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         { status: 400 },
       )
     }
+    if (auth.source === 'token' && auth.tokenId) {
+      if (!jobsRepo.isOwnedByToken(jobId, auth.tokenId)) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
+    }
 
     const body = await req.json()
     const data = recutBodySchema.parse(body)
@@ -81,8 +98,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     for (const required of [briefFile, cutsJsonPath]) {
       if (!existsSync(required)) {
+        logger.warn('Highlights recut blocked - artifact missing', {
+          jobId,
+          missing: path.basename(required),
+        })
         return NextResponse.json(
-          { error: 'Highlights artifacts not ready', message: `缺少 ${path.basename(required)}` },
+          { error: 'Highlights artifacts not ready', message: '高亮工件未就绪' },
           { status: 409 },
         )
       }
@@ -95,14 +116,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const transcriptJsonPath = path.join(ingestDir, 'transcript.json')
 
     if (!existsSync(videoPath)) {
+      logger.warn('Highlights recut blocked - source video missing', { jobId })
       return NextResponse.json(
-        { error: 'Source video missing', message: `${videoPath} 不存在，无法 recut` },
+        { error: 'Source video missing', message: '源视频已不可访问，无法 recut' },
         { status: 409 },
       )
     }
     if (!existsSync(transcriptJsonPath)) {
+      logger.warn('Highlights recut blocked - transcript missing', { jobId })
       return NextResponse.json(
-        { error: 'Transcript missing', message: `${transcriptJsonPath} 不存在，无法 recut` },
+        { error: 'Transcript missing', message: '转录文件已不可访问，无法 recut' },
         { status: 409 },
       )
     }
@@ -132,6 +155,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       const start = item.start
       const end = item.end
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) {
+        errors.push({ clip_id: item.clip_id, message: '无效的 start/end' })
+        continue
+      }
       if (end - start < 5) {
         errors.push({ clip_id: item.clip_id, message: '裁剪后时长不足 5 秒' })
         continue
@@ -175,8 +202,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           end,
         })
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        errors.push({ clip_id: item.clip_id, message: msg })
+        logger.error('Highlight recut ffmpeg error', {
+          jobId,
+          clipId: item.clip_id,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        errors.push({ clip_id: item.clip_id, message: '片段重切失败（ffmpeg 错误，详见服务日志）' })
       }
     }
 
@@ -242,10 +273,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     logger.error('Highlights recut failed', { error: String(error) })
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : String(error),
-      },
+      { error: 'Internal server error', message: '重切失败（详见服务日志）' },
       { status: 500 },
     )
   }

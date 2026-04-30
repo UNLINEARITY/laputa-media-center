@@ -10,6 +10,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { jobsRepo } from '@/lib/db/core/jobs'
+import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
 import {
   getHighlightCutsDir,
   getHighlightsArtifactOutputPath,
@@ -18,6 +19,17 @@ import {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authResult = await authenticateOrReject(req)
   if (authResult.response) return authResult.response
+  const { auth } = authResult
+
+  if (auth.source === 'token' && auth.tokenId) {
+    const rateLimit = checkRateLimit(`${auth.tokenId}:highlights-status`, RATE_LIMIT_PRESETS.QUERY)
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limited', retry_after: Math.ceil(rateLimit.resetIn / 1000) },
+        { status: 429 },
+      )
+    }
+  }
 
   const { id: jobId } = await params
   if (!jobId) {
@@ -33,6 +45,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       { error: 'Wrong job type', message: '该任务不是高亮切片任务' },
       { status: 400 },
     )
+  }
+  if (auth.source === 'token' && auth.tokenId) {
+    if (!jobsRepo.isOwnedByToken(jobId, auth.tokenId)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
   }
 
   const manifestFile = getHighlightsArtifactOutputPath(jobId, 'highlights.manifest')

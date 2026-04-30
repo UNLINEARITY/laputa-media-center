@@ -124,7 +124,8 @@ function normalizeBrief(
   const highlights = raw.highlights.slice(0, 12).map((h, idx) => {
     const clamped = clampDuration(Number(h.start) || 0, Number(h.end) || 0, totalDuration)
     return {
-      id: h.id || `highlight-${idx + 1}`,
+      // SEC：強制覆蓋 LLM 返的 id，避免 prompt injection 影響 clip filename slug
+      id: `highlight-${String(idx + 1).padStart(2, '0')}`,
       start: clamped.start,
       end: clamped.end,
       hook_text: String(h.hook_text || '').slice(0, 200),
@@ -217,9 +218,11 @@ export class FindHighlightsStep extends BaseStep<FindHighlightsOutput> {
       throw new Error('Find highlights: transcript 没有 segments，无法找高亮（仅支持视频/音频素材）')
     }
 
-    const totalDuration = Math.max(...segments.map((s) => s.end || 0))
-    if (totalDuration < 60) {
-      throw new Error(`Find highlights: 视频时长仅 ${totalDuration.toFixed(1)} 秒，低于 60 秒不适合切高亮`)
+    const totalDuration = segments.reduce((acc, s) => Math.max(acc, Number(s.end) || 0), 0)
+    if (!Number.isFinite(totalDuration) || totalDuration < 60) {
+      throw new Error(
+        `Find highlights: 视频时长仅 ${Number.isFinite(totalDuration) ? totalDuration.toFixed(1) : '?'} 秒，低于 60 秒不适合切高亮`,
+      )
     }
 
     const videoPath = path.join(ingestDir, 'source_video.mp4')
