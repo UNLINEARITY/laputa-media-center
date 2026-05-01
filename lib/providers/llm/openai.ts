@@ -60,8 +60,18 @@ export class OpenAILLMProvider implements ILLMProvider {
         messages: [{ role: 'user', content: 'ping' }],
         max_tokens: 8,
       })
+      const choices = (resp as { choices?: unknown[] })?.choices
+      if (!Array.isArray(choices) || choices.length === 0) {
+        // 代理可能返回了非標準 schema 或錯誤結構，把 raw 的前 200 字塞進 message 方便排錯
+        const raw = JSON.stringify(resp).slice(0, 200)
+        return {
+          ok: false,
+          message: `代理返回非標準 schema（無 choices）：${raw}`,
+          latencyMs: Date.now() - start,
+        }
+      }
       return {
-        ok: Boolean(resp.choices.length),
+        ok: true,
         message: 'OpenAI 响应正常',
         latencyMs: Date.now() - start,
       }

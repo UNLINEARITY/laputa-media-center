@@ -372,11 +372,8 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             onSave={async () => {
               setOpenaiSaving(true)
               const ok = await saveProviderConfig('openai', openaiKey, openaiModel, openaiBaseUrl)
-              if (ok) {
-                setOpenaiKey('')
-                setOpenaiModel('')
-                setOpenaiBaseUrl('')
-              }
+              // 保存後只清 key（敏感資訊），保 model + baseUrl 方便重測
+              if (ok) setOpenaiKey('')
               setOpenaiSaving(false)
             }}
             onSaveAndTest={async () => {
@@ -385,8 +382,6 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
               setOpenaiSaving(false)
               if (ok) {
                 setOpenaiKey('')
-                setOpenaiModel('')
-                setOpenaiBaseUrl('')
                 await handleTest('openai')
               }
             }}
@@ -415,11 +410,7 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             onSave={async () => {
               setMistralSaving(true)
               const ok = await saveProviderConfig('mistral', mistralKey, mistralModel, mistralBaseUrl)
-              if (ok) {
-                setMistralKey('')
-                setMistralModel('')
-                setMistralBaseUrl('')
-              }
+              if (ok) setMistralKey('')
               setMistralSaving(false)
             }}
             onSaveAndTest={async () => {
@@ -428,8 +419,6 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
               setMistralSaving(false)
               if (ok) {
                 setMistralKey('')
-                setMistralModel('')
-                setMistralBaseUrl('')
                 await handleTest('mistral')
               }
             }}
