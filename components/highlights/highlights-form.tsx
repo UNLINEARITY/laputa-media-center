@@ -301,7 +301,7 @@ export function HighlightsForm() {
                   key={opt.id}
                   type="button"
                   onClick={() => setTargetLang(opt.id)}
-                  className={`rounded-md border px-3 py-1.5 text-xs transition-all ${
+                  className={`rounded-md border px-3 py-2 text-xs transition-all sm:py-1.5 ${
                     active
                       ? 'border-claude-orange-300 bg-claude-orange-50 text-claude-orange-700'
                       : 'border-claude-cream-200 bg-white text-claude-dark-500 hover:border-claude-cream-300'

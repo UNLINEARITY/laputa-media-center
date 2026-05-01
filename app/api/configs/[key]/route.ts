@@ -17,6 +17,17 @@ interface RouteParams {
   params: Promise<{ key: string }>
 }
 
+/**
+ * 已知可選配置 key — GET 不存在時回 200 + value:null，避免前端控制台 404 噪聲。
+ * 加新 key 前確認：(1) 確實是可選的；(2) 前端能正確處理 value:null
+ */
+const KNOWN_OPTIONAL_KEYS = new Set<string>([
+  'laputa_creator_profile',
+  'laputa_project_glossary',
+  'laputa_minimax_config',
+  'laputa_minimax_voice_registry',
+])
+
 function rejectNonSessionAuth(auth: AuthResult): NextResponse<{ error: string }> | null {
   if (auth.authenticated && auth.source !== 'session') {
     return NextResponse.json({ error: '仅支持 Web 会话访问' }, { status: 403 })
@@ -40,6 +51,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const value = configsRepo.get(key)
 
     if (value === null) {
+      // 已知可選 key → 200 + value:null（避免前端控制台 404 噪聲）
+      if (KNOWN_OPTIONAL_KEYS.has(key)) {
+        return NextResponse.json({ key, value: null })
+      }
       return NextResponse.json({ error: '配置不存在' }, { status: 404 })
     }
 

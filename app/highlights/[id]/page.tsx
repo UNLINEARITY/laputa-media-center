@@ -138,6 +138,7 @@ export default function HighlightsResultsPage() {
               key={clip.id}
               clip={clip}
               jobId={jobId}
+              aspect={data?.config?.aspect === '9:16' ? '9:16' : '16:9'}
               onRecut={(updated) => {
                 setData((prev) => {
                   if (!prev) return prev

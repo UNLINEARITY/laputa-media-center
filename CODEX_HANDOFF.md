@@ -56,15 +56,15 @@
 13. lib/db/index.ts                                — DB 自動 migration（dropCheckConstraint）
 ```
 
-**8 個受保護資產**（任何修改前必須跟用戶確認）：
+**8 個受保護資產**（任何修改前必須跟用戶確認）— 路徑修正後（Codex 在 CODEX_FINDINGS.md 第 211 行指出原 handoff 路徑不對）：
 - `scripts/translator.py` — Phase 1 兩階段翻譯邏輯（包含 ChuangCut 滿意的粵語 prompt）
 - `lib/dubbing/voice-registry.ts`
-- `lib/creator-profile/*`
+- `lib/dubbing/creator-profile.ts`（前 handoff 寫 `lib/creator-profile/*` 為錯，正確在 lib/dubbing/）
 - `lib/dubbing/applied-asset-summary.ts`
-- `lib/dubbing/dubbing-qa.ts`
+- `lib/jobs/dubbing-qa.ts`（前 handoff 寫 `lib/dubbing/dubbing-qa.ts` 為錯，正確在 lib/jobs/）
 - `lib/ingest/source-classifier.ts`（核心邏輯，可擴展不可改）
 - `lib/workflow/engine.ts`
-- `lib/i18n/languages.ts`
+- `lib/config/languages.ts`（前 handoff 寫 `lib/i18n/languages.ts` 為錯，正確在 lib/config/）
 
 ---
 

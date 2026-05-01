@@ -10,7 +10,7 @@
           <div className="space-y-4">
             <h3 className="text-lg font-bold text-claude-dark-900">Laputa 内容引擎</h3>
             <p className="text-xs uppercase tracking-wider text-claude-dark-400 font-medium">
-              Laputa Content Engine
+              LaputaMediaCenter
             </p>
             <p className="max-w-xl text-sm text-claude-dark-400">
               面向自媒体内容生产：文本播客、短视频、外语素材本地化、配音、口型同步和交付追踪在同一个工作台完成。
@@ -52,7 +52,7 @@
               <span className="font-medium">YouTube 频道</span>
             </a>
             <p className="text-sm text-claude-dark-400 sm:self-end">
-              © {currentYear} Laputa工作流 All rights reserved
+              © {currentYear} LaputaMediaCenter · All rights reserved
             </p>
           </div>
         </div>

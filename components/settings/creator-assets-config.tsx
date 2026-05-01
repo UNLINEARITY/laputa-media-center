@@ -277,7 +277,7 @@ export function CreatorAssetsConfig() {
               id="creator-name"
               value={profile.creator_name}
               onChange={(event) => updateProfile('creator_name', event.target.value)}
-              placeholder="例如：Laputa工作流"
+              placeholder="例如：Laputa 内容引擎"
               className="h-11"
               disabled={loading}
             />

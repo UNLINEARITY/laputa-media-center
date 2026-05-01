@@ -30,10 +30,13 @@ export function HighlightClipCard({
   clip,
   jobId,
   onRecut,
+  aspect = '16:9',
 }: {
   clip: HighlightClip
   jobId: string
   onRecut: (next: HighlightClip) => void
+  /** 預覽容器寬高比，跟 cut 輸出對齊。9:16 時用較窄容器避免桌面拉太高 */
+  aspect?: '16:9' | '9:16'
 }) {
   const [trimStart, setTrimStart] = useState(clip.start)
   const [trimEnd, setTrimEnd] = useState(clip.end)
@@ -79,7 +82,11 @@ export function HighlightClipCard({
         playsInline
         preload="metadata"
         src={clip.download_url}
-        className="aspect-video w-full rounded-md bg-black"
+        className={
+          aspect === '9:16'
+            ? 'mx-auto aspect-[9/16] w-full max-w-[320px] rounded-md bg-black'
+            : 'aspect-video w-full rounded-md bg-black'
+        }
       />
 
       <div className="flex items-start gap-3">

@@ -145,7 +145,9 @@ async function cutAndBurnClip(opt: {
 
   let videoFilter = subtitleFilter
   if (opt.aspect === '9:16') {
-    videoFilter = `crop=ih*9/16:ih,${subtitleFilter}`
+    // 9:16 短視頻標準尺寸：crop 中間 9:16 → scale 到 1080x1920 → setsar=1 避免 SAR/DAR 不一致
+    // 之前只 crop 不 scale，導致下游平台展示時可能再做一次強拉伸
+    videoFilter = `crop=ih*9/16:ih,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setsar=1,${subtitleFilter}`
   }
 
   args.push(

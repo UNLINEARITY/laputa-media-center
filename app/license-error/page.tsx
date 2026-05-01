@@ -45,7 +45,7 @@ function LicenseErrorContent() {
               </span>
               <div>
                 <p className="text-gray-700 font-medium">获取授权码</p>
-                <p className="text-gray-500 text-sm">联系Laputa工作流获取有效的授权码</p>
+                <p className="text-gray-500 text-sm">联系LaputaMediaCenter获取有效的授权码</p>
               </div>
             </div>
 
@@ -83,13 +83,15 @@ function LicenseErrorContent() {
           {/* 联系方式 */}
           <div className="text-gray-500 text-sm">
             <p>
-              如需帮助，请联系 <span className="text-blue-600 font-medium">Laputa工作流</span>
+              如需帮助，请联系 <span className="text-blue-600 font-medium">LaputaMediaCenter</span>
             </p>
           </div>
         </div>
 
         {/* 版权信息 */}
-        <p className="text-center text-gray-400 text-sm mt-6">Laputa 内容引擎 - Content Engine</p>
+        <p className="text-center text-gray-400 text-sm mt-6">
+          Laputa 内容引擎 — LaputaMediaCenter
+        </p>
       </div>
     </div>
   )

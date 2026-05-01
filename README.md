@@ -1,16 +1,20 @@
-# Laputa 内容引擎
+# Laputa 内容引擎 — LaputaMediaCenter
 
 **版本**：16.0.0
 
-Laputa 内容引擎是面向中文自媒体创作者的内容生产系统。当前主线是把 YouTube 或本地音视频吸收成可复用素材，再进入转译配音、质检、样片到全片、版本比较和长期规则沉淀。
+LaputaMediaCenter（中文 display：Laputa 内容引擎）是面向中文自媒体创作者的内容生产系统。覆盖 6 条工具链：影片本地化、播客整理、高亮切片、多平台改写、标题与开头优化、配音 QA。普通话与粤语都跑得通。
 
-当前产品主线：
+当前可用工作流：
 
 ```text
-/ingest -> /dubbing -> /jobs -> QA -> sample-to-full -> compare/report -> long-term assets
+影片本地化：  /ingest -> /dubbing -> /jobs -> QA -> sample-to-full
+播客整理：    /podcast (长文/字幕 -> 双人脚本 + MiniMax 配音)
+高亮切片：    /highlights (长视频 -> 30-60s 短片 + 烧录字幕)
+多平台改写：  /script-rewrite (一份稿 -> YT/抖音/小红书/公众号)
+标题与开头：  /title-hooks (5 个候选标题 + 开头 30s 重写)
 ```
 
-旧 AI 剪辑链路已从主线下架。新工作只应围绕素材吸收、翻译配音、交付、质检和长期资产继续收敛。
+旧 AI 剪辑链路已从主线下架；当前重心是上述 6 条已上线工具的稳态与开源准备。
 
 ## 技术栈
 
@@ -24,7 +28,8 @@ Laputa 内容引擎是面向中文自媒体创作者的内容生产系统。当�
 
 ## 快速开始
 
-> 本项目需要有效的 `LICENSE_KEY` 授权码才能启动。
+> **本地 / 开源模式**：`LICENSE_KEY` 可不设置，所有功能仍可用（health check 会标记 `mode: "local_dev"`）。
+> **付费授权模式**：设置 `LICENSE_KEY` 环境变量后，health check 会校验授权状态。
 
 ### 开发环境
 
