@@ -2,7 +2,7 @@
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
 **當前 Phase**：✅ **Phase 4 完成**（v1.0.0 起點：Codex 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 完全砍除 + Plan C docs slim 88% + Plan D migrations-archive 砍 + 版本號 reset 1.0.0）
-**下次從哪裡繼續**：可選 (1) Phase 5（開源就緒：secrets 掃描 / README EN/ZH / install scripts / demo GIF / GitHub push）OR (2) 加 recut file lock（S-05 deferred 點）OR (3) 真機驗收 /podcast TTS（需 MiniMax key）OR (4) 收工
+**下次從哪裡繼續**：可選 (1) Phase 5（開源就緒）OR (2) 修 Codex 第二輪剩餘 P1（#2 Podcast fallback 產品決策 / #5 e2e reuseExistingServer / #6 full tsc test fixture 重構）OR (3) 修 e2e downstream fixture job 404（`/jobs/e2e-dub-full` 等 mainline fixture seed 鏈獨立 bug，與 Codex P1 #3/#4/#1 無關）OR (4) Codex P2 五個（README CCUT 殘留 / Fish Audio claim 文案 / PROJECT_PLAN migration 自相矛盾 / UI 工程術語整理 / recut lock 命名澄清）OR (5) 收工
 
 **📅 2026-05-14 自我提醒（remote schedule 暫不可用，手寫於此）**：
 - 跑 `git log --oneline -20` 看最近 2 週 Phase 3.C 實機驗收狀態

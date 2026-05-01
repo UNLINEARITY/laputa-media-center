@@ -36,6 +36,21 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 ## [Unreleased] — Phase 5（開源就緒，未開始）
 
+### 2026-05-01 Codex 第二輪 P1 三個 fix（commit `f2200d0`）
+
+修 Codex 後續審查抓到的「W1-W3 半完成」3 個 P1：
+
+- **#3 9:16 ASS canvas**：W3.1 修了 ffmpeg filter 但忘了同步 ASS canvas（VIDEO_BASE_SIZE 寫死 1920x1080）→ 9:16 影片字幕位置 + 字體 scale 全錯。抽 `getVideoSizeForAspect(aspect)` exported helper，buildClipAss 加 aspect 參數，processHighlightCandidate 傳遞，加 3 unit tests。
+- **#4 mobile /jobs error overflow**：長 yt-dlp/ffmpeg 命令訊息撐爆 390px viewport（Codex e2e 抓到 → 477px）。job error card 加 `min-w-0` + `[overflow-wrap:anywhere]` + `break-words`。
+- **#1 mobile header 無導航**：W2.1 加桌面「工具」下拉但忘了 mobile drawer。新增 sm:hidden DropdownMenu 漢堡 icon，復用同一份 navItems + TOOL_ITEMS（normal form 不分裂）。
+
+驗證：
+- pnpm tsc --noEmit production: 0 errors
+- pnpm exec biome check .: 0 errors / 0 warnings / 0 infos
+- pnpm test:unit: 105 files / 768 tests pass / 17 skipped（+3 ASS canvas tests）
+- live curl /jobs + / : 200，mobile drawer DOM `aria-label="打开导航菜单"` 確認在
+- ⚠️ **未實際跑 pnpm test:e2e**：報告說「3 個 bug 已修」是真的，但 e2e suite 整體仍非全綠，後面卡在 downstream fixture job 404（`/jobs/e2e-dub-full` / `/jobs/e2e-dub-sample`，`tests/e2e/mainline-fixtures.ts` seed 流程或 mainline DB query 還有獨立 bug，與本三個 fix 無關）。下一輪可獨立修。
+
 ### 2026-05-01 Plan D — recut file lock（S-05 race fix）
 
 新增 `lib/utils/key-mutex.ts` 通用 per-key async mutex helper（in-process FIFO 序列化 + 引用計數清理 + 例外不阻塞排隊）+ 6 個單元測試（FIFO 順序 / 不同 key 並行 / 例外釋放 lock / 清理 entry / 返回值 / 多 caller 順序）。
