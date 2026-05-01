@@ -107,8 +107,8 @@ const result = engine.render('你好 {{name}}', { name: 'Laputa' })
 // → '你好 Laputa'
 
 // 嵌套对象访问
-engine.render('项目：{{config.name}}', { config: { name: 'ChuangCut' } })
-// → '项目：ChuangCut'
+engine.render('项目：{{config.name}}', { config: { name: 'LaputaMediaCenter' } })
+// → '项目：LaputaMediaCenter'
 ```
 
 ## 错误分类

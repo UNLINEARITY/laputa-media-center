@@ -1,7 +1,7 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：✅ **Phase 4 完成**（v1.0.0 起點：Codex 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 完全砍除 + Plan C docs slim 88% + Plan D migrations-archive 砍 + 版本號 reset 1.0.0）
+**當前 Phase**：✅ **Phase 4 完成**（v1.0.0 起點：Codex 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 主線 UI/provider 移除（legacy report/cost compat 保留）+ Plan C docs slim 88% + Plan D migrations-archive 砍 + 版本號 reset 1.0.0）
 **下次從哪裡繼續**：可選 (1) Phase 5（開源就緒）OR (2) 修 Codex 第二輪剩餘 P1（#2 Podcast fallback 產品決策 / #5 e2e reuseExistingServer / #6 full tsc test fixture 重構）OR (3) 修 e2e downstream fixture job 404（`/jobs/e2e-dub-full` 等 mainline fixture seed 鏈獨立 bug，與 Codex P1 #3/#4/#1 無關）OR (4) Codex P2 五個（README CCUT 殘留 / Fish Audio claim 文案 / PROJECT_PLAN migration 自相矛盾 / UI 工程術語整理 / recut lock 命名澄清）OR (5) 收工
 
 **📅 2026-05-14 自我提醒（remote schedule 暫不可用，手寫於此）**：
@@ -585,13 +585,16 @@
 - [x] **W2**：4 工具 nav + 首頁 dashboard + AUTH-aware login + /api/health + MD/PDF 切換清空 + podcast 無聲線 CTA + UI 術語去工程化（commit `9bb63d0`）
 - [x] **W3**：9:16 ffmpeg scale+pad+setsar + preview aspect + settings 404 silent + mobile chip 32px + 品牌統一（site-logo / footer / license-error / README）+ CODEX_HANDOFF.md 受保護資產路徑修正 + CHANGELOG.md 起步（commit `570e9f0`）
 - [x] **Plan A 實機驗證**：/api/health + dashboard + 9:16 ffprobe + S-01 並發 jobs + S-04 上傳邊界 + S-05 並發 recut 全過
-- [x] **Plan B**：Fish Audio UI 完全砍除（tts-config.tsx + types/ai/tts.ts + status-badge.tsx）+ 版本號 reset 16.0.0 → 1.0.0
+- [x] **Plan B**：Fish Audio 主線 UI/provider 移除（tts-config.tsx + types/ai/tts.ts + status-badge.tsx）；legacy report/cost compat 保留（lib/cost/ + report sections 仍渲染歷史 fish_audio 欄位）+ 版本號 reset 16.0.0 → 1.0.0
 - [x] **Plan C**：docs/ 大瘦身（19 個過期 doc 砍除：legacy-editing-removal-plan 267KB / agent/changelog 17KB / agent/testing 整目錄 17 個檔；33→13 markdown）+ index.md / README.md / dubbing-guide.md ref 修正
 - [x] Agent docs 合併（repo 只有 AGENTS.md，CLAUDE.md / WARP.md 不在 repo 內，無事可做 — 跳過）
 - [x] **Plan D**：migrations-archive 砍（11 個歷史 SQL / 54KB，無代碼 ref）+ .next 構建緩存清理（1.4GB）+ Phase 4 標 ✅ 完成
-- [x] migration 合併為 001_init.sql（schema.sql 已是 single source of truth 415 行；lib/db/index.ts 保留 dropCheckConstraint × 3 為 idempotent helper，不影響 fresh install）
-- [ ] 構建緩存類文件刪除（.next、node_modules cache）
-- [ ] migration 合併為 001_init.sql（DB schema reset）
+- [x] **migration「合一」現狀**（Codex P2 #9 修自相矛盾後的精確說明）:
+  - **fresh install source of truth**: `lib/db/schema.sql`（415 行，含現役 schema）
+  - **legacy 殘留**: `scripts/migrations/` 29 個 `.js`（從前身 ChuangCut 帶來的歷史 migration），加 `scripts/run-migration.js` 是一次性 CLI；**production code / package.json scripts / fresh init 都不引用**
+  - **dynamic helper**: `lib/db/index.ts:dropCheckConstraint × 3`（idempotent，舊 dev DB 升級用，fresh install no-op）
+  - **未做** 真正物理合併到 `001_init.sql` 也不打算做（schema.sql 就是 init）；scripts/migrations/ 可在 Phase 5 開源前一併砍掉（或移到 `_archive/`）
+- [x] 構建緩存類文件刪除（一次性：Plan D 已清過 `.next` 1.4GB；`.next` 與 `node_modules` 都 gitignored，不入 commit；不適合做為自動化 task）
 - [x] 版本號重置 1.0.0（package.json + README）
 - [x] 寫 CHANGELOG（CHANGELOG.md，1.0.0 entry + W0-W3 + Phase 1-3.C 歷史摘要）
 

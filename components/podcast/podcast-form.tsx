@@ -463,7 +463,7 @@ export function PodcastForm() {
           {ttsMode === 'minimax' && (
             <div className="space-y-3">
               <Label className="text-xs font-semibold text-claude-dark-700 flex items-center gap-2">
-                <Mic className="h-3.5 w-3.5" /> 声线（来自本地 voice-registry）
+                <Mic className="h-3.5 w-3.5" /> 声线（来自本机声线清单）
               </Label>
               {loadingVoices ? (
                 <div className="flex items-center gap-2 text-xs text-claude-dark-400">

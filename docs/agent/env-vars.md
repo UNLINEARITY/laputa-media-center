@@ -4,10 +4,12 @@
 
 ```bash
 DATABASE_URL=file:./data/db.sqlite
-LICENSE_KEY=CCUT-XXXXXXXX-XXXX           # 联系Laputa工作流获取
+# LICENSE_KEY 在 v1.0.0 默认本地模式留空即可（health check 标记 mode=local_dev）
+# 如有付费授权码：LICENSE_KEY=CCUT-XXXXXXXX-XXXX
 ```
 
-授权码格式：`CCUT-{8-14字符}-{4字符}`
+授权码格式（如需付费授权）：`CCUT-{8-14字符}-{4字符}`
+（`CCUT` 前缀是前身项目 ChuangCut 的历史 artifact，validator 仍校验此 prefix；语义上等同 license token，与品牌命名 LaputaMediaCenter 无冲突。）
 
 ## 系统密钥（自动管理）
 
@@ -39,12 +41,12 @@ AUTH_ENABLED=true           # 生产环境设为 true
 ### 文件目录
 
 ```bash
-RUNTIME_DIR=/tmp/chuangcut   # 运行时数据根目录（默认）
-TEMP_DIR=/tmp/chuangcut/temp  # 临时文件目录
-OUTPUT_DIR=/tmp/chuangcut/output  # 输出文件目录
+RUNTIME_DIR=/tmp/laputa   # 运行时数据根目录（默认；Windows 实际为 C:/tmp/laputa）
+TEMP_DIR=/tmp/laputa/temp  # 临时文件目录
+OUTPUT_DIR=/tmp/laputa/output  # 输出文件目录
 ```
 
-> **重要**：本地开发时，运行时目录默认使用 `/tmp/chuangcut`（系统临时目录）
+> **重要**：本地开发时，运行时目录默认使用 `/tmp/laputa`（系统临时目录）
 >
 > **原因**：Next.js 16 Turbopack 无法排除监听目录，如果 output/temp 在项目内，
 > 工作流产生的大量文件会触发重编译导致 CPU 飙升。详见 `lib/utils/paths.ts`
@@ -142,8 +144,8 @@ NEXT_PUBLIC_APP_LOGO=       # 自定义 Logo URL（可选）
 ## 本地开发 .env.local 示例
 
 ```bash
-# 授权系统
-LICENSE_KEY=CCUT-XXXXXXXX-XXXX
+# 授权系统（v1.0.0 默认本地模式可留空）
+# LICENSE_KEY=CCUT-XXXXXXXX-XXXX
 
 # 数据库
 DATABASE_URL=file:./data/db.sqlite

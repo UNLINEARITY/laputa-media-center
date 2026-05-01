@@ -445,7 +445,7 @@ export default function SettingsPage() {
               <h3 className="mb-3 text-sm font-semibold text-claude-dark-400">配音服务状态</h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <StatusChip
-                  label="minimax_tts"
+                  label="MiniMax 配音"
                   badge={<StatusBadge service="minimax_tts" statuses={statuses} />}
                 />
               </div>

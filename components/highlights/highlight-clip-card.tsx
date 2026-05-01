@@ -111,7 +111,7 @@ export function HighlightClipCard({
           onClick={() => setShowTrim((s) => !s)}
           className="text-xs"
         >
-          {showTrim ? '收起微调' : '微调 start/end'}
+          {showTrim ? '收起微调' : '微调起止时间'}
         </Button>
         <a
           href={clip.download_url}

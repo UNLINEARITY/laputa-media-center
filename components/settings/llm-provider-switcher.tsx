@@ -308,11 +308,12 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
                         className="mt-0.5 h-3.5 w-3.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
                       />
                       <span>
-                        OpenAI 为付费 provider，使用前会消耗 API 配额。我已确认{' '}
+                        OpenAI 为付费服务商，使用前会消耗 API
+                        配额。我已确认开启「翻译服务」付费许可（内部 gate id：
                         <code className="rounded bg-white px-1 text-[11px]">
                           translation_provider
-                        </code>{' '}
-                        gate 已开启并接受费用。
+                        </code>
+                        ）并接受费用。
                       </span>
                     </label>
                   )}

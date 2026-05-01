@@ -9,8 +9,8 @@
 **症状**：启动时报 403 错误
 
 **排查**：
-1. 检查 `LICENSE_KEY` 环境变量是否正确设置
-2. 确认授权码格式：`CCUT-{8-14字符}-{4字符}`
+1. v1.0.0 默认 `LICENSE_KEY` 可留空（health check 标记 `mode=local_dev`），如出现 403 先确认是不是真的需要付费授权
+2. 如有付费授权码：检查格式 `CCUT-{8-14字符}-{4字符}`（CCUT 前缀是历史 artifact，validator 仍用此 prefix 校验）
 3. 检查授权码是否过期
 
 #### Session 失效
@@ -70,22 +70,6 @@ ls -la data/db.sqlite
 3. 查看详细日志：`LOG_LEVEL=debug`
 4. 检查磁盘空间：`df -h /tmp` 或对应 Windows 输出盘
 5. 对 ingest 任务确认 `ingest.source_audio`、`ingest.source_video` manifest 是否存在；对 dubbing 任务确认 `dubbing.tts_audio` 和 `final_video` manifest 是否存在
-
-### Docker 相关
-
-#### 镜像架构不匹配
-
-**症状**：Zeabur 部署后容器无法启动
-
-**解决**：必须构建多平台镜像（amd64 + arm64）
-
-```bash
-docker buildx build \
-  --platform "linux/amd64,linux/arm64" \
-  --tag "laputamediacenter/chuangcut-video-workflow:latest" \
-  --push \
-  .
-```
 
 ## 调试技巧
 

@@ -20,7 +20,7 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - W2：4 工具 nav + dashboard + AUTH-aware login + health 4-mode + MD/PDF clear + podcast CTA + UI 术语去工程化（commit `9bb63d0`）
 - W3：9:16 ffmpeg + settings 404 silent + mobile chip + 品牌統一 + CHANGELOG.md（commit `570e9f0`）
 - Plan A 实机验证：W2-W3 改动 + S-01 并发 jobs / S-04 上传边界 / S-05 并发 recut 全过
-- Plan B：Fish Audio UI 完全砍除（types `TTSProvider` 收歛為 `'edge_tts'` / `tts-config.tsx` 移除 Fish 全部 state+handler+UI / `status-badge.tsx` 移除 fish_audio_* labels），版本號 reset 16.0.0 → 1.0.0
+- Plan B：Fish Audio **主線 UI / provider 已移除**，types `TTSProvider` 收歛為 `'edge_tts'` / `tts-config.tsx` 移除 Fish 全部 state+handler+UI / `status-badge.tsx` 移除 fish_audio_* labels；**legacy report/cost compat 保留**（lib/cost/、lib/db/tables/job-costs.ts、components/report/sections/* 仍能渲染歷史 job 的 fish_audio 統計欄位，顯示 0 次時隱藏）。版本號 reset 16.0.0 → 1.0.0
 
 **保留**（為向後兼容）：
 - `lib/cost/`、`lib/db/tables/job-costs.ts`、`lib/loaders/report-loader.ts` — 歷史 cost tracking 不砍，舊 job report 仍能渲染 fish_audio 列（顯示 0 次）
@@ -131,6 +131,9 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - 結果：seed 寫的 fixture job 在 e2e DB，dev server 從 data DB 讀，找不到 → 404
 
 **修法**（commit `f6f0216`）:
+
+注：原 commit subject `feat(D): recut file lock` 用詞不準（Codex P2 #11），實作是 in-process mutex；本 CHANGELOG 標題已校正。多 process 部署仍需單獨升級。
+
 - 加 `pnpm dev:e2e` script：用 cross-env 把 DATABASE_URL/RUNTIME_DIR/TEMP_DIR/OUTPUT_DIR/AUTH_ENABLED/ALLOW_PAID_DYNAMIC_TESTS 等對應到 playwright 預期 paths，dev server 與 seed 走同一個 DB
 - 加 `pnpm test:e2e:reuse` script：直接設 `PLAYWRIGHT_REUSE_SERVER=true PLAYWRIGHT_PORT=8899`，不再要用戶手寫 env
 - 加 `cross-env` devDep（10KB pure-JS，跨 Win/Unix shell）
@@ -163,7 +166,13 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - live curl /jobs + / : 200，mobile drawer DOM `aria-label="打开导航菜单"` 確認在
 - ⚠️ **未實際跑 pnpm test:e2e**：報告說「3 個 bug 已修」是真的，但 e2e suite 整體仍非全綠，後面卡在 downstream fixture job 404（`/jobs/e2e-dub-full` / `/jobs/e2e-dub-sample`，`tests/e2e/mainline-fixtures.ts` seed 流程或 mainline DB query 還有獨立 bug，與本三個 fix 無關）。下一輪可獨立修。
 
-### 2026-05-01 Plan D — recut file lock（S-05 race fix）
+### 2026-05-01 Plan D — recut **in-process mutex**（S-05 race fix；非 file lock，重要區別見下）
+
+> **命名澄清（Codex P2 #11）**：原 commit subject 寫「file lock」是錯的。實作只是 in-process per-key async mutex（`lib/utils/key-mutex.ts:13` 自註明「In-process」「不防止跨 process race」）。這個區別重要：
+> - ✅ 適用：當前單 Node server 部署模式（朋友本地 / 單 instance Docker）
+> - ❌ 不適用：多 worker / serverless / 多 instance 部署（需升級為 `lockfile + atomic rename` 或 DB-level lock）
+>
+> Plan A S-05「並發 recut 全過」也只在單 process 場景成立。多 process race 未測試。
 
 新增 `lib/utils/key-mutex.ts` 通用 per-key async mutex helper（in-process FIFO 序列化 + 引用計數清理 + 例外不阻塞排隊）+ 6 個單元測試（FIFO 順序 / 不同 key 並行 / 例外釋放 lock / 清理 entry / 返回值 / 多 caller 順序）。
 
