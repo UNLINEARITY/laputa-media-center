@@ -201,8 +201,11 @@ chuangcut-video-workflow/
 - [docs/agent/ai-integration.md](./docs/agent/ai-integration.md)：AI 与外部工具边界。
 - [docs/agent/video-processing.md](./docs/agent/video-processing.md)：视频处理。
 - [docs/agent/env-vars.md](./docs/agent/env-vars.md)：环境变量。
-- [docs/agent/legacy-editing-removal-plan.md](./docs/agent/legacy-editing-removal-plan.md)：旧剪辑系统下架计划。
+- [docs/agent/database.md](./docs/agent/database.md)：DB schema。
+- [docs/agent/troubleshooting.md](./docs/agent/troubleshooting.md)：常见问题排查。
+- [docs/dubbing-guide.md](./docs/dubbing-guide.md)：翻译配音用户指南。
+- [CHANGELOG.md](./CHANGELOG.md)：版本变更纪录。
 
 ## License
 
-Private. 本项目为私有项目，需要有效的 `LICENSE_KEY` 授权码才能使用。
+LaputaMediaCenter v1.0.0：本地 / 开发模式 `LICENSE_KEY` 可不设置。付费授权模式参考 `app/api/health/route.ts` 与 `lib/license/`。

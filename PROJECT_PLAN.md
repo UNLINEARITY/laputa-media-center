@@ -586,8 +586,8 @@
 - [x] **W3**：9:16 ffmpeg scale+pad+setsar + preview aspect + settings 404 silent + mobile chip 32px + 品牌統一（site-logo / footer / license-error / README）+ CODEX_HANDOFF.md 受保護資產路徑修正 + CHANGELOG.md 起步（commit `570e9f0`）
 - [x] **Plan A 實機驗證**：/api/health + dashboard + 9:16 ffprobe + S-01 並發 jobs + S-04 上傳邊界 + S-05 並發 recut 全過
 - [x] **Plan B**：Fish Audio UI 完全砍除（tts-config.tsx + types/ai/tts.ts + status-badge.tsx）+ 版本號 reset 16.0.0 → 1.0.0
-- [ ] Agent docs 合併（CLAUDE.md / WARP.md 還沒在 repo 內，目前只 AGENTS.md）
-- [ ] docs/ 大瘦身（待 Phase 5 前處理）
+- [x] **Plan C**：docs/ 大瘦身（19 個過期 doc 砍除：legacy-editing-removal-plan 267KB / agent/changelog 17KB / agent/testing 整目錄 17 個檔；33→13 markdown）+ index.md / README.md / dubbing-guide.md ref 修正
+- [x] Agent docs 合併（repo 只有 AGENTS.md，CLAUDE.md / WARP.md 不在 repo 內，無事可做 — 跳過）
 - [ ] 構建緩存類文件刪除（.next、node_modules cache）
 - [ ] migration 合併為 001_init.sql（DB schema reset）
 - [x] 版本號重置 1.0.0（package.json + README）

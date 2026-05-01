@@ -8,6 +8,9 @@
 
 ## 文档列表
 
+> Phase 4 整理：v1.0.0 之前已砍掉 19 个过期文档（legacy-editing-removal-plan / agent/changelog / agent/testing 全部）。
+> 版本变更纪录改用 root `CHANGELOG.md`；测试 SOP 已由 Codex/Claude agent 直接驱动，不再 plan-driven。
+
 | 文档 | 适用场景 |
 |-----|---------|
 | [architecture.md](architecture.md) | 理解项目结构、目录组织、模块划分 |
@@ -18,13 +21,11 @@
 | [retry.md](retry.md) | 错误重试策略、429 限流处理、格式修复机制 |
 | [utils.md](utils.md) | logger、retry、lock、template 等核心工具 |
 | [video-processing.md](video-processing.md) | 视频处理链路、URL 类型、FFmpeg 操作 |
-| [deployment.md](deployment.md) | Docker 构建、Zeabur 部署、发布流程 |
-| [credentials.md](credentials.md) | 测试账号、项目 ID、控制台访问 |
 | [frontend.md](frontend.md) | 前端开发、组件编写、Hook 使用 |
 | [env-vars.md](env-vars.md) | 环境变量配置、系统密钥 |
 | [troubleshooting.md](troubleshooting.md) | 问题排查、常见错误、调试技巧 |
-| [testing/](testing/index.md) | 功能测试、代码分析、测试用例执行 |
-| [changelog.md](changelog.md) | 版本历史、功能更新、变更记录 |
+| [../dubbing-guide.md](../dubbing-guide.md) | 翻译配音用户指南（user-facing） |
+| [../../CHANGELOG.md](../../CHANGELOG.md) | 版本历史、功能更新、变更记录（v1.0.0+） |
 
 ## 设计原则
 
