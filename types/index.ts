@@ -15,6 +15,7 @@ export type * from './api/job-report'
 export type * from './api/storage'
 // 核心类型
 export type * from './core/job'
+export { JOB_STEPS } from './core/job'
 export type * from './core/scene-id'
 // export type * from './core/scene' // 已废弃，与 workbench.ts 中的 Scene 接口冲突
 export type * from './core/workbench'

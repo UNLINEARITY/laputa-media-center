@@ -20,25 +20,42 @@ export type JobStatus =
   | 'completed' // 已完成（终态）
   | 'failed' // 已失败（终态，需创建新任务）
 
-// 工作流步骤（5 阶段）
-// 分析 → 旁白生成 → 分镜提取 → 音画同步 → 合成
-export type JobStep =
-  | 'analysis'
-  | 'generate_narrations'
-  | 'extract_scenes'
-  | 'process_scenes'
-  | 'compose'
-  | 'asr'
-  | 'translate'
-  | 'voiceclone'
-  | 'lipsync'
-  | 'ingest'
-  | 'transcribe'
-  | 'package'
-  // Phase 3.B: 播客生产
-  | 'rewrite'
-  | 'tts'
-  | 'delivery'
+// 工作流步骤
+// Phase 3.C-A 收尾：source of truth 集中在这里，job_step_history 校验直接 import
+// 历史含旧剪辑（analysis/generate_narrations/extract_scenes/process_scenes/compose）
+// + 翻译配音（asr/translate/voiceclone/lipsync）
+// + 内容吸收（ingest/transcribe/package）
+// + 播客（rewrite/tts/delivery）
+// + 多平台脚本（analyze）
+// + 高亮切片（score/cut）
+export const JOB_STEPS = [
+  // 旧剪辑兼容
+  'analysis',
+  'generate_narrations',
+  'extract_scenes',
+  'process_scenes',
+  'compose',
+  // 翻译配音
+  'asr',
+  'translate',
+  'voiceclone',
+  'lipsync',
+  // 内容吸收
+  'ingest',
+  'transcribe',
+  'package',
+  // Phase 3.B 播客生产
+  'rewrite',
+  'tts',
+  'delivery',
+  // Phase 3.C-B 多平台脚本适配
+  'analyze',
+  // Phase 3.C-A 高亮自动切片
+  'score',
+  'cut',
+] as const
+
+export type JobStep = (typeof JOB_STEPS)[number]
 
 // 任务类型。
 // single_video / multi_video 仅用于历史记录读取兼容；新建任务必须走主线 JobType 映射。

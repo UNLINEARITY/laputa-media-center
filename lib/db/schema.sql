@@ -22,7 +22,8 @@ VALUES ('16.0.0', strftime('%s', 'now') * 1000);
 CREATE TABLE IF NOT EXISTS jobs (
     id TEXT PRIMARY KEY,
     status TEXT NOT NULL CHECK(status IN ('pending', 'processing', 'completed', 'failed')),
-    current_step TEXT CHECK(current_step IN ('analysis', 'generate_narrations', 'extract_scenes', 'process_scenes', 'compose', 'asr', 'translate', 'voiceclone', 'lipsync', 'ingest', 'transcribe', 'package')),
+    -- step 名单 source of truth：types/core/job.ts JOB_STEPS（含 Phase 3.B/3.C 新加的 analyze/rewrite/tts/delivery/score/cut）
+    current_step TEXT,
 
     -- 单视频字段
     input_url TEXT,
@@ -252,7 +253,8 @@ CREATE TABLE IF NOT EXISTS job_step_history (
     job_id TEXT NOT NULL,
     scene_id TEXT,
 
-    major_step TEXT NOT NULL CHECK(major_step IN ('analysis', 'generate_narrations', 'extract_scenes', 'process_scenes', 'compose', 'asr', 'translate', 'voiceclone', 'lipsync', 'ingest', 'transcribe', 'package')),
+    -- major_step 名单 source of truth：types/core/job.ts JOB_STEPS（lib/db/tables/job-step-history.ts:insert 校验）
+    major_step TEXT NOT NULL,
     sub_step TEXT NOT NULL,
     step_type TEXT,
 

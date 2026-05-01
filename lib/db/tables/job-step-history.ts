@@ -2,6 +2,7 @@
 
 import { nanoid } from 'nanoid'
 import type { StepRecord } from '@/lib/workflow/step-definitions'
+import { JOB_STEPS } from '@/types'
 import type { InsertJobStepHistory, JobStepHistory } from '@/types'
 import type { SqlBindings } from '@/types/db/row-types'
 import { runInTransaction } from '../core/transaction'
@@ -53,23 +54,10 @@ export function insert(record: InsertJobStepHistory): string {
   if (!record.major_step) throw new Error('[job-step-history] major_step 不能为空')
   if (!record.sub_step) throw new Error('[job-step-history] sub_step 不能为空')
 
-  const validMajorSteps = [
-    'analysis',
-    'generate_narrations',
-    'extract_scenes',
-    'process_scenes',
-    'compose',
-    'asr',
-    'translate',
-    'voiceclone',
-    'lipsync',
-    'ingest',
-    'transcribe',
-    'package',
-  ]
-  if (!validMajorSteps.includes(record.major_step)) {
+  // SOURCE OF TRUTH：types/core/job.ts JOB_STEPS（含 Phase 3.B/3.C 新加的 analyze/rewrite/tts/delivery/score/cut）
+  if (!(JOB_STEPS as readonly string[]).includes(record.major_step)) {
     throw new Error(
-      `[job-step-history] major_step 值无效: ${record.major_step}，必须是 ${validMajorSteps.join(', ')} 之一`,
+      `[job-step-history] major_step 值无效: ${record.major_step}，必须是 ${JOB_STEPS.join(', ')} 之一`,
     )
   }
 

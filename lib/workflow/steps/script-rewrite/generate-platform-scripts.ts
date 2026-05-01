@@ -106,11 +106,24 @@ function buildScriptPromptPayload(opt: {
 
 function safeParseScript(
   raw: string,
-  _platforms: PlatformId[],
+  platforms: PlatformId[],
 ): Partial<MultiPlatformScript> | null {
   try {
     const parsed = safeParseJson<Partial<MultiPlatformScript>>(raw)
     if (!parsed || typeof parsed !== 'object') return null
+    // SEC/UX: LLM 偶爾返合法 JSON 但用了不同 key 名（譬如 youtube 而非 youtube_long），
+    // 導致所有 4 個平台都靜默變 null。要求至少有一個 selected platform 有非空對象。
+    const fieldOf: Record<PlatformId, keyof MultiPlatformScript> = {
+      youtube: 'youtube_long',
+      douyin: 'douyin_short',
+      xhs: 'xhs_post',
+      wechat: 'wechat_article',
+    }
+    const anyMatch = platforms.some((p) => {
+      const v = parsed[fieldOf[p]]
+      return v && typeof v === 'object'
+    })
+    if (!anyMatch) return null
     return parsed
   } catch {
     return null

@@ -64,40 +64,48 @@ function initializeDatabase(): void {
 }
 
 /**
- * 迁移：如发现旧的 jobs.job_type CHECK 约束（只允许 4 种类型），重建表无 CHECK
+ * 通用 CHECK 约束移除迁移（幂等：检测到才执行）
  *
- * 旧 schema 漏掉 podcast_production / multi_platform_script / highlights_extraction，
- * 导致 Phase 3.B/3.C 创建任务时被 SQLite 拒绝。
- * 类型校验由 API 层 z.enum + workflow-ids 守门，SQLite 不需 CHECK。
+ * SQLite 不能 ALTER COLUMN，要用 RENAME + recreate + INSERT 模式。
+ * 名单 source of truth 都在 TS 层（types/core/job.ts JOB_STEPS / lib/workflow/workflow-ids.ts），
+ * SQLite 不再做 CHECK 守门。
  */
-function migrateJobsTypeCheck(): void {
+function dropCheckConstraint(opt: {
+  table: string
+  detectRegex: RegExp
+  replaceRegex: RegExp
+  replacement: string
+  label: string
+}): void {
   try {
     const row = db
-      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='jobs'")
-      .get() as { sql?: string } | undefined
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?")
+      .get(opt.table) as { sql?: string } | undefined
     if (!row?.sql) return
-    if (!/CHECK\(job_type IN \(/i.test(row.sql)) return
+    if (!opt.detectRegex.test(row.sql)) return
 
-    console.log('[DB] 🔄 检测到旧 jobs.job_type CHECK 约束，重建表移除约束...')
-    const tableSql = row.sql
-    const newTableSql = tableSql
-      .replace(/job_type TEXT DEFAULT 'content_ingest' CHECK\(job_type IN \([^)]*\)\)/i, "job_type TEXT DEFAULT 'content_ingest'")
-      .replace(/CREATE TABLE\s+(IF NOT EXISTS\s+)?jobs\b/i, 'CREATE TABLE jobs_new')
+    console.log(`[DB] 🔄 检测到旧 ${opt.label} CHECK 约束，重建表移除...`)
+    const newTableSql = row.sql
+      .replace(opt.replaceRegex, opt.replacement)
+      .replace(new RegExp(`CREATE TABLE\\s+(IF NOT EXISTS\\s+)?${opt.table}\\b`, 'i'), `CREATE TABLE ${opt.table}_new`)
 
-    const colsRow = db.prepare("PRAGMA table_info(jobs)").all() as { name: string }[]
+    const colsRow = db.prepare(`PRAGMA table_info(${opt.table})`).all() as { name: string }[]
     const cols = colsRow.map((c) => c.name).join(', ')
 
     db.exec('PRAGMA foreign_keys = OFF;')
     db.exec('BEGIN;')
     db.exec(newTableSql)
-    db.exec(`INSERT INTO jobs_new (${cols}) SELECT ${cols} FROM jobs;`)
-    db.exec('DROP TABLE jobs;')
-    db.exec('ALTER TABLE jobs_new RENAME TO jobs;')
+    db.exec(`INSERT INTO ${opt.table}_new (${cols}) SELECT ${cols} FROM ${opt.table};`)
+    db.exec(`DROP TABLE ${opt.table};`)
+    db.exec(`ALTER TABLE ${opt.table}_new RENAME TO ${opt.table};`)
     db.exec('COMMIT;')
     db.exec('PRAGMA foreign_keys = ON;')
-    console.log('[DB] ✅ jobs.job_type CHECK 约束已移除')
+    console.log(`[DB] ✅ ${opt.label} CHECK 约束已移除`)
   } catch (err) {
-    console.error('[DB] ⚠️ jobs.job_type 迁移失败（不阻止启动）:', err instanceof Error ? err.message : String(err))
+    console.error(
+      `[DB] ⚠️ ${opt.label} 迁移失败（不阻止启动）:`,
+      err instanceof Error ? err.message : String(err),
+    )
     try {
       db.exec('ROLLBACK;')
     } catch {
@@ -112,7 +120,27 @@ if (!isDatabaseInitialized()) {
 }
 
 // 自动迁移：清理旧 CHECK 约束（幂等：检测到才执行）
-migrateJobsTypeCheck()
+dropCheckConstraint({
+  table: 'jobs',
+  detectRegex: /CHECK\(job_type IN \(/i,
+  replaceRegex: /job_type TEXT DEFAULT 'content_ingest' CHECK\(job_type IN \([^)]*\)\)/i,
+  replacement: "job_type TEXT DEFAULT 'content_ingest'",
+  label: 'jobs.job_type',
+})
+dropCheckConstraint({
+  table: 'jobs',
+  detectRegex: /CHECK\(current_step IN \(/i,
+  replaceRegex: /current_step TEXT CHECK\(current_step IN \([^)]*\)\)/i,
+  replacement: 'current_step TEXT',
+  label: 'jobs.current_step',
+})
+dropCheckConstraint({
+  table: 'job_step_history',
+  detectRegex: /CHECK\(major_step IN \(/i,
+  replaceRegex: /major_step TEXT NOT NULL CHECK\(major_step IN \([^)]*\)\)/i,
+  replacement: 'major_step TEXT NOT NULL',
+  label: 'job_step_history.major_step',
+})
 
 export default db
 export { initializeDatabase as initDatabase }
