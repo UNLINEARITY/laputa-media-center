@@ -1,13 +1,14 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓ / tool-catalog normal form ✓。剩 demo GIF + 首次運行嚮導 + push GitHub）
-**下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `512b330` `84007c0` `563dd77` `8caa7b5` `a6f93c3`）。**主線：Phase 5 push 前最後決策**（直接 push / 先補 demo GIF / 先做首次運行嚮導）。
+**當前 Phase**：✅ **Phase 5 主線完成**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓ / tool-catalog normal form ✓ / GitHub push ✓）
+**下次從哪裡繼續**：等待公開後真實用戶反饋；優先看 install / settings / first-run 卡點。若要主動開 v1.1，建議從 Requirement primitive（工具需求 → 實際 provider 檢查 → Settings 缺項提示）開始。
 
-**Phase 5 push 前防洩漏狀態**:
+**Phase 5 防洩漏狀態**:
 - ✅ Git history rewrite 已完成（commit `a8eb924`）：舊工作流帳號 slug / 對應 Gmail / Zeabur IDs 已從 blob、commit message、refs 清乾淨；credential / dynamic 測試紀錄路徑已從 history 抹除；**保留** `hkdadinsz@gmail.com`、`hkdadinsz`、`laputa`。
 
-**Phase 5 跟進清單**（不阻塞 release，但建議在 GitHub push 前處理）:
+**開源後 / v1.1 跟進清單**（不阻塞 v1.0 公開）:
+- Requirement primitive：把 `requiredSetup` / `optionalSetup` 對應到實際 provider readiness，讓 `/settings` 從「一堆 tab」變成「你要跑哪個工具，缺哪個設定」
 - `tests/workflow/podcast-tts-mode.test.ts` 13 tests 是 schema 重寫 + 文檔斷言，需改成 import `@/app/api/podcast/route` 內部 schema export，並 execute `PodcastTtsStep` 真 early return path（Codex P3，user 確認非阻塞）
 - `scripts/migrations/` 29 個 .js legacy archive 評估是否一併砍掉或移到 `_archive/`（Codex P2 #9 後續）
 - prod 型別漂移收歛（Phase 4 W6 期間 cast 吸收的 3 處：`StepContext` 兩個定義、`TranslationCredentialStatusForDisplay`、`ClosedLoopReadiness`）— 真 cross-file refactor，建議列開源後 v1.1 再做
@@ -643,10 +644,10 @@
   - `brand-assets` 保留為 roadmap entry，但 `status: 'planned'`，公開首頁默認不展示
   - `recommendedFirstRun` 鎖定 podcast，文案明確「只需 LLM provider；不需 MiniMax、不需 ffmpeg、不需影片素材」
   - 後續 PR 再收 `/ingest` 處理目標與 Requirement primitive，本次不擴大範圍
-- [ ] demo GIF / 截圖
-- [ ] 首次運行嚮導
-- [ ] 刪 _archive/（Wave 5.1 確認過已不存在 ✓）
-- [ ] push GitHub（Wave 5.1 + 5.2 全部完成；剩 demo + 首次嚮導屬 polish 不阻塞 push）
+- [x] 刪 _archive/（Wave 5.1 確認過已不存在）
+- [x] push GitHub：`https://github.com/hkdadinsz/laputa-media-center`，remote `main` = local `070a821`
+- [ ] demo GIF / 截圖（開源後 polish；不阻塞 v1.0）
+- [ ] 首次運行嚮導（等真實用戶 issue 再做，避免基於猜測過早設計）
 
 ---
 
