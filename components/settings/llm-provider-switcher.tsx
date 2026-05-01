@@ -90,11 +90,13 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
 
   const [openaiKey, setOpenaiKey] = useState('')
   const [openaiModel, setOpenaiModel] = useState('')
+  const [openaiBaseUrl, setOpenaiBaseUrl] = useState('')
   const [openaiShow, setOpenaiShow] = useState(false)
   const [openaiSaving, setOpenaiSaving] = useState(false)
 
   const [mistralKey, setMistralKey] = useState('')
   const [mistralModel, setMistralModel] = useState('')
+  const [mistralBaseUrl, setMistralBaseUrl] = useState('')
   const [mistralShow, setMistralShow] = useState(false)
   const [mistralSaving, setMistralSaving] = useState(false)
 
@@ -176,7 +178,7 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
   }, [])
 
   const saveProviderConfig = useCallback(
-    async (kind: 'openai' | 'mistral', key: string, model: string) => {
+    async (kind: 'openai' | 'mistral', key: string, model: string, baseUrl: string) => {
       const trimmedKey = key.trim()
       if (!trimmedKey) {
         toast.error('请输入 API Key')
@@ -184,9 +186,11 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
       }
       const payloadKey = kind === 'openai' ? 'openai_api_key' : 'mistral_api_key'
       const modelKey = kind === 'openai' ? 'openai_model' : 'mistral_model'
+      const baseUrlKey = kind === 'openai' ? 'openai_api_base_url' : 'mistral_api_base_url'
       try {
         const configs: Record<string, string> = { [payloadKey]: trimmedKey }
         if (model.trim()) configs[modelKey] = model.trim()
+        if (baseUrl.trim()) configs[baseUrlKey] = baseUrl.trim()
         const res = await fetch('/api/configs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -358,20 +362,25 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             setKeyValue={setOpenaiKey}
             modelValue={openaiModel}
             setModelValue={setOpenaiModel}
+            baseUrlValue={openaiBaseUrl}
+            setBaseUrlValue={setOpenaiBaseUrl}
             showKey={openaiShow}
             setShowKey={setOpenaiShow}
             saving={openaiSaving}
             onSave={async () => {
               setOpenaiSaving(true)
-              const ok = await saveProviderConfig('openai', openaiKey, openaiModel)
+              const ok = await saveProviderConfig('openai', openaiKey, openaiModel, openaiBaseUrl)
               if (ok) {
                 setOpenaiKey('')
                 setOpenaiModel('')
+                setOpenaiBaseUrl('')
               }
               setOpenaiSaving(false)
             }}
             keyPlaceholder="sk-..."
             modelPlaceholder="gpt-4o-mini"
+            baseUrlPlaceholder="https://api.openai.com/v1（或 OpenAI 兼容代理 https://x666.me/v1）"
+            baseUrlHint="留空走官方 https://api.openai.com/v1。如使用代理（如 x666.me）请填完整 URL（含 /v1）。"
           />
 
           <CredentialEditor
@@ -383,20 +392,25 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             setKeyValue={setMistralKey}
             modelValue={mistralModel}
             setModelValue={setMistralModel}
+            baseUrlValue={mistralBaseUrl}
+            setBaseUrlValue={setMistralBaseUrl}
             showKey={mistralShow}
             setShowKey={setMistralShow}
             saving={mistralSaving}
             onSave={async () => {
               setMistralSaving(true)
-              const ok = await saveProviderConfig('mistral', mistralKey, mistralModel)
+              const ok = await saveProviderConfig('mistral', mistralKey, mistralModel, mistralBaseUrl)
               if (ok) {
                 setMistralKey('')
                 setMistralModel('')
+                setMistralBaseUrl('')
               }
               setMistralSaving(false)
             }}
             keyPlaceholder="..."
             modelPlaceholder="mistral-small-latest"
+            baseUrlPlaceholder="https://api.mistral.ai（默认）"
+            baseUrlHint="一般留空。仅当用 OpenAI 兼容代理或自托管 vLLM 时填入。"
           />
         </div>
       </CardContent>
@@ -413,12 +427,16 @@ interface CredentialEditorProps {
   setKeyValue: (v: string) => void
   modelValue: string
   setModelValue: (v: string) => void
+  baseUrlValue: string
+  setBaseUrlValue: (v: string) => void
   showKey: boolean
   setShowKey: (v: boolean) => void
   saving: boolean
   onSave: () => void | Promise<void>
   keyPlaceholder: string
   modelPlaceholder: string
+  baseUrlPlaceholder: string
+  baseUrlHint: string
 }
 
 function CredentialEditor(props: CredentialEditorProps) {
@@ -475,6 +493,20 @@ function CredentialEditor(props: CredentialEditorProps) {
             className="h-10"
           />
         </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor={`${props.kind}-base-url`} className="text-xs">
+          API Base URL（可选）
+        </Label>
+        <Input
+          id={`${props.kind}-base-url`}
+          type="url"
+          placeholder={props.baseUrlPlaceholder}
+          value={props.baseUrlValue}
+          onChange={(e) => props.setBaseUrlValue(e.target.value)}
+          className="h-10"
+        />
+        <p className="text-[11px] text-claude-dark-400">{props.baseUrlHint}</p>
       </div>
       <Button
         size="sm"
