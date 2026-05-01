@@ -122,8 +122,7 @@ function safeParseScript(raw: string): PodcastScript | null {
         speaker: s.speaker || 'narrator',
         text: String(s.text || '').trim(),
         pacing_hint: s.pacing_hint || 'normal',
-        pause_after_ms:
-          typeof s.pause_after_ms === 'number' ? s.pause_after_ms : 600,
+        pause_after_ms: typeof s.pause_after_ms === 'number' ? s.pause_after_ms : 600,
       })) as PodcastScriptSegment[],
       llm_provider: '',
       used_brief: true,
@@ -277,10 +276,7 @@ export class GeneratePodcastScriptStep extends BaseStep<GeneratePodcastScriptOut
     const scriptFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.script')
     await writeFile(scriptFile, JSON.stringify(script, null, 2), 'utf-8')
 
-    const scriptMarkdownFile = getPodcastArtifactOutputPath(
-      ctx.jobId,
-      'podcast.script_markdown',
-    )
+    const scriptMarkdownFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.script_markdown')
     await writeFile(scriptMarkdownFile, buildMarkdown(script), 'utf-8')
 
     this.logApiResponse(

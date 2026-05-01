@@ -1,9 +1,6 @@
 import type { ApiKeyService } from '@/types'
 
-const GOOGLE_PROVIDER_SERVICES = new Set<ApiKeyService>([
-  'google_vertex',
-  'google_ai_studio',
-])
+const GOOGLE_PROVIDER_SERVICES = new Set<ApiKeyService>(['google_vertex', 'google_ai_studio'])
 
 export function requiresPaidProviderVerificationGate(service: ApiKeyService): boolean {
   return service === 'minimax_tts' || GOOGLE_PROVIDER_SERVICES.has(service)

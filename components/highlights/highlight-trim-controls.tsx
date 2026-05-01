@@ -45,7 +45,8 @@ export function HighlightTrimControls({
           <span className="font-mono">
             {formatHMS(currentStart)}{' '}
             <span className="text-claude-dark-400">
-              ({(currentStart - originalStart >= 0 ? '+' : '') +
+              (
+              {(currentStart - originalStart >= 0 ? '+' : '') +
                 (currentStart - originalStart).toFixed(1)}
               s)
             </span>
@@ -70,8 +71,7 @@ export function HighlightTrimControls({
           <span className="font-mono">
             {formatHMS(currentEnd)}{' '}
             <span className="text-claude-dark-400">
-              ({(currentEnd - originalEnd >= 0 ? '+' : '') +
-                (currentEnd - originalEnd).toFixed(1)}
+              ({(currentEnd - originalEnd >= 0 ? '+' : '') + (currentEnd - originalEnd).toFixed(1)}
               s)
             </span>
           </span>

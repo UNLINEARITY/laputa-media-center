@@ -100,7 +100,7 @@ async function downloadFile(
   await pipeline(nodeReadable, writeStream)
 }
 
-async function sha256OfFile(filePath: string): Promise<string> {
+async function _sha256OfFile(filePath: string): Promise<string> {
   const hash = createHash('sha256')
   const stream = createReadStream(filePath)
   await pipeline(stream, hash)
@@ -139,7 +139,7 @@ function findReleaseDir(rootDir: string): string | null {
   const targets = process.platform === 'win32' ? ['whisper-cli.exe'] : ['whisper-cli']
 
   function walk(dir: string): string | null {
-    let entries: ReturnType<typeof readdirSync<{ withFileTypes: true }>>
+    let entries: import('node:fs').Dirent[]
     try {
       entries = readdirSync(dir, { withFileTypes: true })
     } catch {
@@ -168,9 +168,9 @@ export interface EnsureBinaryResult {
   source: 'env' | 'cache' | 'downloaded'
 }
 
-export async function ensureWhisperBinary(opts: {
-  onProgress?: (pct: number) => void
-} = {}): Promise<EnsureBinaryResult> {
+export async function ensureWhisperBinary(
+  opts: { onProgress?: (pct: number) => void } = {},
+): Promise<EnsureBinaryResult> {
   // 1. 优先读环境变量
   const envPath = process.env.WHISPER_CPP_PATH?.trim()
   if (envPath && existsSync(envPath)) {
@@ -233,9 +233,7 @@ export async function ensureWhisperBinary(opts: {
   }
 
   if (!existsSync(cachedExe)) {
-    throw new WhisperBinaryUnavailableError(
-      `解压拍平后仍未找到 ${cachedExe}。请检查 zip 结构。`,
-    )
+    throw new WhisperBinaryUnavailableError(`解压拍平后仍未找到 ${cachedExe}。请检查 zip 结构。`)
   }
 
   return { path: cachedExe, source: 'downloaded' }

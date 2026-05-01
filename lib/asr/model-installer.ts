@@ -5,12 +5,10 @@
  * 缓存：~/.laputa/whisper/models/ggml-{size}.bin
  */
 
-import { createWriteStream, existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
-import { Readable } from 'node:stream'
-import { pipeline } from 'node:stream/promises'
 import { WHISPER_CPP_MODEL_REPO, type WhisperModelSize } from './types'
 
 const HUGGINGFACE_BASE = `https://huggingface.co/${WHISPER_CPP_MODEL_REPO}/resolve/main`
@@ -67,19 +65,9 @@ async function downloadModelFile(
   }
 
   return new Promise<void>((resolve, reject) => {
-    const proc = spawn(
-      'curl',
-      [
-        '-sSL',
-        '--fail',
-        '--max-time',
-        '600',
-        '-o',
-        destPath,
-        url,
-      ],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
-    )
+    const proc = spawn('curl', ['-sSL', '--fail', '--max-time', '600', '-o', destPath, url], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
 
     let stderrBuf = ''
     proc.stderr.on('data', (d) => {

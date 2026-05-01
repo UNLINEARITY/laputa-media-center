@@ -48,15 +48,12 @@ export function getCantoneseStyleInstruction(style: CantoneseStyle): string {
         'Keep it lively, clear, and easy to dub, without excessive filler.'
       )
     case 'faithful':
-      return (
-        'Write natural spoken Hong Kong Cantonese, preserving meaning, names, numbers, and factual nuance.'
-      )
+      return 'Write natural spoken Hong Kong Cantonese, preserving meaning, names, numbers, and factual nuance.'
     case 'written':
       return (
         'Write natural Hong Kong Cantonese for written content (image-text post or long-form article). ' +
         'Use Cantonese particles where appropriate but lean slightly more written than spoken; avoid TTS-only rhythm rules.'
       )
-    case 'podcast':
     default:
       return (
         'Write natural spoken Hong Kong Cantonese for podcast or creator commentary. ' +

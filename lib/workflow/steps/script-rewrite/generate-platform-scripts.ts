@@ -165,7 +165,7 @@ function safeParseScript(
   }
 }
 
-function fallbackScript(brief: MultiPlatformBrief, sourceText: string): MultiPlatformScript {
+function fallbackScript(brief: MultiPlatformBrief, _sourceText: string): MultiPlatformScript {
   const firstHook = brief.hook_candidates[0] || brief.summary
   return {
     brief_used: true,

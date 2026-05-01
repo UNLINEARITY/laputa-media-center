@@ -59,7 +59,9 @@ describe('getCantoneseRules', () => {
       expect(rules).toContain(hard)
     }
     // 1 条 short_video 风格指令
-    expect(rules.some((r) => r.includes('compact spoken Hong Kong Cantonese for short video'))).toBe(true)
+    expect(
+      rules.some((r) => r.includes('compact spoken Hong Kong Cantonese for short video')),
+    ).toBe(true)
     // 5 条数字规则
     for (const numRule of CHINESE_SPOKEN_NUMBER_RULES) {
       expect(rules).toContain(numRule)

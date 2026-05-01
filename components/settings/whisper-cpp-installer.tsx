@@ -133,9 +133,7 @@ export function WhisperCppInstaller() {
     <Card className="border-claude-cream-200 bg-white p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold text-claude-dark-700">
-            whisper.cpp 本地转录引擎
-          </h3>
+          <h3 className="text-base font-semibold text-claude-dark-700">whisper.cpp 本地转录引擎</h3>
           <p className="mt-1 text-sm text-claude-dark-400">
             首次使用需下载二进制（~5MB）和 ggml 模型（~148MB），全部本地运行；
             支持中英粤等多语言转录。

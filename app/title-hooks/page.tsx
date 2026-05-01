@@ -85,7 +85,8 @@ export default function TitleHooksPage() {
               className="w-full resize-y rounded-md border border-claude-cream-200 bg-white px-3 py-2 text-sm text-claude-dark-700 focus:border-claude-orange-300 focus:outline-none"
             />
             <div className="text-right text-[11px] text-claude-dark-400">
-              {text.length} 字 {text.length < 50 && text.length > 0 ? '· 还需 ' + (50 - text.length) + ' 字' : ''}
+              {text.length} 字{' '}
+              {text.length < 50 && text.length > 0 ? `· 还需 ${50 - text.length} 字` : ''}
             </div>
           </div>
 

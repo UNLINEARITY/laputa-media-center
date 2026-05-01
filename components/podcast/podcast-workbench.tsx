@@ -14,8 +14,8 @@ export function PodcastWorkbench() {
         </div>
         <h1 className="text-2xl font-bold text-claude-dark-900">从文字稿到播客 MP3</h1>
         <p className="text-sm text-claude-dark-400">
-          LLM 两阶段改写（先理解、再口语化）+ MiniMax 配音 + ffmpeg 合成。
-          产物：podcast.mp3 · podcast_script.md · podcast_brief.json · podcast_manifest.json
+          LLM 两阶段改写（先理解、再口语化）+ MiniMax 配音 + ffmpeg 合成。 产物：podcast.mp3 ·
+          podcast_script.md · podcast_brief.json · podcast_manifest.json
         </p>
       </header>
 

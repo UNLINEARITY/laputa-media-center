@@ -64,7 +64,9 @@ export async function POST(req: NextRequest) {
     }
 
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
-    if (!ALLOWED_DOC_EXTENSIONS.includes(fileExtension as (typeof ALLOWED_DOC_EXTENSIONS)[number])) {
+    if (
+      !ALLOWED_DOC_EXTENSIONS.includes(fileExtension as (typeof ALLOWED_DOC_EXTENSIONS)[number])
+    ) {
       return NextResponse.json(
         {
           error: '不支持的文件扩展名',

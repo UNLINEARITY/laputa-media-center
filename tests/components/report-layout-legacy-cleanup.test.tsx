@@ -235,9 +235,7 @@ describe('ReportLayout legacy report cleanup', () => {
     expect(screen.getByText('dry-run · 通过 1 · 失败 0 · 阻断 1 · 跳过 1 · 待确认 0')).toBeTruthy()
     expect(screen.getByText('阻断 · 已调用外部 provider')).toBeTruthy()
     expect(screen.getByText(/latest dry-run epoch/)).toBeTruthy()
-    expect(
-      screen.getByText('运行指纹：laputa-media-center@0.1.0 · build test-build'),
-    ).toBeTruthy()
+    expect(screen.getByText('运行指纹：laputa-media-center@0.1.0 · build test-build')).toBeTruthy()
     expect(screen.getByText('阻断：YouTube metadata probe failed')).toBeTruthy()
     expect(screen.getByText('阻断：MiniMax TTS smoke skipped')).toBeTruthy()
     expect(screen.getByText('交付审计通过')).toBeTruthy()

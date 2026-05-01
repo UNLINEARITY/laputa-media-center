@@ -409,13 +409,23 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             testResult={testResults.mistral || null}
             onSave={async () => {
               setMistralSaving(true)
-              const ok = await saveProviderConfig('mistral', mistralKey, mistralModel, mistralBaseUrl)
+              const ok = await saveProviderConfig(
+                'mistral',
+                mistralKey,
+                mistralModel,
+                mistralBaseUrl,
+              )
               if (ok) setMistralKey('')
               setMistralSaving(false)
             }}
             onSaveAndTest={async () => {
               setMistralSaving(true)
-              const ok = await saveProviderConfig('mistral', mistralKey, mistralModel, mistralBaseUrl)
+              const ok = await saveProviderConfig(
+                'mistral',
+                mistralKey,
+                mistralModel,
+                mistralBaseUrl,
+              )
               setMistralSaving(false)
               if (ok) {
                 setMistralKey('')

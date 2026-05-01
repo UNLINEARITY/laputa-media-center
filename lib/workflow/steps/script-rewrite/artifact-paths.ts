@@ -11,10 +11,7 @@ import { getJobTempDir } from '@/lib/utils/paths'
 
 type ScriptArtifactId = Extract<WorkflowArtifactFileId, `script.${string}`>
 
-export function getScriptArtifactOutputPath(
-  jobId: string,
-  artifactId: ScriptArtifactId,
-): string {
+export function getScriptArtifactOutputPath(jobId: string, artifactId: ScriptArtifactId): string {
   return path.join(getJobTempDir(jobId), getWorkflowArtifactFilename(artifactId))
 }
 

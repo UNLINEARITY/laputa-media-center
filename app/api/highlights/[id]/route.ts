@@ -84,10 +84,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const cuts = Array.isArray((manifest as { cuts?: unknown[] })?.cuts)
-    ? ((manifest as { cuts: { filename: string }[] }).cuts.map((cut) => ({
+    ? (manifest as { cuts: { filename: string }[] }).cuts.map((cut) => ({
         ...cut,
         download_url: `/api/highlights/${encodeURIComponent(jobId)}/clips/${encodeURIComponent(cut.filename)}`,
-      })))
+      }))
     : []
 
   return NextResponse.json({

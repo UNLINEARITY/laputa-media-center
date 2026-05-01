@@ -7,25 +7,10 @@
  * 后端 API：GET/POST /api/providers/asr + POST /api/providers/asr/test
  */
 
-import {
-  AlertTriangle,
-  Check,
-  Download,
-  Loader2,
-  RefreshCw,
-  Settings,
-  Zap,
-} from 'lucide-react'
+import { AlertTriangle, Check, Download, Loader2, RefreshCw, Settings, Zap } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui'
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui'
 
 type ASRProviderId = 'whisper-cpp' | 'gemini-audio'
 type Tier = 'free' | 'paid' | 'premium'
@@ -167,7 +152,8 @@ export function AsrProviderSwitcher({ onActiveTabChange }: AsrProviderSwitcherPr
           ASR 转录引擎
         </CardTitle>
         <CardDescription className="text-sm text-claude-dark-400">
-          转录音视频为文字。默认 whisper.cpp 本地运行；可切换 Gemini Audio Hybrid（中文专有名词更准）。
+          转录音视频为文字。默认 whisper.cpp 本地运行；可切换 Gemini Audio
+          Hybrid（中文专有名词更准）。
         </CardDescription>
       </CardHeader>
 

@@ -32,9 +32,7 @@ function getOpenAIBaseUrl(): string | undefined {
 
 function getOpenAIModel(): string {
   return (
-    process.env.OPENAI_MODEL?.trim() ||
-    configsRepo.get('openai_model')?.trim() ||
-    DEFAULT_MODEL
+    process.env.OPENAI_MODEL?.trim() || configsRepo.get('openai_model')?.trim() || DEFAULT_MODEL
   )
 }
 
@@ -79,7 +77,7 @@ export class OpenAILLMProvider implements ILLMProvider {
       }
       return {
         ok: true,
-        message: `OpenAI 响应正常（${chunkCount} chunks${content ? ', 累積 ' + content.length + ' 字' : ''}）`,
+        message: `OpenAI 响应正常（${chunkCount} chunks${content ? `, 累積 ${content.length} 字` : ''}）`,
         latencyMs: Date.now() - start,
       }
     } catch (err) {

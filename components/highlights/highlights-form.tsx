@@ -7,8 +7,8 @@
  */
 
 import { Loader2, Scissors, Upload, Youtube } from 'lucide-react'
-import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Button,
@@ -260,12 +260,10 @@ export function HighlightsForm() {
         <div className="space-y-2">
           <Label className="text-xs font-semibold text-claude-dark-700">宽高比</Label>
           <div className="flex gap-2">
-            {(
-              [
-                { id: '16:9' as const, label: '16:9（保持原宽高）', hint: 'YouTube / B站' },
-                { id: '9:16' as const, label: '9:16（裁剪为竖屏）', hint: '抖音 / 小红书' },
-              ]
-            ).map((opt) => {
+            {[
+              { id: '16:9' as const, label: '16:9（保持原宽高）', hint: 'YouTube / B站' },
+              { id: '9:16' as const, label: '9:16（裁剪为竖屏）', hint: '抖音 / 小红书' },
+            ].map((opt) => {
               const active = aspect === opt.id
               return (
                 <button

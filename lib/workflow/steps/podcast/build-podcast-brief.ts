@@ -11,11 +11,11 @@
 
 import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
-import { getActiveLlmProvider } from '@/lib/providers/registry'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
-import path from 'node:path'
+import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
 import { BaseStep } from '../base'
 import { getPodcastArtifactOutputPath } from './artifact-paths'
@@ -47,7 +47,7 @@ export interface BuildPodcastBriefOutput {
 
 const MAX_SOURCE_CHARS = 12000
 
-const SYSTEM_INSTRUCTION =`你是一位资深中文播客编辑。你擅长把长篇观点稿、报道或学术文章重写为听感舒服、信息密度高、节奏自然的播客口语脚本。
+const SYSTEM_INSTRUCTION = `你是一位资深中文播客编辑。你擅长把长篇观点稿、报道或学术文章重写为听感舒服、信息密度高、节奏自然的播客口语脚本。
 你输出的内容必须严格符合用户要求的 JSON schema，不要添加额外字段或注释。
 不要替用户做语言翻译；保持原稿的源语言。`
 

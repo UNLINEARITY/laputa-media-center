@@ -9,16 +9,9 @@
  * - voice_usage_boundary 确认 + minimax_tts gate 确认
  */
 
-import {
-  AlertTriangle,
-  FileText,
-  Headphones,
-  Loader2,
-  Mic,
-  Upload,
-} from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { AlertTriangle, FileText, Headphones, Loader2, Mic, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Button,
@@ -94,34 +87,31 @@ export function PodcastForm() {
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [primaryVoiceId])
 
-  const handleUpload = useCallback(
-    async (file: File) => {
-      setUploading(true)
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        const res = await fetch('/api/upload/document', {
-          method: 'POST',
-          body: formData,
-        })
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}))
-          throw new Error(data.message || data.error || `HTTP ${res.status}`)
-        }
-        const data = await res.json()
-        setUploadedPath(data.url)
-        setUploadedFilename(data.filename)
-        toast.success(`已上传 ${data.filename}`)
-      } catch (e) {
-        toast.error(`上传失败：${e instanceof Error ? e.message : '未知'}`)
-      } finally {
-        setUploading(false)
+  const handleUpload = useCallback(async (file: File) => {
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload/document', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || data.error || `HTTP ${res.status}`)
       }
-    },
-    [],
-  )
+      const data = await res.json()
+      setUploadedPath(data.url)
+      setUploadedFilename(data.filename)
+      toast.success(`已上传 ${data.filename}`)
+    } catch (e) {
+      toast.error(`上传失败：${e instanceof Error ? e.message : '未知'}`)
+    } finally {
+      setUploading(false)
+    }
+  }, [])
 
   const submit = useCallback(async () => {
     let source: string
@@ -175,8 +165,7 @@ export function PodcastForm() {
           podcast_speaker_mode: speakerMode,
           podcast_target_language: targetLang,
           voice_id: primaryVoiceId,
-          podcast_secondary_voice_id:
-            speakerMode === 'two_host' ? secondaryVoiceId : undefined,
+          podcast_secondary_voice_id: speakerMode === 'two_host' ? secondaryVoiceId : undefined,
           podcast_output_format: 'mp3',
           voice_usage_boundary_acknowledged: boundaryAck,
           confirmed_gate_ids: ['minimax_tts'],
@@ -218,7 +207,8 @@ export function PodcastForm() {
             播客生产
           </CardTitle>
           <CardDescription className="text-sm text-claude-dark-400">
-            从文本稿 / Markdown / PDF 一键生成中文播客（LLM 两阶段改写 + MiniMax 配音 + ffmpeg 合成 MP3）
+            从文本稿 / Markdown / PDF 一键生成中文播客（LLM 两阶段改写 + MiniMax 配音 + ffmpeg 合成
+            MP3）
           </CardDescription>
         </CardHeader>
 
@@ -265,7 +255,9 @@ export function PodcastForm() {
               <div className="space-y-2">
                 <input
                   type="file"
-                  accept={sourceMode === 'md' ? '.md,.markdown,text/markdown' : '.pdf,application/pdf'}
+                  accept={
+                    sourceMode === 'md' ? '.md,.markdown,text/markdown' : '.pdf,application/pdf'
+                  }
                   onChange={(e) => {
                     const f = e.target.files?.[0]
                     if (f) void handleUpload(f)
@@ -304,9 +296,7 @@ export function PodcastForm() {
                         : 'border-claude-cream-200 bg-white hover:border-claude-cream-300'
                     }`}
                   >
-                    <span className="text-sm font-semibold text-claude-dark-700">
-                      {opt.label}
-                    </span>
+                    <span className="text-sm font-semibold text-claude-dark-700">{opt.label}</span>
                     <span className="mt-0.5 text-[11px] text-claude-dark-400">{opt.hint}</span>
                   </button>
                 )
@@ -445,8 +435,8 @@ export function PodcastForm() {
                 className="mt-0.5"
               />
               <span>
-                我已知晓声线使用边界（公众人物 / 已授权克隆 / 创作者本人 / 合成旁白），
-                并对所选 voice_id 的合规使用负责。
+                我已知晓声线使用边界（公众人物 / 已授权克隆 / 创作者本人 / 合成旁白）， 并对所选
+                voice_id 的合规使用负责。
               </span>
             </label>
             <label className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
@@ -499,8 +489,7 @@ function VoiceSelect(props: {
         <option value="">— 选择声线 —</option>
         {props.voices.map((v) => (
           <option key={v.voice_id} value={v.voice_id}>
-            {v.usage_label || v.voice_id} ({v.category})
-            {v.requires_disclosure ? ' · 需披露' : ''}
+            {v.usage_label || v.voice_id} ({v.category}){v.requires_disclosure ? ' · 需披露' : ''}
           </option>
         ))}
       </select>

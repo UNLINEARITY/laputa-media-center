@@ -17,12 +17,7 @@ import { selectWorkflow } from '@/lib/workflow/workflows'
 import type { JobConfig } from '@/types'
 
 const podcastSourceTypeSchema = z.enum(['text_draft', 'md_draft', 'pdf_draft'])
-const podcastToneSchema = z.enum([
-  'conversational',
-  'narrative',
-  'analytical',
-  'storytelling',
-])
+const podcastToneSchema = z.enum(['conversational', 'narrative', 'analytical', 'storytelling'])
 const speakerModeSchema = z.enum(['single_narrator', 'two_host'])
 
 const createPodcastSchema = z.object({
@@ -69,11 +64,7 @@ export async function POST(req: NextRequest) {
     const sourceClassification = classifyIngestSource(data.source, data.source_type)
     const { source, sourceType } = sourceClassification
 
-    if (
-      sourceType !== 'text_draft' &&
-      sourceType !== 'md_draft' &&
-      sourceType !== 'pdf_draft'
-    ) {
+    if (sourceType !== 'text_draft' && sourceType !== 'md_draft' && sourceType !== 'pdf_draft') {
       return NextResponse.json(
         {
           error: 'Unsupported source type for podcast',

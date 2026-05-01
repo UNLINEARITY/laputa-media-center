@@ -362,9 +362,7 @@ async function createPdfDraftTranscription(options: {
   const jsonPath = path.join(outputDir, 'transcript.json')
 
   // 写一份 markdown 视图（每页一段）
-  const md = pageTexts
-    .map((text, idx) => `## Page ${idx + 1}\n\n${text || '(空)'}`)
-    .join('\n\n')
+  const md = pageTexts.map((text, idx) => `## Page ${idx + 1}\n\n${text || '(空)'}`).join('\n\n')
   writeFileSync(markdownPath, md, 'utf-8')
   writeFileSync(
     jsonPath,

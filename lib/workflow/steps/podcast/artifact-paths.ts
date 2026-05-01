@@ -11,10 +11,7 @@ import { getJobTempDir } from '@/lib/utils/paths'
 
 type PodcastArtifactId = Extract<WorkflowArtifactFileId, `podcast.${string}`>
 
-export function getPodcastArtifactOutputPath(
-  jobId: string,
-  artifactId: PodcastArtifactId,
-): string {
+export function getPodcastArtifactOutputPath(jobId: string, artifactId: PodcastArtifactId): string {
   return path.join(getJobTempDir(jobId), getWorkflowArtifactFilename(artifactId))
 }
 

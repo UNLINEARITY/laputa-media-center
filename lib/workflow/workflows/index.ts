@@ -31,7 +31,9 @@ export function selectWorkflow(_videoCount: number, taskType?: string): Workflow
     if (workflow) return workflow
   }
 
-  throw new Error('旧剪辑工作流已下架；请显式使用 content_ingest / translation_dubbing / podcast_production / multi_platform_script / highlights_extraction 工作流。')
+  throw new Error(
+    '旧剪辑工作流已下架；请显式使用 content_ingest / translation_dubbing / podcast_production / multi_platform_script / highlights_extraction 工作流。',
+  )
 }
 
 /**

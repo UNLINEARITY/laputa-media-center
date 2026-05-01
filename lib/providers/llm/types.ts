@@ -48,10 +48,7 @@ export interface ILLMProvider {
   generateContent(opts: LLMGenerateOptions): Promise<LLMGenerateResult>
 }
 
-export const LLM_PROVIDER_DISPLAY: Record<
-  LLMProviderId,
-  { name: string; tier: ProviderTier }
-> = {
+export const LLM_PROVIDER_DISPLAY: Record<LLMProviderId, { name: string; tier: ProviderTier }> = {
   gemini: { name: 'Google Gemini', tier: 'free' },
   openai: { name: 'OpenAI', tier: 'paid' },
   mistral: { name: 'Mistral AI', tier: 'free' },

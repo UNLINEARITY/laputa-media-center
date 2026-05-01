@@ -27,11 +27,7 @@ import type { ApiKeyService } from '@/types'
 const saveKeySchema = z.object({
   action: z.enum(['save_only', 'verify_and_save']).optional(),
   operation: z.enum(['save_only', 'verify_and_save']).optional(),
-  service: z.enum([
-    'google_vertex',
-    'google_ai_studio',
-    'minimax_tts',
-  ]),
+  service: z.enum(['google_vertex', 'google_ai_studio', 'minimax_tts']),
   credentials: z.record(z.string(), z.string()),
   confirmPaidVerification: z.boolean().optional(),
   confirm_paid_verification: z.boolean().optional(),

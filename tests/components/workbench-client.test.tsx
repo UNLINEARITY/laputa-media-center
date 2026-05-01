@@ -439,9 +439,7 @@ describe('WorkbenchClient delivery artifacts', () => {
     expect(
       screen.getByText('latest dry-run epoch：当前 dry-run 可作为真实 provider smoke 前置证据'),
     ).toBeTruthy()
-    expect(
-      screen.getByText('运行指纹：laputa-media-center@0.1.0 · build test-build'),
-    ).toBeTruthy()
+    expect(screen.getByText('运行指纹：laputa-media-center@0.1.0 · build test-build')).toBeTruthy()
     expect(screen.getByText('可用')).toBeTruthy()
     expect(document.body.textContent).toContain('必需确认：translation_provider')
     expect(document.body.textContent).toContain('已确认：translation_provider')

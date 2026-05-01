@@ -8,12 +8,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { WhisperCppRunner } from '@/lib/asr'
 import { getWhisperCppRuntimeStatus } from '@/lib/asr/runtime-status'
-import type {
-  ASRResult,
-  ASRTranscribeOptions,
-  IASRProvider,
-  ProviderTestResult,
-} from './types'
+import type { ASRResult, ASRTranscribeOptions, IASRProvider, ProviderTestResult } from './types'
 
 export class WhisperCppProvider implements IASRProvider {
   readonly id = 'whisper-cpp' as const
@@ -28,7 +23,8 @@ export class WhisperCppProvider implements IASRProvider {
     if (!(await this.isAvailable())) {
       return {
         ok: false,
-        message: 'whisper.cpp 未就绪：请先在设置页触发首次安装（POST /api/runtime/whisper-cpp/install）',
+        message:
+          'whisper.cpp 未就绪：请先在设置页触发首次安装（POST /api/runtime/whisper-cpp/install）',
       }
     }
 
@@ -54,7 +50,7 @@ export class WhisperCppProvider implements IASRProvider {
           wavPath,
           '-y',
         ])
-      } catch (err) {
+      } catch (_err) {
         return {
           ok: true,
           message: 'whisper-cli 已安装；ffmpeg 不可用所以未做端到端测试',
@@ -81,9 +77,7 @@ export class WhisperCppProvider implements IASRProvider {
       language: opts.language,
       modelSize: opts.modelSize,
       segmentsFilename: opts.segmentsFilename,
-      onProgress: opts.onProgress
-        ? (phase, pct) => opts.onProgress?.(phase, pct)
-        : undefined,
+      onProgress: opts.onProgress ? (phase, pct) => opts.onProgress?.(phase, pct) : undefined,
     })
 
     return {

@@ -58,7 +58,7 @@ export function HighlightClipCard({
       if (!updated) throw new Error('recut 返回未包含当前片段')
       const recutClip: HighlightClip = {
         ...updated,
-        download_url: clip.download_url + `?recut=${Date.now()}`,
+        download_url: `${clip.download_url}?recut=${Date.now()}`,
       }
       onRecut(recutClip)
       setTrimStart(recutClip.start)
@@ -73,6 +73,7 @@ export function HighlightClipCard({
 
   return (
     <div className="space-y-3 rounded-md border border-claude-cream-200 bg-white p-4">
+      {/* biome-ignore lint/a11y/useMediaCaption: 高亮 clip 是用户上传/下载的视频片段，无 caption track（Phase 5 字幕集成时补） */}
       <video
         controls
         playsInline

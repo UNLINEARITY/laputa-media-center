@@ -9,20 +9,12 @@
 
 import { configsRepo } from '@/lib/db/core/configs'
 import { GeminiAudioProvider } from './asr/gemini-audio'
-import {
-  ASR_PROVIDER_DISPLAY,
-  type ASRProviderId,
-  type IASRProvider,
-} from './asr/types'
+import { ASR_PROVIDER_DISPLAY, type ASRProviderId, type IASRProvider } from './asr/types'
 import { WhisperCppProvider } from './asr/whisper-cpp'
 import { GeminiLLMProvider } from './llm/gemini'
 import { MistralLLMProvider } from './llm/mistral'
 import { OpenAILLMProvider } from './llm/openai'
-import {
-  type ILLMProvider,
-  LLM_PROVIDER_DISPLAY,
-  type LLMProviderId,
-} from './llm/types'
+import { type ILLMProvider, LLM_PROVIDER_DISPLAY, type LLMProviderId } from './llm/types'
 
 // ============ ASR ============
 

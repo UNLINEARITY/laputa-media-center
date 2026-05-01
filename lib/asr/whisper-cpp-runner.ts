@@ -10,12 +10,7 @@ import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ensureWhisperBinary } from './binary-installer'
 import { ensureWhisperModel } from './model-installer'
-import {
-  type AsrSegment,
-  type WhisperCppOptions,
-  type WhisperCppResult,
-  type WhisperModelSize,
-} from './types'
+import type { AsrSegment, WhisperCppOptions, WhisperCppResult, WhisperModelSize } from './types'
 
 interface WhisperCppRawSegment {
   text?: string
@@ -47,7 +42,10 @@ function normalizeLanguage(input?: string): string | undefined {
 }
 
 /** 把 whisper.cpp `-oj` 输出的毫秒转秒，输出统一 schema */
-function normalizeRawJson(raw: WhisperCppRawJson, requestedLang?: string): {
+function normalizeRawJson(
+  raw: WhisperCppRawJson,
+  requestedLang?: string,
+): {
   segments: AsrSegment[]
   language: string
   text: string
@@ -91,9 +89,7 @@ function spawnWhisperCli(
     proc.stderr.on('data', (d) => {
       stderr += d.toString()
     })
-    proc.on('error', (err) =>
-      reject(new Error(`Failed to spawn whisper-cli: ${err.message}`)),
-    )
+    proc.on('error', (err) => reject(new Error(`Failed to spawn whisper-cli: ${err.message}`)))
     proc.on('close', (code) => {
       if (code === 0) resolve({ stdout, stderr })
       else reject(new Error(`whisper-cli exited with code ${code}: ${stderr.slice(0, 1000)}`))

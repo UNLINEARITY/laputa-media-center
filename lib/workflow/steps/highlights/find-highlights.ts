@@ -101,7 +101,8 @@ function buildHighlightsPromptPayload(opt: {
     ],
     cantonese_rules: cantoneseRules,
     response_schema: {
-      highlights: '[{ id: string, start: number, end: number, hook_text: string, score: number, type: enum, context_snippet?: string }]',
+      highlights:
+        '[{ id: string, start: number, end: number, hook_text: string, score: number, type: enum, context_snippet?: string }]',
       summary: 'string',
       total_duration: 'number',
     },
@@ -121,8 +122,12 @@ function safeParseBrief(raw: string): HighlightsBrief | null {
   }
 }
 
-function clampDuration(start: number, end: number, totalDuration: number): { start: number; end: number } {
-  let s = Math.max(0, Math.min(start, totalDuration))
+function clampDuration(
+  start: number,
+  end: number,
+  totalDuration: number,
+): { start: number; end: number } {
+  const s = Math.max(0, Math.min(start, totalDuration))
   let e = Math.max(0, Math.min(end, totalDuration))
   if (e <= s) e = Math.min(s + 30, totalDuration)
   const dur = e - s
@@ -131,10 +136,7 @@ function clampDuration(start: number, end: number, totalDuration: number): { sta
   return { start: s, end: e }
 }
 
-function normalizeBrief(
-  raw: HighlightsBrief,
-  totalDuration: number,
-): HighlightsBrief {
+function normalizeBrief(raw: HighlightsBrief, totalDuration: number): HighlightsBrief {
   const highlights = raw.highlights.slice(0, 12).map((h, idx) => {
     const clamped = clampDuration(Number(h.start) || 0, Number(h.end) || 0, totalDuration)
     return {
@@ -144,9 +146,9 @@ function normalizeBrief(
       end: clamped.end,
       hook_text: String(h.hook_text || '').slice(0, 200),
       score: Math.max(1, Math.min(10, Number(h.score) || 5)),
-      type: (['quotable', 'plot_twist', 'emotional_peak', 'storytelling', 'takeaway'] as const).includes(
-        h.type as HighlightType,
-      )
+      type: (
+        ['quotable', 'plot_twist', 'emotional_peak', 'storytelling', 'takeaway'] as const
+      ).includes(h.type as HighlightType)
         ? (h.type as HighlightType)
         : 'storytelling',
       context_snippet: h.context_snippet ? String(h.context_snippet).slice(0, 200) : undefined,
@@ -230,7 +232,9 @@ export class FindHighlightsStep extends BaseStep<FindHighlightsOutput> {
     const transcript = JSON.parse(await readFile(transcriptJsonPath, 'utf-8')) as TranscriptJson
     const segments = Array.isArray(transcript.segments) ? transcript.segments : []
     if (segments.length === 0) {
-      throw new Error('Find highlights: transcript 没有 segments，无法找高亮（仅支持视频/音频素材）')
+      throw new Error(
+        'Find highlights: transcript 没有 segments，无法找高亮（仅支持视频/音频素材）',
+      )
     }
 
     const totalDuration = segments.reduce((acc, s) => Math.max(acc, Number(s.end) || 0), 0)

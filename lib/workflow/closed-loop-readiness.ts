@@ -224,7 +224,10 @@ function buildProviderGate(opt: ProviderGateInput): ClosedLoopProviderGate {
 }
 
 const hasVoiceDisclosureMetadata = (
-  e: Pick<MiniMaxVoiceRegistryEntry, 'voice_id' | 'category' | 'requires_disclosure' | 'usage_label'>,
+  e: Pick<
+    MiniMaxVoiceRegistryEntry,
+    'voice_id' | 'category' | 'requires_disclosure' | 'usage_label'
+  >,
 ) =>
   Boolean(
     e.voice_id.trim() &&
@@ -435,8 +438,7 @@ export function buildClosedLoopReadiness(
   const passthroughTranslationAllowed = input.passthroughTranslationAllowed === true
 
   const translationCredentialStatus =
-    input.translationCredentialStatus ??
-    fallbackTranslationCredential(input.translationConfigured)
+    input.translationCredentialStatus ?? fallbackTranslationCredential(input.translationConfigured)
   const translationConfigured = translationCredentialStatus.configured
   const ttsCredentialStatus =
     input.ttsCredentialStatus ?? fallbackTtsCredential(input.ttsConfigured)
@@ -552,8 +554,7 @@ export function buildClosedLoopReadiness(
   ]
   const productionMissing = [...hardMissing, ...translationMissing, ...ttsMissing]
   const smokeReady = hardMissing.length === 0
-  const productionReady =
-    smokeReady && translationMissing.length === 0 && ttsMissing.length === 0
+  const productionReady = smokeReady && translationMissing.length === 0 && ttsMissing.length === 0
   const deliveryAudit = buildDeliveryAuditReadiness({
     productionReady,
     voiceMetadataReady: voiceMetadataStage.ready,

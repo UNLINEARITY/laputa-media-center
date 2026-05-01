@@ -24,9 +24,7 @@ function getMistralKey(): string | null {
 
 function getMistralModel(): string {
   return (
-    process.env.MISTRAL_MODEL?.trim() ||
-    configsRepo.get('mistral_model')?.trim() ||
-    DEFAULT_MODEL
+    process.env.MISTRAL_MODEL?.trim() || configsRepo.get('mistral_model')?.trim() || DEFAULT_MODEL
   )
 }
 

@@ -20,7 +20,11 @@ import type {
 } from '@/types/ai/tts'
 import { TTS_DEFAULTS } from '@/types/ai/tts'
 import { EdgeTTSProvider } from './edge-tts-provider'
-import { assertLegacyTtsEnabled, isLegacyTtsEnabled, LEGACY_TTS_DISABLED_ERROR } from './legacy-policy'
+import {
+  assertLegacyTtsEnabled,
+  isLegacyTtsEnabled,
+  LEGACY_TTS_DISABLED_ERROR,
+} from './legacy-policy'
 
 class TTSManager implements ITTSManager {
   get provider(): TTSProvider {
@@ -31,10 +35,6 @@ class TTSManager implements ITTSManager {
 
   constructor() {
     this.edgeTTS = new EdgeTTSProvider()
-  }
-
-  private getProviderInstance(_type: TTSProvider): ITTSClient {
-    return this.edgeTTS
   }
 
   private getActiveProvider(): ITTSClient {

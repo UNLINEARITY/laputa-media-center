@@ -13,15 +13,11 @@ import { StatusBadge, StatusChip } from '@/components/settings/status-badge'
 import { StorageCleanup } from '@/components/settings/storage-cleanup'
 import { SystemConfig } from '@/components/settings/system-config'
 import { TTSConfig } from '@/components/settings/tts-config'
-import { WhisperCppInstaller } from '@/components/settings/whisper-cpp-installer'
 import type { ApiKeyStatus, ServiceMessage } from '@/components/settings/types'
+import { WhisperCppInstaller } from '@/components/settings/whisper-cpp-installer'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
 import { CONFIG_DEFAULTS } from '@/lib/config'
-import type {
-  ApiKeyService,
-  GeminiAIStudioCredentials,
-  GeminiVertexCredentials,
-} from '@/types'
+import type { ApiKeyService, GeminiAIStudioCredentials, GeminiVertexCredentials } from '@/types'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('system')
@@ -536,8 +532,8 @@ export default function SettingsPage() {
 
           <TabsContent value="maintenance" className="space-y-6">
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
-              这里放本机转录引擎、旧剪辑兼容和维护工具；翻译配音主线请优先使用「系统设置」里的 MiniMax
-              配音、Gemini 模型和创作者资产。
+              这里放本机转录引擎、旧剪辑兼容和维护工具；翻译配音主线请优先使用「系统设置」里的
+              MiniMax 配音、Gemini 模型和创作者资产。
             </div>
             <WhisperCppInstaller />
             <TTSConfig onConfigChange={handleSystemConfigSave} />

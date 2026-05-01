@@ -83,9 +83,7 @@ async function synthesizeSegment(opt: {
   const data = (await res.json()) as MiniMaxT2aResponse
   const status = data.base_resp?.status_code ?? 0
   if (status !== 0) {
-    throw new Error(
-      `MiniMax 错误：${data.base_resp?.status_msg ?? '未知'} (status_code=${status})`,
-    )
+    throw new Error(`MiniMax 错误：${data.base_resp?.status_msg ?? '未知'} (status_code=${status})`)
   }
   const audioHex = data.data?.audio
   if (!audioHex) {
@@ -116,7 +114,9 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
     const secondaryVoiceId = (config.podcast_secondary_voice_id as string)?.trim() || ''
 
     if (!primaryVoiceId) {
-      throw new Error('PODCAST_VOICE_NOT_CONFIGURED：缺少主声线 voice_id（请在播客表单选择已注册的 MiniMax 声线）')
+      throw new Error(
+        'PODCAST_VOICE_NOT_CONFIGURED：缺少主声线 voice_id（请在播客表单选择已注册的 MiniMax 声线）',
+      )
     }
 
     if (!isVoiceUsageBoundaryAcknowledged(config)) {
@@ -124,7 +124,9 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
     }
 
     if (!hasConfirmedProviderGate(ctx.input.config.confirmed_gate_ids, 'minimax_tts')) {
-      throw new Error('PODCAST_MINIMAX_GATE_NOT_CONFIRMED：调用 MiniMax 前必须确认 minimax_tts gate')
+      throw new Error(
+        'PODCAST_MINIMAX_GATE_NOT_CONFIRMED：调用 MiniMax 前必须确认 minimax_tts gate',
+      )
     }
 
     const apiKey = getMiniMaxApiKey()
@@ -150,7 +152,7 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
 
     const start = Date.now()
     const segmentAudioPaths: string[] = []
-    let totalDurationMs = 0
+    let _totalDurationMs = 0
 
     for (let idx = 0; idx < script.segments.length; idx++) {
       const seg = script.segments[idx]
@@ -181,7 +183,7 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
       }
 
       const segDuration = Date.now() - segStart
-      totalDurationMs += segDuration
+      _totalDurationMs += segDuration
 
       this.logApiResponse(
         ctx,

@@ -155,7 +155,9 @@ export class BuildMultiPlatformBriefStep extends BaseStep<BuildMultiPlatformBrie
       throw new Error(`Multi-platform brief: transcript.json not found at ${transcriptJsonPath}`)
     }
     const transcript = JSON.parse(await readFile(transcriptJsonPath, 'utf-8'))
-    const sourceText = String(transcript.text || '').trim().slice(0, MAX_SOURCE_CHARS)
+    const sourceText = String(transcript.text || '')
+      .trim()
+      .slice(0, MAX_SOURCE_CHARS)
     if (!sourceText) {
       throw new Error('Multi-platform brief: transcript.text is empty')
     }

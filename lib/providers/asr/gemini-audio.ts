@@ -12,17 +12,12 @@
 
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { WhisperCppRunner } from '@/lib/asr'
-import { getWhisperCppRuntimeStatus } from '@/lib/asr/runtime-status'
 import { createAIStudioClient } from '@/lib/ai/gemini/core/client'
 import { getAIStudioCredentials } from '@/lib/ai/gemini/credentials-provider'
+import { WhisperCppRunner } from '@/lib/asr'
+import { getWhisperCppRuntimeStatus } from '@/lib/asr/runtime-status'
 import type { AsrSegment } from '@/lib/asr/types'
-import type {
-  ASRResult,
-  ASRTranscribeOptions,
-  IASRProvider,
-  ProviderTestResult,
-} from './types'
+import type { ASRResult, ASRTranscribeOptions, IASRProvider, ProviderTestResult } from './types'
 
 export class GeminiAudioProvider implements IASRProvider {
   readonly id = 'gemini-audio' as const
@@ -106,8 +101,7 @@ export class GeminiAudioProvider implements IASRProvider {
     const audioBytes = await readFile(audioPath)
     const audioBase64 = audioBytes.toString('base64')
 
-    const langHint =
-      language && language !== 'auto' ? `Source language: ${language}.` : ''
+    const langHint = language && language !== 'auto' ? `Source language: ${language}.` : ''
     const prompt = `Transcribe the audio verbatim, preserving spoken language. ${langHint} Return only the transcribed text.`
 
     const response = await client.models.generateContent({
@@ -125,8 +119,10 @@ export class GeminiAudioProvider implements IASRProvider {
 
     const text =
       (response as { text?: string }).text ||
-      (response as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })
-        .candidates?.[0]?.content?.parts?.map((p) => p.text)
+      (
+        response as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+      ).candidates?.[0]?.content?.parts
+        ?.map((p) => p.text)
         .filter(Boolean)
         .join('\n') ||
       ''

@@ -25,11 +25,7 @@ interface SubtitlePresetSelectorProps {
   disabled?: boolean
 }
 
-export function SubtitlePresetSelector({
-  value,
-  onChange,
-  disabled,
-}: SubtitlePresetSelectorProps) {
+export function SubtitlePresetSelector({ value, onChange, disabled }: SubtitlePresetSelectorProps) {
   const [presets, setPresets] = useState<SubtitlePresetMetaUI[]>([])
   const [loading, setLoading] = useState(true)
   const activeId = value || 'default'
@@ -108,9 +104,7 @@ export function SubtitlePresetSelector({
 
             {/* 文字 */}
             <div className="space-y-1 bg-white p-2.5">
-              <div className="text-[11px] leading-tight text-claude-dark-500">
-                {p.description}
-              </div>
+              <div className="text-[11px] leading-tight text-claude-dark-500">{p.description}</div>
               <div className="flex flex-wrap gap-1">
                 {p.tags.slice(0, 2).map((t) => (
                   <span

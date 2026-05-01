@@ -13,15 +13,12 @@ vi.mock('node:child_process', () => ({
 // Phase 2：mock WhisperCppRunner，避免测试触发真实 whisper.cpp 二进制下载
 vi.mock('@/lib/asr', () => ({
   WhisperCppRunner: class {
-    async transcribe(audioPath: string, opts: { outputDir: string }) {
+    async transcribe(_audioPath: string, opts: { outputDir: string }) {
       const fs = await import('node:fs')
       const pathMod = await import('node:path')
       fs.mkdirSync(opts.outputDir, { recursive: true })
       const segmentsPath = pathMod.join(opts.outputDir, 'segments.json')
-      fs.writeFileSync(
-        segmentsPath,
-        JSON.stringify([{ id: 0, start: 0, end: 1, text: 'hello' }]),
-      )
+      fs.writeFileSync(segmentsPath, JSON.stringify([{ id: 0, start: 0, end: 1, text: 'hello' }]))
       return {
         segments: [{ id: 0, start: 0, end: 1, text: 'hello' }],
         language: 'en',

@@ -46,8 +46,12 @@ export async function execFfmpeg(
     })
     let stdout = ''
     let stderr = ''
-    proc.stdout.on('data', (d) => (stdout += d.toString()))
-    proc.stderr.on('data', (d) => (stderr += d.toString()))
+    proc.stdout.on('data', (d) => {
+      stdout += d.toString()
+    })
+    proc.stderr.on('data', (d) => {
+      stderr += d.toString()
+    })
     proc.on('error', (err) => reject(new Error(`spawn ffmpeg failed: ${err.message}`)))
     proc.on('close', (code) => {
       if (code === 0) resolve({ stdout, stderr })

@@ -2,8 +2,8 @@
 
 import { nanoid } from 'nanoid'
 import type { StepRecord } from '@/lib/workflow/step-definitions'
-import { JOB_STEPS } from '@/types'
 import type { InsertJobStepHistory, JobStepHistory } from '@/types'
+import { JOB_STEPS } from '@/types'
 import type { SqlBindings } from '@/types/db/row-types'
 import { runInTransaction } from '../core/transaction'
 import { getDb } from '../index'

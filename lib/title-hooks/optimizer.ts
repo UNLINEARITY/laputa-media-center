@@ -8,12 +8,7 @@
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
-import type {
-  OpeningOptimization,
-  TitleHookInput,
-  TitleHookResult,
-  TitleSuggestion,
-} from './types'
+import type { OpeningOptimization, TitleHookInput, TitleHookResult, TitleSuggestion } from './types'
 
 const SYSTEM_INSTRUCTION = `你是一位资深中文自媒体标题策划与开场鉤子优化师。
 你擅长在不夸张、不标题党的前提下，把一篇文稿的核心观点转化为 5 条「能在算法和人眼之间都站得住」的标题候选；
@@ -98,7 +93,8 @@ function safeParseResult(raw: string): {
 
 function fallbackResult(input: TitleHookInput, first30s: string): TitleHookResult {
   const orig = (input.original_title || '').trim()
-  const baseTitle = orig || input.transcript.text.split(/[。！？\n]/)[0]?.slice(0, 26) || '未命名内容'
+  const baseTitle =
+    orig || input.transcript.text.split(/[。！？\n]/)[0]?.slice(0, 26) || '未命名内容'
   const titles: TitleSuggestion[] = [
     {
       text: baseTitle.slice(0, 30),
@@ -152,7 +148,11 @@ function fallbackResult(input: TitleHookInput, first30s: string): TitleHookResul
  */
 export function isOpeningRewriteEffective(original: string, optimized: string): boolean {
   if (!optimized || !optimized.trim()) return false
-  const norm = (s: string) => s.replace(/\s+/g, '').replace(/[，。！？、]/g, '').trim()
+  const norm = (s: string) =>
+    s
+      .replace(/\s+/g, '')
+      .replace(/[，。！？、]/g, '')
+      .trim()
   const a = norm(original)
   const b = norm(optimized)
   if (!a || !b) return false
@@ -183,14 +183,17 @@ function normalizeTitleSuggestion(raw: unknown): TitleSuggestion | null {
     ? r.seo_keywords.filter((k): k is string => typeof k === 'string').slice(0, 4)
     : []
   const strengthRaw = Number(r.hook_strength)
-  const hook_strength = (Math.max(1, Math.min(5, Math.round(strengthRaw))) || 3) as 1 | 2 | 3 | 4 | 5
+  const hook_strength = (Math.max(1, Math.min(5, Math.round(strengthRaw))) || 3) as
+    | 1
+    | 2
+    | 3
+    | 4
+    | 5
   const rationale = typeof r.rationale === 'string' ? r.rationale.slice(0, 200) : ''
   return { text, seo_keywords: keywords, hook_strength, rationale }
 }
 
-export async function optimizeTitleHooks(
-  input: TitleHookInput,
-): Promise<TitleHookResult> {
+export async function optimizeTitleHooks(input: TitleHookInput): Promise<TitleHookResult> {
   if (!input.transcript.text.trim()) {
     throw new Error('TitleHook: transcript.text 不能为空')
   }

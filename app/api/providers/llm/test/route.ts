@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Unknown provider: ${id}` }, { status: 404 })
     }
     const result = await provider.testConnection()
-    return NextResponse.json({ ok: result.ok, ...result, providerId: id })
+    return NextResponse.json({ ...result, providerId: id })
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json(

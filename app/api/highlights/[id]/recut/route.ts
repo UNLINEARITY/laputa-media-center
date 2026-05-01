@@ -14,21 +14,21 @@ import { jobsRepo } from '@/lib/db/core/jobs'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getIngestFfmpeg } from '@/lib/ingest/runtime'
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
+import type { SubtitlePresetId } from '@/lib/subtitle/types'
 import { logger } from '@/lib/utils/logger'
 import {
   resolveHighlightCutsDir,
   resolveHighlightsArtifactPath,
 } from '@/lib/workflow/steps/highlights/artifact-paths'
 import {
-  processHighlightCandidate,
   type HighlightCutRecord,
+  processHighlightCandidate,
 } from '@/lib/workflow/steps/highlights/extract-highlights'
 import type {
   HighlightCandidate,
   HighlightsBrief,
 } from '@/lib/workflow/steps/highlights/find-highlights'
 import { translateSegmentsForSubtitle } from '@/lib/workflow/steps/highlights/translate-segments'
-import type { SubtitlePresetId } from '@/lib/subtitle/types'
 
 const recutItemSchema = z.object({
   clip_id: z.string().min(1),
@@ -59,7 +59,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { auth } = authResult
 
     if (auth.source === 'token' && auth.tokenId) {
-      const rateLimit = checkRateLimit(`${auth.tokenId}:highlights-recut`, RATE_LIMIT_PRESETS.MODIFY)
+      const rateLimit = checkRateLimit(
+        `${auth.tokenId}:highlights-recut`,
+        RATE_LIMIT_PRESETS.MODIFY,
+      )
       if (!rateLimit.allowed) {
         return NextResponse.json(
           { error: 'Rate limited', retry_after: Math.ceil(rateLimit.resetIn / 1000) },
@@ -242,10 +245,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     if (errors.length === data.cuts.length) {
-      return NextResponse.json(
-        { error: 'All recut attempts failed', errors },
-        { status: 500 },
-      )
+      return NextResponse.json({ error: 'All recut attempts failed', errors }, { status: 500 })
     }
 
     await writeFile(

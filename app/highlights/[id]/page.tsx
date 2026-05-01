@@ -4,10 +4,7 @@ import { ArrowLeft, Loader2, Scissors } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
-import {
-  HighlightClipCard,
-  type HighlightClip,
-} from '@/components/highlights/highlight-clip-card'
+import { type HighlightClip, HighlightClipCard } from '@/components/highlights/highlight-clip-card'
 
 interface HighlightsJobStatus {
   job_id: string
@@ -84,9 +81,7 @@ export default function HighlightsResultsPage() {
           <Scissors className="h-5 w-5" />
           <span className="text-sm font-semibold uppercase tracking-wide">高亮切片结果</span>
         </div>
-        <h1 className="text-2xl font-bold text-claude-dark-900">
-          Job {jobId}
-        </h1>
+        <h1 className="text-2xl font-bold text-claude-dark-900">Job {jobId}</h1>
         {data?.config && (
           <div className="flex flex-wrap gap-2 text-xs text-claude-dark-400">
             <span>预设：{data.config.preset || 'xhs_fresh'}</span>

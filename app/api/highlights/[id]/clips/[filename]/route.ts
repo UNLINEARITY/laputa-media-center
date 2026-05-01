@@ -5,9 +5,9 @@ export const revalidate = 0
 
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import path from 'node:path'
+import { Readable } from 'node:stream'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { Readable } from 'node:stream'
 import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { jobsRepo } from '@/lib/db/core/jobs'
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
@@ -64,17 +64,14 @@ export async function GET(
   const filePath = path.join(cutsDir, filename)
   const resolved = path.resolve(filePath)
   const cutsDirResolved = path.resolve(cutsDir)
-  if (
-    !resolved.startsWith(cutsDirResolved + path.sep) &&
-    resolved !== cutsDirResolved
-  ) {
+  if (!resolved.startsWith(cutsDirResolved + path.sep) && resolved !== cutsDirResolved) {
     return NextResponse.json({ error: 'Path traversal blocked' }, { status: 400 })
   }
   if (!existsSync(filePath)) {
     return NextResponse.json({ error: 'Clip not found' }, { status: 404 })
   }
 
-  let stat
+  let stat: ReturnType<typeof statSync>
   try {
     stat = statSync(filePath)
   } catch (err) {

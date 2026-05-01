@@ -87,7 +87,10 @@ function dropCheckConstraint(opt: {
     console.log(`[DB] 🔄 检测到旧 ${opt.label} CHECK 约束，重建表移除...`)
     const newTableSql = row.sql
       .replace(opt.replaceRegex, opt.replacement)
-      .replace(new RegExp(`CREATE TABLE\\s+(IF NOT EXISTS\\s+)?${opt.table}\\b`, 'i'), `CREATE TABLE ${opt.table}_new`)
+      .replace(
+        new RegExp(`CREATE TABLE\\s+(IF NOT EXISTS\\s+)?${opt.table}\\b`, 'i'),
+        `CREATE TABLE ${opt.table}_new`,
+      )
 
     const colsRow = db.prepare(`PRAGMA table_info(${opt.table})`).all() as { name: string }[]
     const cols = colsRow.map((c) => c.name).join(', ')

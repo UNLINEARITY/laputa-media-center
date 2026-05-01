@@ -32,10 +32,7 @@ export class PodcastDeliveryStep extends BaseStep<PodcastDeliveryOutput> {
   async execute(ctx: WorkflowContext): Promise<PodcastDeliveryOutput> {
     const briefFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.brief')
     const scriptFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.script')
-    const scriptMarkdownFile = getPodcastArtifactOutputPath(
-      ctx.jobId,
-      'podcast.script_markdown',
-    )
+    const scriptMarkdownFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.script_markdown')
     const finalAudioPath = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.final_audio')
     const audioDir = getPodcastSegmentsDir(ctx.jobId)
 

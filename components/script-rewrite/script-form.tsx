@@ -7,8 +7,8 @@
  */
 
 import { FileText, Layers, Loader2, Upload, Youtube } from 'lucide-react'
-import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Button,
@@ -180,9 +180,7 @@ export function ScriptForm() {
               <input
                 type="file"
                 accept={
-                  sourceMode === 'md'
-                    ? '.md,.markdown,text/markdown'
-                    : '.pdf,application/pdf'
+                  sourceMode === 'md' ? '.md,.markdown,text/markdown' : '.pdf,application/pdf'
                 }
                 onChange={(e) => {
                   const f = e.target.files?.[0]
@@ -207,7 +205,9 @@ export function ScriptForm() {
 
         {/* 平台选择 */}
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-claude-dark-700">选择目标平台（可多选）</Label>
+          <Label className="text-xs font-semibold text-claude-dark-700">
+            选择目标平台（可多选）
+          </Label>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {PLATFORMS.map((p) => {
               const active = platforms.has(p.id)
@@ -273,7 +273,8 @@ export function ScriptForm() {
           </div>
           {targetLang === 'cantonese' && (
             <p className="text-[11px] text-claude-dark-400">
-              4 个平台都按港式粵語改写：YouTube/抖音偏口语，小红书/公众号偏书面，但都用我哋、嘅、喺等粵語助词。
+              4
+              个平台都按港式粵語改写：YouTube/抖音偏口语，小红书/公众号偏书面，但都用我哋、嘅、喺等粵語助词。
             </p>
           )}
         </div>

@@ -30,6 +30,7 @@ const STRENGTH_COLORS: Record<number, string> = {
 export function TitleHookModal({ open, onClose, input }: TitleHookModalProps) {
   const { loading, result, error, optimize, reset } = useTitleHooks()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 故意只在 open/input 变化时触发，避免重复 LLM 调用
   useEffect(() => {
     if (open && input && !result && !loading) {
       void optimize(input)
@@ -37,8 +38,17 @@ export function TitleHookModal({ open, onClose, input }: TitleHookModalProps) {
     if (!open) {
       reset()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, input])
+
+  // Esc 关闭：键盘可达
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
 
   if (!open) return null
 
@@ -50,16 +60,25 @@ export function TitleHookModal({ open, onClose, input }: TitleHookModalProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
+      {/* 透明背景按钮：点击外部关闭，键盘可由 Esc 触发（见上方 useEffect） */}
+      <button
+        type="button"
+        aria-label="关闭对话框"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+      />
       <div
-        className="my-8 w-full max-w-3xl rounded-lg bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="title-hook-modal-heading"
+        className="relative my-8 w-full max-w-3xl rounded-lg bg-white shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-claude-cream-200 px-6 py-4">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-claude-dark-700">
+          <h2
+            id="title-hook-modal-heading"
+            className="flex items-center gap-2 text-lg font-semibold text-claude-dark-700"
+          >
             <Sparkles className="h-5 w-5 text-claude-orange-500" />
             标题鉤子与开头优化
           </h2>
@@ -97,9 +116,9 @@ export function TitleHookModal({ open, onClose, input }: TitleHookModalProps) {
               {/* 5 候选标题 */}
               <div className="space-y-2">
                 <h3 className="text-xs font-semibold text-claude-dark-700">5 个候选标题</h3>
-                {result.titles.map((t, idx) => (
+                {result.titles.map((t) => (
                   <div
-                    key={idx}
+                    key={t.text}
                     className="flex items-start gap-3 rounded-md border border-claude-cream-200 bg-white px-4 py-3"
                   >
                     <span
@@ -152,9 +171,7 @@ export function TitleHookModal({ open, onClose, input }: TitleHookModalProps) {
                   </div>
                   <div className="rounded-md border border-claude-orange-200 bg-claude-orange-50/40 p-3">
                     <div className="mb-1.5 flex items-center justify-between">
-                      <div className="text-[11px] font-semibold text-claude-orange-700">
-                        优化后
-                      </div>
+                      <div className="text-[11px] font-semibold text-claude-orange-700">优化后</div>
                       <button
                         type="button"
                         onClick={() => copy(result.opening_optimization.optimized_first_30s)}

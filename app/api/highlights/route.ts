@@ -40,10 +40,7 @@ export async function POST(req: NextRequest) {
     const { auth } = authResult
 
     if (auth.source === 'token' && auth.tokenId) {
-      const rateLimit = checkRateLimit(
-        `${auth.tokenId}:highlights`,
-        RATE_LIMIT_PRESETS.CREATE_JOB,
-      )
+      const rateLimit = checkRateLimit(`${auth.tokenId}:highlights`, RATE_LIMIT_PRESETS.CREATE_JOB)
       if (!rateLimit.allowed) {
         return NextResponse.json(
           { error: 'Rate limited', retry_after: Math.ceil(rateLimit.resetIn / 1000) },

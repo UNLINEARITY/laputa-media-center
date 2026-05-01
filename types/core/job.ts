@@ -218,7 +218,15 @@ export interface JobConfig {
    * - source_type: YouTube、本地视频、本地音频、普通网页视频或文本稿
    * - ingest_goal: 转文本后进入哪条内容链路
    */
-  source_type?: 'youtube' | 'local_video' | 'local_audio' | 'web_video' | 'text_draft' | 'unknown'
+  source_type?:
+    | 'youtube'
+    | 'local_video'
+    | 'local_audio'
+    | 'web_video'
+    | 'text_draft'
+    | 'md_draft'
+    | 'pdf_draft'
+    | 'unknown'
   source_text?: string
   source_text_char_count?: number
   source_text_redacted?: boolean

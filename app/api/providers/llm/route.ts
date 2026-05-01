@@ -11,9 +11,9 @@ import { z } from 'zod'
 import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import {
   getActiveLlmProviderId,
-  listLlmProviders,
   LLM_PROVIDER_DISPLAY,
   type LLMProviderId,
+  listLlmProviders,
   setActiveLlmProvider,
 } from '@/lib/providers/registry'
 

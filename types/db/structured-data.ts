@@ -168,7 +168,10 @@ export interface JobStepHistory {
   job_id: string
   scene_id?: string
 
-  // 步骤信息（剪辑 5 阶段 + 素材吸收阶段）
+  /**
+   * 步骤信息：source of truth = types/core/job.ts JOB_STEPS
+   * 含旧剪辑 5 阶段 + 翻译配音 + 素材吸收 + Phase 3.B 播客 + Phase 3.C-A 高亮 + Phase 3.C-B 多平台脚本
+   */
   major_step:
     | 'analysis'
     | 'generate_narrations'
@@ -182,6 +185,12 @@ export interface JobStepHistory {
     | 'ingest'
     | 'transcribe'
     | 'package'
+    | 'rewrite'
+    | 'tts'
+    | 'delivery'
+    | 'analyze'
+    | 'score'
+    | 'cut'
   sub_step: string
   step_type?: string // 步骤类型
   attempt?: number // 重试次数

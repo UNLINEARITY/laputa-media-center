@@ -161,11 +161,7 @@ export class ApiKeysRepository {
       'service' | 'is_verified' | 'verified_at'
     >[]
 
-    const services: ApiKeyService[] = [
-      'google_vertex',
-      'google_ai_studio',
-      'minimax_tts',
-    ]
+    const services: ApiKeyService[] = ['google_vertex', 'google_ai_studio', 'minimax_tts']
 
     return services.map((service) => {
       const row = rows.find((r) => r.service === service)
