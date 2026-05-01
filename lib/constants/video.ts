@@ -8,11 +8,11 @@ export const ACCEPTED_VIDEO_TYPES = {
   'video/mp4': ['.mp4'],
 } as const
 
-/** 文件大小限制（字节）- 统一 300MB */
-export const MAX_VIDEO_SIZE_BYTES = 300 * 1024 * 1024
+/** 文件大小限制（字节）- 统一 500MB（单机自用，可放宽） */
+export const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024
 
 /** 文件大小限制（人类可读） */
-export const MAX_VIDEO_SIZE_DISPLAY = '300MB'
+export const MAX_VIDEO_SIZE_DISPLAY = '500MB'
 
 /** 视频格式显示文案 */
 export const VIDEO_FORMATS = {

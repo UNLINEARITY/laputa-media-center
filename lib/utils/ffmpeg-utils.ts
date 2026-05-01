@@ -10,18 +10,20 @@ import { spawn } from 'node:child_process'
 /**
  * 转义 FFmpeg 滤镜路径中的特殊字符
  *
- * FFmpeg 滤镜语法中的特殊字符：
- * - : 冒号（参数分隔符）
- * - \ 反斜杠（转义字符）
- * - ' 单引号
- * - [ ] 方括号（流选择器）
+ * ffmpeg filtergraph 有 3 层转义：
+ *   1. Filter option value 层：: 用 \: 转义
+ *   2. Filter description 层：\ 用 \\ 转义、[ ] , ; 也要转义
+ *   3. Shell 层：本项目用 spawn array args，免 shell 转义
  *
- * 注意：先把 Windows `\` 換成 `/`，再轉義冒號，避免「`C:\foo\bar`」二次轉義。
+ * 对 Windows 路径含 `C:` 的情况，必须做 1 + 2 双层 → 实际字符串送 ffmpeg 是 `C\\:/...`
+ * （即 backslash backslash colon），ffmpeg 8.x 的 filter 解析器对此严格。
+ *
+ * 注意：先把 Windows `\` 換成 `/`，再轉義冒號（避免反斜杠二次轉義）。
  */
 export function escapeFFmpegPath(filePath: string): string {
   return filePath
     .replace(/\\/g, '/')
-    .replace(/:/g, '\\:')
+    .replace(/:/g, '\\\\:') // 双反斜杠 + 冒号（filter description level + option value level 双层转义）
     .replace(/'/g, "\\'")
     .replace(/\[/g, '\\[')
     .replace(/\]/g, '\\]')

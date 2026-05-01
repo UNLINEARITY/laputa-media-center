@@ -274,6 +274,13 @@ export class FindHighlightsStep extends BaseStep<FindHighlightsOutput> {
         maxOutputTokens: 4096,
       })
       const parsed = safeParseBrief(result.text)
+      if (!parsed) {
+        // 診斷：LLM 返了內容但 schema 不對。記前 1000 字 raw response 方便排錯。
+        this.log(ctx, 'highlights LLM 返回未通過 schema 校驗，使用兜底', {
+          rawTextPreview: String(result.text || '').slice(0, 1000),
+          rawTextLength: String(result.text || '').length,
+        })
+      }
       brief = parsed
         ? normalizeBrief(parsed, totalDuration)
         : fallbackBrief(segments, totalDuration, targetCount)
