@@ -1,7 +1,7 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets 掃描完成：強義 secrets = 0 leak；個資採 B+ 脫敏不重寫 history。下一步：LICENSE / README / install scripts / 首次嚮導 / push）
+**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets 掃描完成：強義 secrets = 0 leak；B+ 已完成 working tree / future commit author 脫敏；push 前仍需 history rewrite 清舊工作流帳號殘留。下一步：LICENSE / README / install scripts / 首次嚮導 / push）
 **下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `f2200d0` `f6f0216` `d6f4333` `82333c2` `331ca8f`）。**主線：進 Phase 5 開源就緒**（secrets 全項目掃描 / history rewrite 清舊工作流帳號殘留 / README EN/ZH / install scripts / demo GIF / GitHub push）。
 
 **Phase 5 push 前阻塞項**:
@@ -382,7 +382,7 @@
 
 ---
 
-### Phase 5：開源就緒 ⚪ 未開始
+### Phase 5：開源就緒 🟡 進行中
 
 **目標**：可以推送 GitHub 公開。
 
@@ -608,20 +608,20 @@
 - [x] 寫 CHANGELOG（CHANGELOG.md，1.0.0 entry + W0-W3 + Phase 1-3.C 歷史摘要）
 
 ### Phase 5：開源就緒（進行中 2026-05-01）
-- [x] **Wave 5.1 secrets 全項目掃描完成**（commit pending B+ 脫敏）:
+- [x] **Wave 5.1 secrets 全項目掃描完成**（commit `0eaf878` B+ 脫敏）:
   - **強義 secrets = 0 leak**：無 OpenAI/Google/GitHub/HF/AWS/Anthropic key、無 SESSION_SECRET / ENCRYPTION_KEY 真值、無 LICENSE_KEY 真值、無 私鑰 PEM、無 URL embedded credentials、無 yt-dlp cookies、working tree 完全乾淨
   - **個資 5 類**（非 security incident，是隱私決策）：
     1. `hkdadinsz@gmail.com` 在 AGENTS.md:43 + 全 55 commit author metadata
-    2. `noreply@laputamediacenter.local` 在 commits `ac7dc06` / `d0ac9f3` 已刪除的 docs/agent/credentials.md（在 history 仍可 git show）
+    2. 舊工作流 Gmail 在 commits `ac7dc06` / `d0ac9f3` 已刪除的 docs/agent/credentials.md（在 history 仍可 git show；不要在 repo 再寫成連續明文）
     3. Zeabur project IDs（已 Phase 1 decommissioned，曝光無實際風險）
-    4. GitHub username `laputamediacenter` 在 deleted history（PAT 是 `ghp_xxx` 占位符不是實值）
+    4. 舊工作流 GitHub username 在 deleted history（PAT 是 `ghp_xxx` 占位符不是實值；不要在 repo 再寫成連續明文）
     5. Cloudflare R2 public bucket URL（intentionally 公開，無風險）
-  - **採 B+ 方案**（非 C 完整 history 重寫）：
+  - **採 B+ 方案**（先做 working tree / future commit author 脫敏；push 前仍需 history rewrite 清舊工作流帳號殘留）：
     - AGENTS.md:43 working tree 脫敏為「維護者聯絡方式：開源後填」
     - repo-local `user.email` 改為 `noreply@laputamediacenter.local`（後續 commit 不再用 personal email；GLOBAL git config 不動）
-    - 不重寫已存 55 commit 的 author metadata（cost > benefit；接受 5/1 之前 commits 的 email 曝光）
+    - 不重寫已存 55 commit 的 `hkdadinsz` author metadata（保留）
     - 5/1 之後 commits 都用 noreply alias
-- [ ] Git history rewrite 清舊工作流帳號殘留（已選 B+ 不做 C 完整重寫；如未來決定改為 C，再啟動）
+- [ ] Git history rewrite 清舊工作流帳號殘留（push GitHub 前阻塞；保留 `hkdadinsz*` / `laputa`）
 - [ ] README 中英文
 - [ ] LICENSE（暫定 MIT，未落檔）
 - [ ] CONTRIBUTING.md
