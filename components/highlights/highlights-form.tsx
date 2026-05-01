@@ -313,7 +313,8 @@ export function HighlightsForm() {
             })}
           </div>
           <p className="text-[11px] text-claude-dark-400">
-            只影响 hook_text / summary 文案；视频字幕 (.ass) 仍来自原 transcript。
+            粤语 / 普通话：hook_text、summary 与烧录字幕 (.ass) 都会用 LLM 翻译为目标语言。 auto /
+            保持源语言：字幕仍用原 transcript，不调用翻译 LLM。
           </p>
         </div>
 

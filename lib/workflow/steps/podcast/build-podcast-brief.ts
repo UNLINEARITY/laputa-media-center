@@ -13,7 +13,11 @@ import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
-import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
+import {
+  getCantoneseRules,
+  getMandarinRules,
+  resolveLanguageInstruction,
+} from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -49,7 +53,7 @@ const MAX_SOURCE_CHARS = 12000
 
 const SYSTEM_INSTRUCTION = `你是一位资深中文播客编辑。你擅长把长篇观点稿、报道或学术文章重写为听感舒服、信息密度高、节奏自然的播客口语脚本。
 你输出的内容必须严格符合用户要求的 JSON schema，不要添加额外字段或注释。
-不要替用户做语言翻译；保持原稿的源语言。`
+除非用户在 instructions 中显式指定 target_language（如粤语 / 普通话），否则保持原稿的源语言。`
 
 function buildBriefPromptPayload(opt: {
   sourceText: string
@@ -60,9 +64,13 @@ function buildBriefPromptPayload(opt: {
   language?: string
   targetLanguage?: string
 }) {
-  const isCantonese = isCantoneseTarget(opt.targetLanguage)
   // 播客 brief 偏 podcast/conversational 風格
   const cantoneseRules = getCantoneseRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'podcast',
+    includeSpokenNumbers: true,
+  })
+  const mandarinRules = getMandarinRules({
     targetLanguage: opt.targetLanguage,
     style: 'podcast',
     includeSpokenNumbers: true,
@@ -81,11 +89,16 @@ function buildBriefPromptPayload(opt: {
       '4) 给一个 opening_hook_idea（开场钩子素材）和 closing_callback_idea（结尾回扣）',
       '5) 抽 0-8 条术语（glossary），给中文播客口语化的偏好措辞',
       '6) 选定一个 target_tone：conversational / narrative / analytical / storytelling',
-      isCantonese
-        ? '7) 输出语言：港式粤语（summary / key_points.gist / opening_hook_idea / closing_callback_idea / glossary.preferred_wording 全部粤化，详见 cantonese_rules）'
-        : '7) 不要进行语言翻译；保持源语言',
+      resolveLanguageInstruction(opt.targetLanguage, {
+        cantonese:
+          '7) 输出语言：港式粤语（summary / key_points.gist / opening_hook_idea / closing_callback_idea / glossary.preferred_wording 全部粤化，详见 cantonese_rules）',
+        mandarin:
+          '7) 输出语言：标准普通话 / 简体中文（summary / key_points.gist / opening_hook_idea / closing_callback_idea / glossary.preferred_wording 全部用普通话；若源语言非中文则翻译为普通话，详见 mandarin_rules）',
+        keepSource: '7) 不要进行语言翻译；保持源语言',
+      }),
     ],
     cantonese_rules: cantoneseRules,
+    mandarin_rules: mandarinRules,
     response_schema: {
       summary: 'string',
       key_points: '[{ id: string, gist: string }]',

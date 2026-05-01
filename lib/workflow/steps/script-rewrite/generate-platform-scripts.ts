@@ -12,7 +12,10 @@ import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import {
   type CantoneseStyle,
   getCantoneseRules,
+  getMandarinRules,
   isCantoneseTarget,
+  isMandarinTarget,
+  resolveLanguageInstruction,
 } from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
@@ -74,16 +77,16 @@ const SYSTEM_INSTRUCTION = `你是一位资深中文自媒体多平台脚本改�
 - 抖音 60s：超短鉤子（3 秒抓人）、主体压缩、强 CTA、含字幕逐行
 - 小红书：封面标题 + Markdown 正文（emoji 适量）+ 5-8 个 tags
 - 微信公众号：正式标题 + 副标题 + 长文 Markdown（约 1000-2000 字）
-所有输出严格符合 JSON schema；不要进行语言翻译；保持源语言。`
+所有输出严格符合 JSON schema；除非用户在 instructions 中显式指定 target_language，否则保持源语言。`
 
 /**
- * 各平台對應的粵語風格：
+ * 各平台對應的中文（粵/普通話共用）風格：
  * - YouTube 長視頻 → localized_script（演說稿改寫）
  * - 抖音 60s → short_video（短視頻配音）
- * - 小紅書圖文 → written（書面 + 粵語助詞，跳過 TTS 節奏規則）
+ * - 小紅書圖文 → written（書面，跳過 TTS 節奏規則）
  * - 公眾號長文 → written（書面）
  */
-const PLATFORM_TO_CANTONESE_STYLE: Record<PlatformId, CantoneseStyle> = {
+const PLATFORM_TO_STYLE: Record<PlatformId, CantoneseStyle> = {
   youtube: 'localized_script',
   douyin: 'short_video',
   xhs: 'written',
@@ -99,13 +102,22 @@ function buildScriptPromptPayload(opt: {
   targetLanguage?: string
 }) {
   const isCantonese = isCantoneseTarget(opt.targetLanguage)
-  // 為每個 selected platform 生成各自的粵語規則塊；無 selected → 空對象
+  const isMandarin = isMandarinTarget(opt.targetLanguage)
+  // 為每個 selected platform 生成各自的粵/普通話規則塊；無 selected 或非中文 target → 空對象
   const cantonesePerPlatform: Record<string, string[]> = {}
+  const mandarinPerPlatform: Record<string, string[]> = {}
   if (isCantonese) {
     for (const p of opt.platforms) {
       cantonesePerPlatform[p] = getCantoneseRules({
         targetLanguage: opt.targetLanguage,
-        style: PLATFORM_TO_CANTONESE_STYLE[p],
+        style: PLATFORM_TO_STYLE[p],
+      })
+    }
+  } else if (isMandarin) {
+    for (const p of opt.platforms) {
+      mandarinPerPlatform[p] = getMandarinRules({
+        targetLanguage: opt.targetLanguage,
+        style: PLATFORM_TO_STYLE[p],
       })
     }
   }
@@ -120,11 +132,16 @@ function buildScriptPromptPayload(opt: {
       '3) douyin_short: hook 一句 ≤ 20 字，body 60-150 字，cta 一句，subtitle_lines 按句拆分',
       '4) xhs_post: cover_title ≤ 20 字，body_markdown 含 emoji 与小标题（不要在 body 末尾重复 tags），tags 5-8 个（中文 + #，仅出现在 tags 数组）',
       '5) wechat_article: title 正式，subtitle 可选，body_markdown 1000-2000 字',
-      isCantonese
-        ? '6) 输出语言：港式粤语 — 不同平台风格不同，按 cantonese_rules_per_platform 各自的规则块改写'
-        : '6) 不进行语言翻译；保持源语言',
+      resolveLanguageInstruction(opt.targetLanguage, {
+        cantonese:
+          '6) 输出语言：港式粤语 — 不同平台风格不同，按 cantonese_rules_per_platform 各自的规则块改写',
+        mandarin:
+          '6) 输出语言：标准普通话 / 简体中文 — 不同平台风格不同，按 mandarin_rules_per_platform 各自的规则块改写；若源语言非中文则翻译为普通话',
+        keepSource: '6) 不进行语言翻译；保持源语言',
+      }),
     ],
     cantonese_rules_per_platform: cantonesePerPlatform,
+    mandarin_rules_per_platform: mandarinPerPlatform,
     response_schema: {
       youtube_long:
         '{ title, estimated_minutes, sections: [{id, heading, voice_over, b_roll_hint?}] } | null',

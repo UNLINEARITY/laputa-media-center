@@ -9,7 +9,11 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
-import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
+import {
+  getCantoneseRules,
+  getMandarinRules,
+  resolveLanguageInstruction,
+} from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -39,7 +43,7 @@ export interface BuildMultiPlatformBriefOutput {
 const SYSTEM_INSTRUCTION = `你是一位资深中文自媒体多平台内容编辑。
 你擅长把同一份观点稿 / 报道稿改写为针对 YouTube 长视频、抖音 60s 短视频、小红书图文、微信公众号文章 4 个平台的不同版本，
 保留核心观点不偏移，但根据各平台的算法和受众调整结构、节奏和措辞。
-所有输出严格符合 JSON schema；不要进行语言翻译；保持源语言。`
+所有输出严格符合 JSON schema；除非用户在 instructions 中显式指定 target_language，否则保持源语言。`
 
 const MAX_SOURCE_CHARS = 12000
 
@@ -51,9 +55,13 @@ function buildBriefPromptPayload(opt: {
   language?: string
   targetLanguage?: string
 }) {
-  const isCantonese = isCantoneseTarget(opt.targetLanguage)
   // brief 階段是分析 + hook_candidates，偏 short_video 風格（鉤子要朗朗上口）
   const cantoneseRules = getCantoneseRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'short_video',
+    includeSpokenNumbers: true,
+  })
+  const mandarinRules = getMandarinRules({
     targetLanguage: opt.targetLanguage,
     style: 'short_video',
     includeSpokenNumbers: true,
@@ -74,11 +82,16 @@ function buildBriefPromptPayload(opt: {
       '   - xhs: tone（亲切 / 专业 / 锐评）+ cover_title_idea（封面标题创意，≤20 字）',
       '   - wechat: length_chars（建议字数）+ structure（结构骨架，如「现象-分析-观点-结尾」）',
       '5) glossary 抽 0-6 条术语 + 偏好措辞',
-      isCantonese
-        ? '6) 输出语言：港式粤语（hook_candidates / opener_style / cover_title_idea 等所有面向用户的文案都要粤化，详见 cantonese_rules）'
-        : '6) 不进行语言翻译；保持源语言',
+      resolveLanguageInstruction(opt.targetLanguage, {
+        cantonese:
+          '6) 输出语言：港式粤语（hook_candidates / opener_style / cover_title_idea 等所有面向用户的文案都要粤化，详见 cantonese_rules）',
+        mandarin:
+          '6) 输出语言：标准普通话 / 简体中文（hook_candidates / opener_style / cover_title_idea 等所有面向用户的文案都用普通话；若源语言非中文则翻译为普通话，详见 mandarin_rules）',
+        keepSource: '6) 不进行语言翻译；保持源语言',
+      }),
     ],
     cantonese_rules: cantoneseRules,
+    mandarin_rules: mandarinRules,
     response_schema: {
       summary: 'string',
       core_points: '[{ id: string, gist: string }]',

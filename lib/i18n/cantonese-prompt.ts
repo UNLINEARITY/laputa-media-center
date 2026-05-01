@@ -138,3 +138,119 @@ export function normalizeTargetLanguage(value?: string | null): NormalizedTarget
   if (v === 'mandarin' || v === 'zh' || v === 'zh-cn' || v === 'cn') return 'mandarin'
   return 'auto'
 }
+
+// ============================================================================
+// Mandarin（普通话 / 现代标准汉语）prompt 規則庫
+// ============================================================================
+//
+// 對標 Cantonese helpers，給「target_language=mandarin」的 LLM step 使用。
+// 之前的 prompt 把 mandarin 走「不翻译；保持源语言」分支 → 英文素材直接吐英文，
+// 這裡修這個 bug，明確告訴 LLM 要吐標準普通話 / 簡體中文。
+
+/**
+ * 是否觸發 Mandarin prompt
+ * - 'mandarin' / 'zh' / 'zh-cn' / 'cn' 都視為普通話
+ * - 'cantonese' / 'auto' / undefined 都不觸發
+ */
+export function isMandarinTarget(targetLanguage?: string | null): boolean {
+  return normalizeTargetLanguage(targetLanguage) === 'mandarin'
+}
+
+/**
+ * Mandarin 硬規則（4 條）
+ * 對應 Cantonese 硬規則的鏡像版本，要求標準普通話 + 簡體中文 + 避免粵語助詞 + 自然翻譯。
+ */
+export const MANDARIN_HARD_RULES = [
+  'Output in Standard Modern Mandarin Chinese (现代标准汉语 / 普通话), using Simplified Chinese characters (简体中文).',
+  'Avoid Cantonese-only particles and lexicon such as 我哋 / 你哋 / 嘅 / 喺 / 嚟 / 係 / 唔 / 啦 / 嘞 — use Mandarin equivalents (我们 / 你们 / 的 / 在 / 来 / 是 / 不 / 了 etc.).',
+  'If the source content is not Chinese, translate it into fluent natural Mandarin instead of keeping the source language.',
+  'Use natural Mandarin sentence rhythm; do not preserve English clause-by-clause structure when translating.',
+] as const
+
+export function getMandarinStyleInstruction(style: CantoneseStyle): string {
+  switch (style) {
+    case 'localized_script':
+      return (
+        'First understand the full content, then rewrite it as a natural spoken Mandarin script. ' +
+        "Preserve the speakers' intent, factual claims, names, and sequence; do not translate sentence-by-sentence."
+      )
+    case 'short_video':
+      return (
+        'Write compact spoken Mandarin for short video. ' +
+        'Keep it lively, clear, and easy to dub, without excessive filler.'
+      )
+    case 'faithful':
+      return 'Write natural spoken Mandarin, preserving meaning, names, numbers, and factual nuance.'
+    case 'written':
+      return (
+        'Write natural Mandarin for written content (image-text post or long-form article). ' +
+        'Lean slightly more written than spoken; avoid TTS-only rhythm rules and avoid Cantonese particles.'
+      )
+    default:
+      return (
+        'Write natural spoken Mandarin for podcast or creator commentary. ' +
+        'Keep the phrasing conversational and dub-friendly while preserving the original meaning.'
+      )
+  }
+}
+
+export function getMandarinLanguageLabel(): string {
+  return 'Standard Mandarin Chinese / 现代标准汉语 / 简体中文'
+}
+
+/**
+ * 主入口：按工具場景組合 Mandarin 規則陣列
+ *
+ * 鏡像 getCantoneseRules，回傳要嵌入 prompt 的 rules string[]。
+ * 若 targetLanguage 不是 mandarin，返回空陣列（[]）。
+ *
+ * @example
+ * const rules = getMandarinRules({ targetLanguage: 'mandarin', style: 'short_video' })
+ * // → [...4 条硬规则, ...短视频风格指令, ...数字朗读规则]
+ *
+ * const rules2 = getMandarinRules({ targetLanguage: 'cantonese', style: 'podcast' })
+ * // → []
+ */
+export function getMandarinRules(opts: {
+  targetLanguage?: string | null
+  style: CantoneseStyle
+  /** 默認 true（適合 TTS 場景）；圖文 /written 場景可設 false */
+  includeSpokenNumbers?: boolean
+}): string[] {
+  if (!isMandarinTarget(opts.targetLanguage)) return []
+
+  const includeNumbers = opts.includeSpokenNumbers ?? opts.style !== 'written'
+  return [
+    ...MANDARIN_HARD_RULES,
+    getMandarinStyleInstruction(opts.style),
+    ...(includeNumbers ? CHINESE_SPOKEN_NUMBER_RULES : []),
+  ]
+}
+
+/**
+ * 通用語言指令選擇器
+ *
+ * 給 LLM step 的 instructions 陣列用，封裝「3-way 分支」邏輯：
+ * - cantonese → 用 cantonese 文案
+ * - mandarin → 用 mandarin 文案
+ * - auto → 用 keepSource 文案（默认「不进行语言翻译；保持源语言」）
+ *
+ * @example
+ * instructions: [
+ *   ...,
+ *   resolveLanguageInstruction(targetLanguage, {
+ *     cantonese: '7) 输出语言：港式粤语（详见 cantonese_rules）',
+ *     mandarin: '7) 输出语言：标准普通话（详见 mandarin_rules；若源语言非中文则翻译为普通话）',
+ *     keepSource: '7) 不进行语言翻译；保持源语言',
+ *   }),
+ * ]
+ */
+export function resolveLanguageInstruction(
+  targetLanguage: string | null | undefined,
+  branches: { cantonese: string; mandarin: string; keepSource: string },
+): string {
+  const normalized = normalizeTargetLanguage(targetLanguage)
+  if (normalized === 'cantonese') return branches.cantonese
+  if (normalized === 'mandarin') return branches.mandarin
+  return branches.keepSource
+}

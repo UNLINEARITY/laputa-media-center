@@ -7,7 +7,7 @@
  */
 
 import { Sparkles } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { TitleHookModal } from '@/components/title-hooks/title-hook-modal'
 import {
   Button,
@@ -22,11 +22,36 @@ import {
 
 type TargetLang = 'auto' | 'mandarin' | 'cantonese'
 
+interface ActiveProviderInfo {
+  id: string
+  displayName: string
+  tier: 'free' | 'paid'
+}
+
 export default function TitleHooksPage() {
   const [text, setText] = useState('')
   const [originalTitle, setOriginalTitle] = useState('')
   const [targetLang, setTargetLang] = useState<TargetLang>('auto')
   const [open, setOpen] = useState(false)
+  const [activeProvider, setActiveProvider] = useState<ActiveProviderInfo | null>(null)
+
+  // 拉當前 active LLM provider，用於底部 cost 文案（避免「默認 Gemini 免費」誤導）
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/providers/llm')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.activeId) return
+        const p = data.providers?.find((x: { id: string }) => x.id === data.activeId) as
+          | ActiveProviderInfo
+          | undefined
+        if (p) setActiveProvider({ id: p.id, displayName: p.displayName, tier: p.tier })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleOpen = useCallback(() => {
     if (text.trim().length < 50) {
@@ -133,7 +158,39 @@ export default function TitleHooksPage() {
             生成 5 个候选标题
           </Button>
           <p className="text-[11px] text-claude-dark-400">
-            会调用当前激活的 LLM provider（默认 Gemini，免费额度内）。预计 3-8 秒。
+            {activeProvider ? (
+              <>
+                会调用当前激活的 LLM provider：
+                <span className="font-medium text-claude-dark-700">
+                  {activeProvider.displayName}
+                </span>
+                <span
+                  className={`ml-1 inline-flex h-4 items-center rounded-full px-1.5 text-[10px] ${
+                    activeProvider.tier === 'paid'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}
+                >
+                  {activeProvider.tier === 'paid' ? '付费' : '免费'}
+                </span>
+                。预计 3-8 秒。
+                {activeProvider.tier === 'paid' && (
+                  <>
+                    {' '}
+                    可在{' '}
+                    <a
+                      href="/settings"
+                      className="text-claude-orange-600 underline hover:text-claude-orange-700"
+                    >
+                      设置
+                    </a>{' '}
+                    切换为免费 provider（如 Gemini）。
+                  </>
+                )}
+              </>
+            ) : (
+              <>会调用当前激活的 LLM provider（载入中...）。预计 3-8 秒。</>
+            )}
           </p>
         </CardContent>
       </Card>

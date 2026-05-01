@@ -9,7 +9,12 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
-import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
+import {
+  getCantoneseRules,
+  getMandarinRules,
+  normalizeTargetLanguage,
+  resolveLanguageInstruction,
+} from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -46,7 +51,7 @@ export interface GeneratePodcastScriptOutput {
 
 const SYSTEM_INSTRUCTION = `你是一位资深中文播客主播兼编辑。你擅长把作者的长篇观点稿改写成听感自然、节奏分明、信息密度高的播客口语脚本。
 所有改写必须保持原稿核心观点不偏移，按 brief 给出的 segment_strategy 切分；语言风格服从 creator_context 的人设和 wording_style。
-所有输出严格符合 JSON schema；不要进行语言翻译；保持源语言。`
+所有输出严格符合 JSON schema；除非用户在 instructions 中显式指定 target_language（如粤语 / 普通话），否则保持源语言。`
 
 function buildScriptPromptPayload(opt: {
   brief: PodcastBrief
@@ -60,9 +65,14 @@ function buildScriptPromptPayload(opt: {
   language?: string
   targetLanguage?: string
 }) {
-  const isCantonese = isCantoneseTarget(opt.targetLanguage)
+  const normalized = normalizeTargetLanguage(opt.targetLanguage)
   // 播客 script 偏 podcast/conversational 風格 + 數字朗讀規則（會 TTS）
   const cantoneseRules = getCantoneseRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'podcast',
+    includeSpokenNumbers: true,
+  })
+  const mandarinRules = getMandarinRules({
     targetLanguage: opt.targetLanguage,
     style: 'podcast',
     includeSpokenNumbers: true,
@@ -87,14 +97,19 @@ function buildScriptPromptPayload(opt: {
       '6) 每段 text 必须可直接朗读（口语化，不要 markdown / 列表 / 标题）',
       '7) pacing_hint 在情绪转换或重点处给 slow，常规给 normal，激情段给 fast',
       '8) pause_after_ms 在 segment 间默认 600，章节结尾加到 1200',
-      isCantonese
+      normalized === 'cantonese'
         ? '9) 估算总时长 estimated_duration_seconds（粤语约 4-5 字/秒）'
         : '9) 估算总时长 estimated_duration_seconds（普通话约 4-5 字/秒）',
-      isCantonese
-        ? '10) 输出语言：港式粤语 — 每段 segments[].text 都用粤语口语（详见 cantonese_rules）'
-        : '10) 不要进行语言翻译；保持源语言',
+      resolveLanguageInstruction(opt.targetLanguage, {
+        cantonese:
+          '10) 输出语言：港式粤语 — 每段 segments[].text 都用粤语口语（详见 cantonese_rules）',
+        mandarin:
+          '10) 输出语言：标准普通话 / 简体中文 — 每段 segments[].text 都用普通话口语；若源语言非中文则翻译为普通话（详见 mandarin_rules）',
+        keepSource: '10) 不要进行语言翻译；保持源语言',
+      }),
     ],
     cantonese_rules: cantoneseRules,
+    mandarin_rules: mandarinRules,
     response_schema: {
       title: 'string',
       estimated_duration_seconds: 'number',

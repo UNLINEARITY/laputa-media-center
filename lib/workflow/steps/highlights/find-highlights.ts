@@ -9,7 +9,11 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
-import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
+import {
+  getCantoneseRules,
+  getMandarinRules,
+  resolveLanguageInstruction,
+} from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -63,7 +67,7 @@ interface TranscriptJson {
 }
 
 const SYSTEM_INSTRUCTION = `你是一位专业的中文短视频内容编辑，擅长从长视频转录文本中识别 30-60 秒的高价值片段（金句、笑点、反转、情绪高潮、核心论点）。
-所有输出严格符合 JSON schema；不要进行语言翻译；保持源语言。`
+所有输出严格符合 JSON schema；除非用户在 instructions 中显式指定 target_language，否则保持源语言。`
 
 const MAX_SEGMENTS_FOR_LLM = 600
 
@@ -74,12 +78,16 @@ function buildHighlightsPromptPayload(opt: {
   language?: string
   targetLanguage?: string
 }) {
-  const isCantonese = isCantoneseTarget(opt.targetLanguage)
-  // hook_text / summary 是給用戶選段看的，不會 TTS，但仍要粵化（給 HK 用戶讀）
+  // hook_text / summary 是給用戶選段看的，不會 TTS，但仍要按目標語言改寫（給用戶讀）
   const cantoneseRules = getCantoneseRules({
     targetLanguage: opt.targetLanguage,
     style: 'short_video',
     includeSpokenNumbers: false, // hook_text 不會朗讀
+  })
+  const mandarinRules = getMandarinRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'short_video',
+    includeSpokenNumbers: false,
   })
   return {
     task: 'Extract high-value 30-60s highlight clips from a transcript with timestamps',
@@ -94,12 +102,17 @@ function buildHighlightsPromptPayload(opt: {
       '4) score：1-10 评分（10 = 必剪）',
       '5) type 限定 5 种枚举：quotable / plot_twist / emotional_peak / storytelling / takeaway',
       '6) context_snippet：可选，给该段前后各 20 字上下文',
-      isCantonese
-        ? '7) hook_text / summary 用港式粤语（详见 cantonese_rules）；context_snippet 可保源语言'
-        : '7) 不要语言翻译；保持源语言',
+      resolveLanguageInstruction(opt.targetLanguage, {
+        cantonese:
+          '7) hook_text / summary 用港式粤语（详见 cantonese_rules）；context_snippet 可保源语言',
+        mandarin:
+          '7) hook_text / summary 用标准普通话 / 简体中文（详见 mandarin_rules；若源语言非中文则翻译为普通话）；context_snippet 可保源语言',
+        keepSource: '7) 不要语言翻译；保持源语言',
+      }),
       '8) summary：一句话说明这批片段共同表达什么主题',
     ],
     cantonese_rules: cantoneseRules,
+    mandarin_rules: mandarinRules,
     response_schema: {
       highlights:
         '[{ id: string, start: number, end: number, hook_text: string, score: number, type: enum, context_snippet?: string }]',

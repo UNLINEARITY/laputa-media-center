@@ -5,8 +5,14 @@ import {
   getCantoneseLanguageLabel,
   getCantoneseRules,
   getCantoneseStyleInstruction,
+  getMandarinLanguageLabel,
+  getMandarinRules,
+  getMandarinStyleInstruction,
   isCantoneseTarget,
+  isMandarinTarget,
+  MANDARIN_HARD_RULES,
   normalizeTargetLanguage,
+  resolveLanguageInstruction,
 } from '@/lib/i18n/cantonese-prompt'
 
 describe('isCantoneseTarget', () => {
@@ -121,5 +127,133 @@ describe('CANTONESE_HARD_RULES', () => {
 describe('getCantoneseLanguageLabel', () => {
   it('returns the standard label', () => {
     expect(getCantoneseLanguageLabel()).toBe('natural spoken Cantonese / Yue Chinese')
+  })
+})
+
+// ============================================================================
+// Mandarin helpers
+// ============================================================================
+
+describe('isMandarinTarget', () => {
+  it.each([
+    ['mandarin', true],
+    ['Mandarin', true],
+    ['zh', true],
+    ['zh-cn', true],
+    ['cn', true],
+    ['cantonese', false],
+    ['yue', false],
+    ['zh-hk', false],
+    ['auto', false],
+    ['en', false],
+    ['', false],
+    [null, false],
+    [undefined, false],
+  ])('handles %p → %p', (input, expected) => {
+    expect(isMandarinTarget(input as string | null | undefined)).toBe(expected)
+  })
+})
+
+describe('getMandarinRules', () => {
+  it('returns empty array for non-Mandarin targets', () => {
+    expect(getMandarinRules({ targetLanguage: 'cantonese', style: 'short_video' })).toEqual([])
+    expect(getMandarinRules({ targetLanguage: 'auto', style: 'short_video' })).toEqual([])
+    expect(getMandarinRules({ targetLanguage: '', style: 'short_video' })).toEqual([])
+  })
+
+  it('includes hard rules + style + numbers for Mandarin short_video', () => {
+    const rules = getMandarinRules({ targetLanguage: 'mandarin', style: 'short_video' })
+    // 4 硬规则
+    for (const hard of MANDARIN_HARD_RULES) {
+      expect(rules).toContain(hard)
+    }
+    // 1 条 short_video 风格指令
+    expect(rules.some((r) => r.includes('compact spoken Mandarin for short video'))).toBe(true)
+    // 5 条数字规则
+    for (const numRule of CHINESE_SPOKEN_NUMBER_RULES) {
+      expect(rules).toContain(numRule)
+    }
+    // 总数：4 + 1 + 5 = 10
+    expect(rules.length).toBe(10)
+  })
+
+  it('skips number rules for written style by default', () => {
+    const rules = getMandarinRules({ targetLanguage: 'mandarin', style: 'written' })
+    expect(rules.some((r) => r.includes('1999年'))).toBe(false)
+    expect(rules.some((r) => r.includes('image-text post or long-form'))).toBe(true)
+    // 4 硬规则 + 1 风格 = 5
+    expect(rules.length).toBe(5)
+  })
+
+  it('respects explicit includeSpokenNumbers override', () => {
+    const rulesWith = getMandarinRules({
+      targetLanguage: 'mandarin',
+      style: 'written',
+      includeSpokenNumbers: true,
+    })
+    expect(rulesWith.length).toBe(10)
+
+    const rulesWithout = getMandarinRules({
+      targetLanguage: 'mandarin',
+      style: 'short_video',
+      includeSpokenNumbers: false,
+    })
+    expect(rulesWithout.length).toBe(5)
+  })
+
+  it.each([
+    ['localized_script', 'natural spoken Mandarin script'],
+    ['short_video', 'short video'],
+    ['faithful', 'natural spoken Mandarin'],
+    ['podcast', 'podcast or creator commentary'],
+    ['written', 'image-text post or long-form'],
+  ] as const)('style %s contains keyword %s', (style, keyword) => {
+    expect(getMandarinStyleInstruction(style)).toContain(keyword)
+  })
+})
+
+describe('MANDARIN_HARD_RULES', () => {
+  it('contains 4 hard rules covering 简体中文 / 普通话 / Cantonese-particle avoidance', () => {
+    expect(MANDARIN_HARD_RULES.length).toBe(4)
+    const joined = MANDARIN_HARD_RULES.join(' ')
+    expect(joined).toContain('Mandarin')
+    expect(joined).toContain('Simplified Chinese')
+    // 必須提到要避免的粵語助詞
+    expect(joined).toContain('我哋')
+    expect(joined).toContain('嘅')
+  })
+})
+
+describe('getMandarinLanguageLabel', () => {
+  it('returns the standard label', () => {
+    expect(getMandarinLanguageLabel()).toBe('Standard Mandarin Chinese / 现代标准汉语 / 简体中文')
+  })
+})
+
+// ============================================================================
+// resolveLanguageInstruction — 3-way 語言分支選擇器
+// ============================================================================
+
+describe('resolveLanguageInstruction', () => {
+  const branches = {
+    cantonese: 'CANT_INSTR',
+    mandarin: 'MAND_INSTR',
+    keepSource: 'KEEP_INSTR',
+  }
+
+  it.each([
+    ['cantonese', 'CANT_INSTR'],
+    ['yue', 'CANT_INSTR'],
+    ['zh-hk', 'CANT_INSTR'],
+    ['mandarin', 'MAND_INSTR'],
+    ['zh', 'MAND_INSTR'],
+    ['zh-cn', 'MAND_INSTR'],
+    ['auto', 'KEEP_INSTR'],
+    ['en', 'KEEP_INSTR'],
+    ['', 'KEEP_INSTR'],
+    [null, 'KEEP_INSTR'],
+    [undefined, 'KEEP_INSTR'],
+  ])('routes %p → %p', (input, expected) => {
+    expect(resolveLanguageInstruction(input as string | null | undefined, branches)).toBe(expected)
   })
 })

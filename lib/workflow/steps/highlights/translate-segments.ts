@@ -12,7 +12,10 @@ import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
 import {
   getCantoneseLanguageLabel,
   getCantoneseRules,
+  getMandarinLanguageLabel,
+  getMandarinRules,
   isCantoneseTarget,
+  isMandarinTarget,
 } from '@/lib/i18n/cantonese-prompt'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 
@@ -34,8 +37,9 @@ export interface TranslationResult {
 /**
  * 批量翻譯 segments 到目標語言
  *
- * - 若 targetLanguage 不是粵語，直接返回 original text 的 1:1 map（不調 LLM）
- * - 若粵語：1 個 LLM call 翻全部 segments，返回 map
+ * - 若 targetLanguage 是粵語：1 個 LLM call 翻為港式粵語
+ * - 若 targetLanguage 是普通話：1 個 LLM call 翻為標準普通話 / 簡體中文
+ * - 其它（auto / undefined）：直接返回 original text 的 1:1 map（不調 LLM）
  */
 export async function translateSegmentsForSubtitle(opt: {
   segments: SegmentToTranslate[]
@@ -43,12 +47,14 @@ export async function translateSegmentsForSubtitle(opt: {
   sourceLanguage?: string
 }): Promise<TranslationResult> {
   const map = new Map<string, string>()
-  // 預設 1:1 用原文（保 fallback / 非粵語場景）
+  // 預設 1:1 用原文（保 fallback / auto 場景）
   for (const s of opt.segments) {
     map.set(s.id, s.text)
   }
 
-  if (!isCantoneseTarget(opt.targetLanguage)) {
+  const isCantonese = isCantoneseTarget(opt.targetLanguage)
+  const isMandarin = isMandarinTarget(opt.targetLanguage)
+  if (!isCantonese && !isMandarin) {
     return { translations: map, llmProvider: '' }
   }
 
@@ -57,21 +63,33 @@ export async function translateSegmentsForSubtitle(opt: {
   }
 
   const provider = getActiveLlmProvider()
-  const cantoneseRules = getCantoneseRules({
-    targetLanguage: opt.targetLanguage,
-    style: 'short_video',
-    includeSpokenNumbers: false, // 字幕場景不必硬性年份朗讀規則
-  })
+  const rules = isCantonese
+    ? getCantoneseRules({
+        targetLanguage: opt.targetLanguage,
+        style: 'short_video',
+        includeSpokenNumbers: false, // 字幕場景不必硬性年份朗讀規則
+      })
+    : getMandarinRules({
+        targetLanguage: opt.targetLanguage,
+        style: 'short_video',
+        includeSpokenNumbers: false,
+      })
 
-  const systemInstruction = `你是一位資深字幕翻譯。把英文字幕短句翻譯為自然港式粵語，保意思不偏移、不增刪事實，
+  const systemInstruction = isCantonese
+    ? `你是一位資深字幕翻譯。把英文字幕短句翻譯為自然港式粵語，保意思不偏移、不增刪事實，
 適合燒錄到短視頻底部（每段 ≤ 30 字最理想）。所有輸出嚴格符合 JSON schema；
 保留專有名詞（人名/品牌/縮寫）原樣。`
+    : `你是一位资深字幕翻译。把字幕短句翻译为标准普通话 / 简体中文（若源已是中文则规范化为普通话用语，避免粤语助词），
+保意思不偏移、不增删事实，适合烧录到短视频底部（每段 ≤ 30 字最理想）。
+所有输出严格符合 JSON schema；保留专有名词（人名/品牌/缩写）原样。`
 
   const promptPayload = {
-    task: 'Translate ASR subtitle segments to Hong Kong Cantonese',
+    task: isCantonese
+      ? 'Translate ASR subtitle segments to Hong Kong Cantonese'
+      : 'Translate / normalize ASR subtitle segments to Standard Mandarin Chinese',
     source_language: opt.sourceLanguage || 'auto',
-    target_language: getCantoneseLanguageLabel(),
-    rules: cantoneseRules,
+    target_language: isCantonese ? getCantoneseLanguageLabel() : getMandarinLanguageLabel(),
+    rules,
     instructions: [
       '1) 每段翻譯後不超過 30 字（中文字符）',
       '2) 保人名/品牌/技術名詞原樣（如 OpenAI、GPT、order flow、bid、offer 等）',

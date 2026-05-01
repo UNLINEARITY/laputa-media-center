@@ -6,7 +6,12 @@
  */
 
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
-import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
+import {
+  getCantoneseRules,
+  getMandarinRules,
+  normalizeTargetLanguage,
+  resolveLanguageInstruction,
+} from '@/lib/i18n/cantonese-prompt'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { OpeningOptimization, TitleHookInput, TitleHookResult, TitleSuggestion } from './types'
 
@@ -33,9 +38,13 @@ function extractFirst30Seconds(input: TitleHookInput): string {
 
 function buildPromptPayload(input: TitleHookInput, first30s: string) {
   const fullText = input.transcript.text.slice(0, MAX_TRANSCRIPT_CHARS)
-  const isCantonese = isCantoneseTarget(input.target_language)
   // 標題 + 開頭優化都偏 short_video 風格（短、抓眼、可朗讀）
   const cantoneseRules = getCantoneseRules({
+    targetLanguage: input.target_language,
+    style: 'short_video',
+    includeSpokenNumbers: true,
+  })
+  const mandarinRules = getMandarinRules({
     targetLanguage: input.target_language,
     style: 'short_video',
     includeSpokenNumbers: true,
@@ -55,11 +64,15 @@ function buildPromptPayload(input: TitleHookInput, first30s: string) {
       '   - optimized_first_30s 必须明显不同于 original_first_30s（重写鉤子、调整开场节奏、强化第一秒抓眼）',
       '   - 不要直接复制原文；如无空间改写，至少调整开头 1-2 句的语序与措辞',
       '4) 不夸张、不标题党、不用「震惊!!」「太可怕了」之类廉价词',
-      isCantonese
-        ? '5) 输出语言：港式粤语（详见下方 cantonese_rules）'
-        : '5) 不进行语言翻译；保持源语言',
+      resolveLanguageInstruction(input.target_language, {
+        cantonese: '5) 输出语言：港式粤语（详见下方 cantonese_rules）',
+        mandarin:
+          '5) 输出语言：标准普通话 / 简体中文（详见下方 mandarin_rules；若源语言非中文则翻译为普通话）',
+        keepSource: '5) 不进行语言翻译；保持源语言',
+      }),
     ],
     cantonese_rules: cantoneseRules,
+    mandarin_rules: mandarinRules,
     response_schema: {
       titles:
         '[{ text: string ≤30字, seo_keywords: string[2-4], hook_strength: 1|2|3|4|5, rationale: string }]',
@@ -250,9 +263,16 @@ export async function optimizeTitleHooks(input: TitleHookInput): Promise<TitleHo
             '替换至少 50% 的措辞（同义词、节奏调整、删减啰嗦）',
             '强化第一秒抓眼：可用反问 / 数字 / 反差 / 悬念',
             '保持原意不偏移；不添加新事实',
-            input.target_language === 'cantonese'
-              ? '输出语言：港式粤语（我哋、嘅、喺、嚟、係 等粤语助词）'
-              : '保持源语言',
+            (() => {
+              const norm = normalizeTargetLanguage(input.target_language)
+              if (norm === 'cantonese') {
+                return '输出语言：港式粤语（我哋、嘅、喺、嚟、係 等粤语助词）'
+              }
+              if (norm === 'mandarin') {
+                return '输出语言：标准普通话 / 简体中文（避免粤语助词；若源语言非中文则翻译为普通话）'
+              }
+              return '保持源语言'
+            })(),
           ],
           response_schema: {
             optimized_first_30s: 'string ≤200字，必须明显不同于 original_first_30s',
