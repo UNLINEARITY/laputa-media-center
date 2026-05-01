@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, User } from 'lucide-react'
+import { ChevronDown, Menu, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -97,7 +97,57 @@ export function Header() {
         <SiteLogo />
 
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* 导航菜单 */}
+          {/* 手機版漢堡導航（mobile only）— Codex 後續審查 P1 修復：之前 hidden sm:flex 隱藏 nav 但無 mobile replacement
+              復用同一份 navItems + TOOL_ITEMS normal form，不另寫散列 */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="打开导航菜单"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-claude-dark-500 hover:bg-claude-cream-100 hover:text-claude-dark-900 sm:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              {navItems.map((item) => {
+                const isActive = item.active.some(
+                  (activePath) =>
+                    pathname === activePath ||
+                    (activePath !== '/' && pathname.startsWith(`${activePath}/`)),
+                )
+                return (
+                  <DropdownMenuItem
+                    key={item.href}
+                    onClick={() => router.push(item.href)}
+                    className={cn(
+                      'py-2 text-sm',
+                      isActive ? 'font-medium text-claude-dark-900' : 'text-claude-dark-500',
+                    )}
+                  >
+                    {item.label}
+                  </DropdownMenuItem>
+                )
+              })}
+              {/* 分隔線 + 4 工具子分組 */}
+              <div className="my-1 h-px bg-claude-cream-200" />
+              <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-claude-dark-400">
+                工具
+              </div>
+              {TOOL_ITEMS.map((tool) => (
+                <DropdownMenuItem
+                  key={tool.href}
+                  onClick={() => router.push(tool.href)}
+                  className="flex flex-col items-start gap-0.5 py-2"
+                >
+                  <span className="text-sm font-medium text-claude-dark-700">{tool.label}</span>
+                  <span className="text-[11px] text-claude-dark-400">{tool.desc}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* 桌面導航菜單 */}
           <nav className="hidden items-center gap-1 text-sm font-medium sm:flex">
             {navItems.map((item) => {
               const isActive = item.active.some(

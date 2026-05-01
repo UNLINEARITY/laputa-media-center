@@ -53,7 +53,19 @@ export interface ExtractHighlightsOutput {
   failedCount: number
 }
 
-const VIDEO_BASE_SIZE = { width: 1920, height: 1080 }
+/**
+ * 把 aspect 派生為 ASS canvas 尺寸。
+ * 必須與 cutAndBurnClip 的 ffmpeg 輸出尺寸一致，否則字幕位置 / 字體大小會錯位。
+ *
+ * - 16:9 → 1920x1080（YouTube / 桌面）
+ * - 9:16 → 1080x1920（短視頻平台 / 手機豎屏）
+ *
+ * lib/subtitle/presets.ts resolvePresetStyle 會用 videoSize.height/BASE_HEIGHT 算 font/margin scale，
+ * 所以 9:16 自動變大字體 + 適當 marginV/H。
+ */
+export function getVideoSizeForAspect(aspect: '16:9' | '9:16'): { width: number; height: number } {
+  return aspect === '9:16' ? { width: 1080, height: 1920 } : { width: 1920, height: 1080 }
+}
 
 function slugify(text: string): string {
   const cleaned = text
@@ -81,6 +93,8 @@ function buildClipAss(opt: {
   clipStart: number
   clipEnd: number
   presetId: SubtitlePresetId
+  /** 必須與 ffmpeg 輸出 aspect 一致，否則字幕位置與大小都錯（Codex 後續審查 P1 修復） */
+  aspect: '16:9' | '9:16'
   /** 可選翻譯 map：asrSegmentId → 翻譯後文本；無則用 ASR 原文 */
   translations?: Map<string, string>
 }): string {
@@ -114,7 +128,7 @@ function buildClipAss(opt: {
   }
   return generateSegmentedASS({
     segments: allSubSegs,
-    videoSize: VIDEO_BASE_SIZE,
+    videoSize: getVideoSizeForAspect(opt.aspect),
     presetId: opt.presetId,
   })
 }
@@ -196,6 +210,7 @@ export async function processHighlightCandidate(opt: {
     clipStart: opt.candidate.start,
     clipEnd: opt.candidate.end,
     presetId: opt.presetId,
+    aspect: opt.aspect,
     translations: opt.translations,
   })
   await writeFile(assPath, ass, 'utf-8')

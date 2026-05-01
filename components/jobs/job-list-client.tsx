@@ -253,20 +253,22 @@ export function JobListClient({
                 </CardHeader>
 
                 <CardContent className="space-y-5">
-                  {/* Scheme 3: 增强错误信息显示 */}
+                  {/* Scheme 3: 增强错误信息显示
+                      Codex 後續審查 P1 修復：長 yt-dlp / ffmpeg 命令錯誤訊息會撐爆 mobile viewport（390px → 477px）。
+                      用 min-w-0 讓 flex child 可以縮小 + break-words / overflow-wrap-anywhere 強制長字串斷行。 */}
                   {job.error_message && (
-                    <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/80 p-3 text-sm text-rose-600 space-y-1">
+                    <div className="flex min-w-0 items-start gap-2 rounded-lg border border-rose-200 bg-rose-50/80 p-3 text-sm text-rose-600 space-y-1">
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                      <div className="flex-1 space-y-1">
-                        <p>
+                      <div className="flex-1 min-w-0 space-y-1 [overflow-wrap:anywhere]">
+                        <p className="break-words">
                           <span className="font-medium">错误：</span> {job.error_message}
                         </p>
 
                         {/* 显示用户指导 */}
                         {job.error_metadata?.userGuidance && (
-                          <p className="text-xs text-rose-700 flex items-start gap-1">
-                            <span className="font-semibold">💡</span>
-                            <span>{job.error_metadata.userGuidance}</span>
+                          <p className="text-xs text-rose-700 flex items-start gap-1 break-words">
+                            <span className="font-semibold shrink-0">💡</span>
+                            <span className="min-w-0">{job.error_metadata.userGuidance}</span>
                           </p>
                         )}
 
