@@ -31,6 +31,10 @@ interface PodcastTtsOutput {
   audioCount: number
   segmentAudioPaths: string[]
   totalDurationMsEstimated: number
+  /** Codex P1 #2: 'script_only' = 跳過配音，只生成腳本；'minimax' = 走 MiniMax */
+  ttsMode: 'script_only' | 'minimax'
+  skipped?: boolean
+  skipReason?: string
 }
 
 interface MiniMaxT2aResponse {
@@ -102,6 +106,7 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
   getInputSummary(ctx: WorkflowContext): Record<string, unknown> {
     const config = ctx.input.config as unknown as Record<string, unknown>
     return {
+      tts_mode: (config.podcast_tts_mode as string) || 'script_only',
       voice_id: config.voice_id ? '[set]' : '[missing]',
       secondary_voice_id: config.podcast_secondary_voice_id ? '[set]' : '[unset]',
       speaker_mode: config.podcast_speaker_mode || 'single_narrator',
@@ -110,12 +115,34 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
 
   async execute(ctx: WorkflowContext): Promise<PodcastTtsOutput> {
     const config = ctx.input.config as unknown as Record<string, unknown>
+    const ttsMode = ((config.podcast_tts_mode as string) || 'script_only') as
+      | 'script_only'
+      | 'minimax'
     const primaryVoiceId = (config.voice_id as string)?.trim()
     const secondaryVoiceId = (config.podcast_secondary_voice_id as string)?.trim() || ''
 
+    // Codex P1 #2 修：script_only 模式跳過 TTS step（朋友 0 成本就能玩 podcast 工具）
+    // 用戶後續想配音，重跑 job 改 podcast_tts_mode=minimax 即可
+    if (ttsMode === 'script_only') {
+      const audioDir = getPodcastSegmentsDir(ctx.jobId)
+      this.log(ctx, '播客 TTS skipped: script_only 模式（不合成配音，只生成腳本）', {
+        ttsMode,
+      })
+      return {
+        audioDir,
+        audioCount: 0,
+        segmentAudioPaths: [],
+        totalDurationMsEstimated: 0,
+        ttsMode: 'script_only',
+        skipped: true,
+        skipReason: 'script_only 模式：用戶選擇只生成腳本不合成配音',
+      }
+    }
+
+    // 以下走 'minimax' 模式（現有流程）
     if (!primaryVoiceId) {
       throw new Error(
-        'PODCAST_VOICE_NOT_CONFIGURED：缺少主声线 voice_id（请在播客表单选择已注册的 MiniMax 声线）',
+        'PODCAST_VOICE_NOT_CONFIGURED：minimax 模式缺少主声线 voice_id（请在播客表单选择已注册的 MiniMax 声线，或切回 script_only 模式）',
       )
     }
 
@@ -211,6 +238,7 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
       audioCount: segmentAudioPaths.length,
       segmentAudioPaths,
       totalDurationMsEstimated: script.estimated_duration_seconds * 1000,
+      ttsMode: 'minimax',
     }
   }
 }

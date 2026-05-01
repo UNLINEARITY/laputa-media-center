@@ -36,6 +36,54 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 ## [Unreleased] — Phase 5（開源就緒，未開始）
 
+### 2026-05-01 Codex P1 #2 — Podcast 加 script_only 模式（兌現「免費優先」承諾）
+
+**根因**：Codex 第二輪審查指出 Podcast 工具 UI 寫「TTS 會 fallback」但 API 硬要求 MiniMax voice_id + paid gate，無 key 用戶完全卡住。
+
+**設計決策（用戶拍板）**：
+- normal form `tts_mode: 'script_only' | 'minimax'`，**默認 `script_only`**
+- 不引入 `edge_tts`（W2 Plan B 砍 Fish UI 後不再加 legacy provider，質量差且混淆主線）
+- UI 文案誠實：兩個獨立模式而非 fallback
+
+**改動範圍**:
+
+`types/core/job.ts`:
+- 加 `podcast_tts_mode?: 'script_only' | 'minimax'`，含完整註解（為何不加 edge_tts）
+
+`app/api/podcast/route.ts`:
+- 加 `podcastTtsModeSchema` enum
+- `voice_id` 從 required 變 optional
+- z `.refine()`：minimax 模式才校驗 voice_id 必填
+
+`lib/workflow/steps/podcast/podcast-tts.ts`:
+- 加 `ttsMode` 到 PodcastTtsOutput
+- script_only 模式 early return（不調 MiniMax，audioCount=0，skipped=true）
+- minimax 模式錯誤訊息加「或切回 script_only 模式」提示
+
+`lib/workflow/steps/podcast/podcast-delivery.ts`:
+- script_only 模式跳過 ffmpeg concat
+- manifest 加 `tts_mode` 欄位 + `notice` 提示重跑切 minimax 加配音
+- script_only 時 finalAudioPath = null
+
+`components/podcast/podcast-form.tsx`:
+- 加 TTS 模式 picker（兩個誠實的卡片：📄 只生成播客稿 / 🎙️ MiniMax 配音）
+- script_only 模式隱藏聲線 / 合规確認 區塊
+- 提交按鈕文案隨模式變（「生成播客稿」vs「生成播客 + MiniMax 配音」）
+- 移除粵語區「TTS 會 fallback」誤導文案
+
+`tests/workflow/podcast-tts-mode.test.ts`（新增）:
+- 13 tests 涵蓋 schema 默認值 / minimax voice_id 校驗 / 白名單拒絕 edge_tts / normal form 契約
+
+**驗證**:
+- pnpm typecheck:app: 0 errors
+- pnpm typecheck:all: 0 errors
+- pnpm exec biome check .: 0 errors
+- pnpm test:unit: 106 files / 781 tests pass / 17 skipped（+13 from 768 baseline）
+
+**朋友體驗變化**:
+- Before: 開 /podcast → 看到 voice 列表空 → 提示去 settings 配 MiniMax key → 卡死
+- After: 開 /podcast → 默認 script_only → 直接生成播客腳本 .md → 想加配音再切 minimax 重跑
+
 ### 2026-05-01 Codex P1 #6 — full tsc 收斂 119→0（測試 fixture drift 全清）
 
 **根因**：`pnpm tsc --noEmit --incremental false` 之前 119 errors 全在 tests/，原因是 mock 型別推導過窄（`vi.fn()` 無泛型默認推為 `() => undefined` / `() => never[]`）+ Job/StepContext fixture 對不上 prod 型別。

@@ -19,22 +19,38 @@ import type { JobConfig } from '@/types'
 const podcastSourceTypeSchema = z.enum(['text_draft', 'md_draft', 'pdf_draft'])
 const podcastToneSchema = z.enum(['conversational', 'narrative', 'analytical', 'storytelling'])
 const speakerModeSchema = z.enum(['single_narrator', 'two_host'])
+const podcastTtsModeSchema = z.enum(['script_only', 'minimax'])
 
-const createPodcastSchema = z.object({
-  source: z.string().min(1, '播客素材不能为空'),
-  source_type: podcastSourceTypeSchema.optional(),
-  source_language: z.string().min(1).default('auto'),
-  podcast_tone: podcastToneSchema.default('conversational'),
-  podcast_target_duration_minutes: z.number().int().min(2).max(60).optional(),
-  podcast_speaker_mode: speakerModeSchema.default('single_narrator'),
-  podcast_target_language: z.enum(['auto', 'mandarin', 'cantonese']).optional().default('auto'),
-  voice_id: z.string().min(1, '主声线 voice_id 不能为空'),
-  podcast_secondary_voice_id: z.string().optional(),
-  podcast_output_format: z.enum(['mp3', 'wav']).default('mp3'),
-  creator_context: z.record(z.string(), z.unknown()).optional(),
-  voice_usage_boundary_acknowledged: z.boolean().optional(),
-  confirmed_gate_ids: z.array(z.string()).optional(),
-})
+/**
+ * Codex P1 #2 修：播客 TTS 模式拆分。
+ * - script_only（默認，免費）：voice_id 不必填
+ * - minimax：voice_id 必填 + paid gate（在 podcast-tts step 校驗）
+ */
+const createPodcastSchema = z
+  .object({
+    source: z.string().min(1, '播客素材不能为空'),
+    source_type: podcastSourceTypeSchema.optional(),
+    source_language: z.string().min(1).default('auto'),
+    podcast_tone: podcastToneSchema.default('conversational'),
+    podcast_target_duration_minutes: z.number().int().min(2).max(60).optional(),
+    podcast_speaker_mode: speakerModeSchema.default('single_narrator'),
+    podcast_target_language: z.enum(['auto', 'mandarin', 'cantonese']).optional().default('auto'),
+    podcast_tts_mode: podcastTtsModeSchema.optional().default('script_only'),
+    voice_id: z.string().optional(),
+    podcast_secondary_voice_id: z.string().optional(),
+    podcast_output_format: z.enum(['mp3', 'wav']).default('mp3'),
+    creator_context: z.record(z.string(), z.unknown()).optional(),
+    voice_usage_boundary_acknowledged: z.boolean().optional(),
+    confirmed_gate_ids: z.array(z.string()).optional(),
+  })
+  .refine(
+    (data) =>
+      data.podcast_tts_mode !== 'minimax' || (data.voice_id && data.voice_id.trim().length > 0),
+    {
+      message: 'minimax 模式必须提供主声线 voice_id（script_only 模式可留空）',
+      path: ['voice_id'],
+    },
+  )
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,9 +108,10 @@ export async function POST(req: NextRequest) {
       podcast_target_duration_minutes: data.podcast_target_duration_minutes,
       podcast_speaker_mode: data.podcast_speaker_mode,
       podcast_target_language: data.podcast_target_language,
+      podcast_tts_mode: data.podcast_tts_mode,
       podcast_secondary_voice_id: data.podcast_secondary_voice_id,
       podcast_output_format: data.podcast_output_format,
-      voice_id: data.voice_id,
+      voice_id: data.voice_id || undefined,
       voice_usage_boundary_acknowledged: data.voice_usage_boundary_acknowledged,
       creator_context: data.creator_context,
       confirmed_gate_ids: data.confirmed_gate_ids,

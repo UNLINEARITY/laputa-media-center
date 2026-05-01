@@ -27,6 +27,12 @@ import {
 type SourceMode = 'text' | 'md' | 'pdf'
 type Tone = 'conversational' | 'narrative' | 'analytical' | 'storytelling'
 type SpeakerMode = 'single_narrator' | 'two_host'
+/**
+ * Codex P1 #2: 播客 TTS 模式（兩個獨立模式，不是 fallback）
+ * - script_only（默認，免費）：只生成 podcast 腳本 .md，朋友可自讀 / 手動配音 / 後續加 voice
+ * - minimax：用 MiniMax 合成配音（要 voice_id + paid gate）
+ */
+type TtsMode = 'script_only' | 'minimax'
 
 interface VoiceEntry {
   voice_id: string
@@ -56,6 +62,8 @@ export function PodcastForm() {
   const [duration, setDuration] = useState<number>(10)
   const [speakerMode, setSpeakerMode] = useState<SpeakerMode>('single_narrator')
   const [targetLang, setTargetLang] = useState<'auto' | 'mandarin' | 'cantonese'>('auto')
+  // Codex P1 #2: 默認 script_only（免費，0 配置門檻）
+  const [ttsMode, setTtsMode] = useState<TtsMode>('script_only')
 
   const [primaryVoiceId, setPrimaryVoiceId] = useState('')
   const [secondaryVoiceId, setSecondaryVoiceId] = useState('')
@@ -146,21 +154,24 @@ export function PodcastForm() {
       sourceType = sourceMode === 'md' ? 'md_draft' : 'pdf_draft'
     }
 
-    if (!primaryVoiceId) {
-      toast.error('请选择主声线')
-      return
-    }
-    if (speakerMode === 'two_host' && !secondaryVoiceId) {
-      toast.error('双人模式需要选择第二声线')
-      return
-    }
-    if (!boundaryAck) {
-      toast.error('请确认声线使用边界')
-      return
-    }
-    if (!minimaxGateAck) {
-      toast.error('请确认 MiniMax TTS 付费 gate')
-      return
+    // Codex P1 #2: minimax 模式才校驗 voice_id 與 paid gate；script_only 全跳
+    if (ttsMode === 'minimax') {
+      if (!primaryVoiceId) {
+        toast.error('MiniMax 模式需要选择主声线')
+        return
+      }
+      if (speakerMode === 'two_host' && !secondaryVoiceId) {
+        toast.error('双人模式需要选择第二声线')
+        return
+      }
+      if (!boundaryAck) {
+        toast.error('请确认声线使用边界')
+        return
+      }
+      if (!minimaxGateAck) {
+        toast.error('请确认 MiniMax TTS 付费 gate')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -176,11 +187,14 @@ export function PodcastForm() {
           podcast_target_duration_minutes: duration,
           podcast_speaker_mode: speakerMode,
           podcast_target_language: targetLang,
-          voice_id: primaryVoiceId,
-          podcast_secondary_voice_id: speakerMode === 'two_host' ? secondaryVoiceId : undefined,
+          podcast_tts_mode: ttsMode,
+          // script_only 模式不送 voice_id（API schema 在 minimax 模式才校驗 required）
+          voice_id: ttsMode === 'minimax' ? primaryVoiceId : undefined,
+          podcast_secondary_voice_id:
+            ttsMode === 'minimax' && speakerMode === 'two_host' ? secondaryVoiceId : undefined,
           podcast_output_format: 'mp3',
-          voice_usage_boundary_acknowledged: boundaryAck,
-          confirmed_gate_ids: ['minimax_tts'],
+          voice_usage_boundary_acknowledged: ttsMode === 'minimax' ? boundaryAck : undefined,
+          confirmed_gate_ids: ttsMode === 'minimax' ? ['minimax_tts'] : [],
         }),
       })
       if (!res.ok) {
@@ -207,6 +221,7 @@ export function PodcastForm() {
     tone,
     duration,
     targetLang,
+    ttsMode,
     router,
   ])
 
@@ -397,111 +412,163 @@ export function PodcastForm() {
             </div>
             {targetLang === 'cantonese' && (
               <p className="text-[11px] text-claude-dark-400">
-                brief / script / segments.text 全部用港式粵語（我哋、嘅、喺、嚟、係 等）；
-                配音聲線需自選粵語可用聲線，否則 TTS 會 fallback。
+                brief / script / segments.text 全部用港式粵語（我哋、嘅、喺、嚟、係 等）。 MiniMax
+                模式下需自選支援粵語的聲線。
               </p>
             )}
           </div>
 
-          {/* 声线 */}
-          <div className="space-y-3">
-            <Label className="text-xs font-semibold text-claude-dark-700 flex items-center gap-2">
-              <Mic className="h-3.5 w-3.5" /> 声线（来自本地 voice-registry）
-            </Label>
-            {loadingVoices ? (
-              <div className="flex items-center gap-2 text-xs text-claude-dark-400">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> 加载声线列表...
-              </div>
-            ) : voices.length === 0 ? (
-              <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-                <div className="font-medium">⚠️ 本地未注册任何声线</div>
-                <div className="leading-relaxed text-amber-700">
-                  播客需要至少 1 个 MiniMax 声线（voice_id）才能合成配音。下面 3 个入口任选一个：
+          {/* Codex P1 #2: TTS 模式選擇器 — 兩個獨立模式，不是 fallback */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-claude-dark-700">输出模式</Label>
+            <div className="grid gap-2 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setTtsMode('script_only')}
+                className={`rounded-md border px-3 py-3 text-left transition-all ${
+                  ttsMode === 'script_only'
+                    ? 'border-claude-orange-300 bg-claude-orange-50'
+                    : 'border-claude-cream-200 bg-white hover:border-claude-cream-300'
+                }`}
+              >
+                <div className="text-sm font-medium text-claude-dark-700">
+                  📄 只生成播客稿（默认 / 免费）
                 </div>
-                <div className="grid gap-1.5 pt-1">
-                  <a
-                    href="/settings#minimax_tts"
-                    className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
-                  >
-                    <span>① 配置 MiniMax API key</span>
-                    <span aria-hidden>→</span>
-                  </a>
-                  <a
-                    href="/dubbing"
-                    className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
-                  >
-                    <span>② 跑一次 dubbing 工作流（自动注册克隆声线）</span>
-                    <span aria-hidden>→</span>
-                  </a>
-                  <a
-                    href="/settings#creator_assets"
-                    className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
-                  >
-                    <span>③ 在创作者资产手动添加声线（voice_id）</span>
-                    <span aria-hidden>→</span>
-                  </a>
+                <div className="mt-1 text-[11px] leading-relaxed text-claude-dark-400">
+                  跑 LLM 兩階段改寫 → 輸出 brief + 雙人/單人腳本 .md。 不调 MiniMax，0
+                  配置即可。想配音再切到下面的 MiniMax 模式重跑。
                 </div>
-              </div>
-            ) : (
-              <div className="grid gap-2 md:grid-cols-2">
-                <VoiceSelect
-                  label="主声线（必选）"
-                  value={primaryVoiceId}
-                  onChange={setPrimaryVoiceId}
-                  voices={voices}
-                />
-                {speakerMode === 'two_host' && (
-                  <VoiceSelect
-                    label="第二声线"
-                    value={secondaryVoiceId}
-                    onChange={setSecondaryVoiceId}
-                    voices={voices.filter((v) => v.voice_id !== primaryVoiceId)}
-                  />
-                )}
-              </div>
-            )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTtsMode('minimax')}
+                className={`rounded-md border px-3 py-3 text-left transition-all ${
+                  ttsMode === 'minimax'
+                    ? 'border-claude-orange-300 bg-claude-orange-50'
+                    : 'border-claude-cream-200 bg-white hover:border-claude-cream-300'
+                }`}
+              >
+                <div className="text-sm font-medium text-claude-dark-700">
+                  🎙️ 用 MiniMax 合成配音（付费）
+                </div>
+                <div className="mt-1 text-[11px] leading-relaxed text-claude-dark-400">
+                  腳本 + MiniMax t2a_v2 合成 mp3，按段拼接。 需 MiniMax API key + 已注册 voice_id +
+                  确认付费 gate。
+                </div>
+              </button>
+            </div>
           </div>
 
-          {/* 合规确认 */}
-          <div className="space-y-2 border-t border-claude-cream-200 pt-4">
-            <Label className="text-xs font-semibold text-claude-dark-700">合规确认</Label>
-            <label className="flex items-start gap-2 rounded-md border border-claude-cream-200 bg-white px-3 py-2 text-xs leading-5 text-claude-dark-500">
-              <input
-                type="checkbox"
-                checked={boundaryAck}
-                onChange={(e) => setBoundaryAck(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                我已知晓声线使用边界（公众人物 / 已授权克隆 / 创作者本人 / 合成旁白）， 并对所选
-                voice_id 的合规使用负责。
-              </span>
-            </label>
-            <label className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <input
-                type="checkbox"
-                checked={minimaxGateAck}
-                onChange={(e) => setMinimaxGateAck(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                MiniMax TTS 是付费 provider，每段配音都会消耗 API 配额。我确认愿意承担费用。
-              </span>
-            </label>
-          </div>
+          {/* 声线 — 只在 minimax 模式顯示 */}
+          {ttsMode === 'minimax' && (
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold text-claude-dark-700 flex items-center gap-2">
+                <Mic className="h-3.5 w-3.5" /> 声线（来自本地 voice-registry）
+              </Label>
+              {loadingVoices ? (
+                <div className="flex items-center gap-2 text-xs text-claude-dark-400">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> 加载声线列表...
+                </div>
+              ) : voices.length === 0 ? (
+                <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                  <div className="font-medium">⚠️ 本地未注册任何声线</div>
+                  <div className="leading-relaxed text-amber-700">
+                    播客需要至少 1 个 MiniMax 声线（voice_id）才能合成配音。下面 3 个入口任选一个：
+                  </div>
+                  <div className="grid gap-1.5 pt-1">
+                    <a
+                      href="/settings#minimax_tts"
+                      className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
+                    >
+                      <span>① 配置 MiniMax API key</span>
+                      <span aria-hidden>→</span>
+                    </a>
+                    <a
+                      href="/dubbing"
+                      className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
+                    >
+                      <span>② 跑一次 dubbing 工作流（自动注册克隆声线）</span>
+                      <span aria-hidden>→</span>
+                    </a>
+                    <a
+                      href="/settings#creator_assets"
+                      className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
+                    >
+                      <span>③ 在创作者资产手动添加声线（voice_id）</span>
+                      <span aria-hidden>→</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-2 md:grid-cols-2">
+                  <VoiceSelect
+                    label="主声线（必选）"
+                    value={primaryVoiceId}
+                    onChange={setPrimaryVoiceId}
+                    voices={voices}
+                  />
+                  {speakerMode === 'two_host' && (
+                    <VoiceSelect
+                      label="第二声线"
+                      value={secondaryVoiceId}
+                      onChange={setSecondaryVoiceId}
+                      voices={voices.filter((v) => v.voice_id !== primaryVoiceId)}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 合规确认 — 只在 minimax 模式才需要（script_only 不調 MiniMax，無付費 gate） */}
+          {ttsMode === 'minimax' && (
+            <div className="space-y-2 border-t border-claude-cream-200 pt-4">
+              <Label className="text-xs font-semibold text-claude-dark-700">
+                合规确认（MiniMax 模式）
+              </Label>
+              <label className="flex items-start gap-2 rounded-md border border-claude-cream-200 bg-white px-3 py-2 text-xs leading-5 text-claude-dark-500">
+                <input
+                  type="checkbox"
+                  checked={boundaryAck}
+                  onChange={(e) => setBoundaryAck(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  我已知晓声线使用边界（公众人物 / 已授权克隆 / 创作者本人 / 合成旁白）， 并对所选
+                  voice_id 的合规使用负责。
+                </span>
+              </label>
+              <label className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <input
+                  type="checkbox"
+                  checked={minimaxGateAck}
+                  onChange={(e) => setMinimaxGateAck(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  MiniMax TTS 是付费 provider，每段配音都会消耗 API 配额。我确认愿意承担费用。
+                </span>
+              </label>
+            </div>
+          )}
 
           <Button
             onClick={() => void submit()}
-            disabled={submitting || loadingVoices || voices.length === 0}
+            // script_only 模式：不要求 voice 加載 / voice 列表非空
+            disabled={
+              submitting || (ttsMode === 'minimax' && (loadingVoices || voices.length === 0))
+            }
             className="w-full bg-claude-orange-500 text-white hover:bg-claude-orange-600"
           >
             {submitting ? (
               <span className="inline-flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> 创建中...
               </span>
+            ) : ttsMode === 'script_only' ? (
+              '生成播客稿（script_only）'
             ) : (
-              '创建播客任务'
+              '生成播客 + MiniMax 配音'
             )}
           </Button>
         </CardContent>

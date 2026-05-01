@@ -17,12 +17,14 @@ import { getPodcastArtifactOutputPath, getPodcastSegmentsDir } from './artifact-
 import type { PodcastScript } from './generate-podcast-script'
 
 interface PodcastDeliveryOutput {
-  finalAudioPath: string
+  finalAudioPath: string | null
   briefFile: string
   scriptFile: string
   scriptMarkdownFile: string
   manifestFile: string
   durationSecondsEstimated: number
+  /** Codex P1 #2: script_only 模式時 finalAudioPath = null */
+  ttsMode: 'script_only' | 'minimax'
 }
 
 export class PodcastDeliveryStep extends BaseStep<PodcastDeliveryOutput> {
@@ -30,6 +32,11 @@ export class PodcastDeliveryStep extends BaseStep<PodcastDeliveryOutput> {
   readonly name = '播客交付包'
 
   async execute(ctx: WorkflowContext): Promise<PodcastDeliveryOutput> {
+    const config = ctx.input.config as unknown as Record<string, unknown>
+    const ttsMode = ((config.podcast_tts_mode as string) || 'script_only') as
+      | 'script_only'
+      | 'minimax'
+
     const briefFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.brief')
     const scriptFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.script')
     const scriptMarkdownFile = getPodcastArtifactOutputPath(ctx.jobId, 'podcast.script_markdown')
@@ -44,6 +51,47 @@ export class PodcastDeliveryStep extends BaseStep<PodcastDeliveryOutput> {
 
     const script = JSON.parse(await readFile(scriptFile, 'utf-8')) as PodcastScript
 
+    // Codex P1 #2: script_only 模式跳過音頻合併，只產生 brief / script / manifest（無 final_audio）
+    if (ttsMode === 'script_only') {
+      this.log(ctx, '播客交付: script_only 模式（不合成音頻，只交付腳本）', {
+        ttsMode,
+        scriptFile,
+        scriptMarkdownFile,
+      })
+      const manifestFile = path.join(path.dirname(finalAudioPath), 'podcast_manifest.json')
+      await mkdir(path.dirname(manifestFile), { recursive: true })
+      const manifest = {
+        job_id: ctx.jobId,
+        generated_at: new Date().toISOString(),
+        tts_mode: 'script_only',
+        title: script.title,
+        estimated_duration_seconds: script.estimated_duration_seconds,
+        llm_provider: script.llm_provider,
+        segment_count: script.segments.length,
+        audio_segment_count: 0,
+        artifacts: {
+          final_audio: null,
+          brief: path.basename(briefFile),
+          script_json: path.basename(scriptFile),
+          script_markdown: path.basename(scriptMarkdownFile),
+        },
+        notice:
+          '本次以 script_only 模式生成（無 MiniMax 配音）。要加配音請重跑 job 並選 minimax 模式。',
+      }
+      await writeFile(manifestFile, JSON.stringify(manifest, null, 2), 'utf-8')
+      await this.saveCheckpoint(ctx, manifest)
+      return {
+        finalAudioPath: null,
+        briefFile,
+        scriptFile,
+        scriptMarkdownFile,
+        manifestFile,
+        durationSecondsEstimated: script.estimated_duration_seconds,
+        ttsMode: 'script_only',
+      }
+    }
+
+    // 以下走 minimax 模式（現有流程）
     // 收集 segment 音频路径，按 script.segments 顺序
     const segmentAudioPaths: string[] = []
     for (let idx = 0; idx < script.segments.length; idx++) {
@@ -91,6 +139,7 @@ export class PodcastDeliveryStep extends BaseStep<PodcastDeliveryOutput> {
     const manifest = {
       job_id: ctx.jobId,
       generated_at: new Date().toISOString(),
+      tts_mode: 'minimax',
       title: script.title,
       estimated_duration_seconds: script.estimated_duration_seconds,
       llm_provider: script.llm_provider,
@@ -114,6 +163,7 @@ export class PodcastDeliveryStep extends BaseStep<PodcastDeliveryOutput> {
       scriptMarkdownFile,
       manifestFile,
       durationSecondsEstimated: script.estimated_duration_seconds,
+      ttsMode: 'minimax',
     }
   }
 }

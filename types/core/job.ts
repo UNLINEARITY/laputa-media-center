@@ -264,6 +264,15 @@ export interface JobConfig {
   script_target_language?: 'auto' | 'mandarin' | 'cantonese'
   /** 播客模式目標語言（Phase 3.B + 粵語接入） */
   podcast_target_language?: 'auto' | 'mandarin' | 'cantonese'
+  /**
+   * 播客 TTS 模式（Codex P1 #2 修：原本 podcast 硬要求 MiniMax voice_id + paid gate，
+   * 卡住沒付費的朋友。改為兩個 mode，default script_only 是「免費優先」承諾的真實兌現）：
+   * - 'script_only'（默認）：跳過 TTS step，只生成 podcast 腳本 .md（用戶可自讀 / 手動配音 / 後續加 voice）
+   * - 'minimax'：現有流程，要 voice_id + MINIMAX_API_KEY + 確認 minimax_tts paid gate
+   *
+   * 不引入 'edge_tts'：Edge TTS 是 W2 Plan B 砍 Fish UI 後留下的 legacy provider，中文質量遠差於 MiniMax，加它會走回頭路 + 混淆主線。
+   */
+  podcast_tts_mode?: 'script_only' | 'minimax'
   /** 高亮切片 hook_text 目標語言（Phase 3.C-A + 粵語接入） */
   highlights_target_language?: 'auto' | 'mandarin' | 'cantonese'
 

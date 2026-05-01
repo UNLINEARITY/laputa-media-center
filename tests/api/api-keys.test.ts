@@ -21,7 +21,6 @@ const verifyApiKeyMock = vi.hoisted(() =>
 const saveApiKeyMock = vi.hoisted(() => vi.fn<(...args: unknown[]) => void>())
 const markVerifiedMock = vi.hoisted(() => vi.fn<(...args: unknown[]) => void>())
 const getAllStatusMock = vi.hoisted(() =>
-  // biome-ignore lint/suspicious/noExplicitAny: vitest mock 對齊 prod 簽名需要鬆型別
   vi.fn<() => ApiKeyStatusRow[]>(() => [] as ApiKeyStatusRow[]),
 )
 const clearGeminiRuntimeCacheMock = vi.hoisted(() => vi.fn<() => void>())
