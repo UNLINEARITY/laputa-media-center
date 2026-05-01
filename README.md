@@ -1,6 +1,10 @@
 # Laputa 内容引擎 — LaputaMediaCenter
 
-**版本**：1.0.0（自媒體生產台 v1，2026-05-01）
+**版本**：1.0.0（自媒體生產台 v1，2026-05-01）｜**License**：MIT
+
+> ⚠️ **本地單機工具，不是 SaaS**。項目數據庫、API key、生成的腳本、音頻與視頻都保存在你自己機器上。若你配置 Gemini / OpenAI / MiniMax 等外部 provider，相關文本或音頻片段會按你觸發的功能發送給該 provider；未配置時不會由本項目自動上傳。需要本地安裝 ffmpeg、yt-dlp；whisper.cpp 首次 ASR 會自動下載。
+>
+> English: see [README.en.md](./README.en.md) for a short overview.
 
 LaputaMediaCenter（中文 display：Laputa 内容引擎）是面向中文自媒体创作者的内容生产系统。覆盖 6 条工具链：影片本地化、播客整理、高亮切片、多平台改写、标题与开头优化、配音 QA。普通话与粤语都跑得通。
 

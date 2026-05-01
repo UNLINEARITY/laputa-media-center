@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets 掃描 + history rewrite 完成：強義 secrets = 0 leak；舊工作流帳號 / Zeabur IDs 在 blob、commit message、refs 0-hit；保留 `hkdadinsz*` / `laputa*`。下一步：LICENSE / README / install scripts / 首次嚮導 / push）
-**下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `512b330` `84007c0` `563dd77` `8caa7b5` `a6f93c3`）。**主線：進 Phase 5 Wave 5.2**（LICENSE / README EN/ZH / CONTRIBUTING / install scripts / demo GIF / GitHub push）。
+**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓。剩 demo GIF + 首次運行嚮導 + push GitHub）
+**下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `512b330` `84007c0` `563dd77` `8caa7b5` `a6f93c3`）。**主線：Phase 5 push 前最後決策**（直接 push / 先補 demo GIF / 先做首次運行嚮導）。
 
 **Phase 5 push 前防洩漏狀態**:
 - ✅ Git history rewrite 已完成（commit `a8eb924`）：舊工作流帳號 slug / 對應 Gmail / Zeabur IDs 已從 blob、commit message、refs 清乾淨；credential / dynamic 測試紀錄路徑已從 history 抹除；**保留** `hkdadinsz@gmail.com`、`hkdadinsz`、`laputa`。
@@ -625,14 +625,17 @@
   - 舊工作流帳號 / Zeabur IDs：blob 0-hit、commit message 0-hit、refs 0-hit
   - `docs/agent/credentials.md`、`docs/agent/testing/credentials/*`、`docs/agent/testing/dynamic/*` 已從整個 history 抹除
   - `.git/filter-repo/commit-map` 已用於修復 CHANGELOG / PROJECT_PLAN stale commit hash refs
-- [ ] README 中英文
-- [ ] LICENSE（暫定 MIT，未落檔）
-- [ ] CONTRIBUTING.md
+- [x] **Wave 5.2 完成**（package metadata + LICENSE + README 中/英 + CONTRIBUTING + install scripts）:
+  - `package.json` 加 `engines.node: ">=24.0.0"` + `packageManager: "pnpm@10.33.0"` + `license: "MIT"` + author 改為 `LaputaMediaCenter contributors`（install scripts 的 single source of truth）
+  - `LICENSE` 整檔替換為標準 MIT（Copyright 2026 LaputaMediaCenter contributors，無臨時字樣，無舊工作流名）
+  - `README.md` 開頭加「⚠️ 本地單機工具，不是 SaaS」+ 鏈接 README.en.md
+  - `README.en.md` 新建簡版（Features 6 工具 + Quick Start + Local-first design + API key config + Architecture 簡述 + 鏈接中文版深度細節）
+  - `CONTRIBUTING.md` 新建：setup / 三層 test gate（typecheck:app must / typecheck:all+lint+test:unit recommended / e2e if workflow）/ commit style / 8 個受保護資產規則 / welcome vs push back
+  - `install.ps1` + `install.sh`：讀 package.json metadata 做版本檢查（Node + pnpm），soft-check ffmpeg/yt-dlp（warn only），自動 pnpm install + db:init
 - [ ] demo GIF / 截圖
-- [ ] install.ps1 / install.sh
 - [ ] 首次運行嚮導
-- [ ] 刪 _archive/
-- [ ] push GitHub（必須在 Wave 5.1 + 至少 LICENSE / README / install scripts 完成後）
+- [ ] 刪 _archive/（Wave 5.1 確認過已不存在 ✓）
+- [ ] push GitHub（Wave 5.1 + 5.2 全部完成；剩 demo + 首次嚮導屬 polish 不阻塞 push）
 
 ---
 
