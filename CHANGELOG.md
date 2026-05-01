@@ -24,8 +24,17 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 **保留**（為向後兼容）：
 - `lib/cost/`、`lib/db/tables/job-costs.ts`、`lib/loaders/report-loader.ts` — 歷史 cost tracking 不砍，舊 job report 仍能渲染 fish_audio 列（顯示 0 次）
+- `lib/db/index.ts` `dropCheckConstraint` × 3 — 為未升級的舊 dev DB 提供 idempotent migration（fresh install 自動 no-op）
 
-## [Unreleased] — Phase 4 cleanup（2026-05-01 進行中）
+**Plan C/D（docs/migrations 終結）**：
+- 砍 `docs/agent/legacy-editing-removal-plan.md`（267KB Phase 1 計劃稿）+ `docs/agent/changelog.md`（重複）+ `docs/agent/testing/` 整目錄（17 plan 檔 ~250KB）
+- 砍 `docs/migrations-archive/` 11 個歷史 SQL（54KB，無代碼 ref）
+- README / docs/agent/index.md / docs/dubbing-guide.md 死連結修復
+- 構建緩存 `.next` 1.4GB 清理（gitignored，不入 commit）
+
+**Phase 4 ✅ 完成**：v1.0.0 是「自媒體生產台」起點，從 ChuangCut v16.x 重構接手後第一個 cleaned, audited, version-reset 版本。
+
+## [Unreleased] — Phase 5（開源就緒，未開始）
 
 修 Codex 獨立測試報告（CODEX_FINDINGS.md）的 13 個 issue，分 W0-W3 四波交付。
 

@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 4 進行中 — Codex 報告 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 完全砍除 + 版本號 reset 1.0.0
-**下次從哪裡繼續**：可選 (1) docs/ 大瘦身 + agent docs 合併 + migration 合一（Phase 4 完整收尾）OR (2) 直接進 Phase 5（開源就緒：secrets 掃描 / README EN/ZH / install scripts / demo GIF）OR (3) 加 recut file lock（S-05 deferred 點）
+**當前 Phase**：✅ **Phase 4 完成**（v1.0.0 起點：Codex 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 完全砍除 + Plan C docs slim 88% + Plan D migrations-archive 砍 + 版本號 reset 1.0.0）
+**下次從哪裡繼續**：可選 (1) Phase 5（開源就緒：secrets 掃描 / README EN/ZH / install scripts / demo GIF / GitHub push）OR (2) 加 recut file lock（S-05 deferred 點）OR (3) 真機驗收 /podcast TTS（需 MiniMax key）OR (4) 收工
 
 **📅 2026-05-14 自我提醒（remote schedule 暫不可用，手寫於此）**：
 - 跑 `git log --oneline -20` 看最近 2 週 Phase 3.C 實機驗收狀態
@@ -579,7 +579,7 @@
 - [x] **API 完成**：`app/api/podcast/route.ts` 創建 podcast job（schema 校驗 + voice_id 必填 + workflow 註冊）
 - [ ] **真實驗收**：留用戶手動跑（需要 Gemini key + MiniMax key + 已註冊聲線）
 
-### Phase 4：清理 + 重置 🟡 進行中（2026-05-01 W0-W3 + B 完成）
+### Phase 4：清理 + 重置 ✅ 完成（2026-05-01）
 - [x] **W0**：TS production errors 全修 + biome lint 全綠（commit `831a876`）
 - [x] **W1**：Mandarin prompt 分支補齊 + /title-hooks cost 文案修正（commit `60becb4`）
 - [x] **W2**：4 工具 nav + 首頁 dashboard + AUTH-aware login + /api/health + MD/PDF 切換清空 + podcast 無聲線 CTA + UI 術語去工程化（commit `9bb63d0`）
@@ -588,6 +588,8 @@
 - [x] **Plan B**：Fish Audio UI 完全砍除（tts-config.tsx + types/ai/tts.ts + status-badge.tsx）+ 版本號 reset 16.0.0 → 1.0.0
 - [x] **Plan C**：docs/ 大瘦身（19 個過期 doc 砍除：legacy-editing-removal-plan 267KB / agent/changelog 17KB / agent/testing 整目錄 17 個檔；33→13 markdown）+ index.md / README.md / dubbing-guide.md ref 修正
 - [x] Agent docs 合併（repo 只有 AGENTS.md，CLAUDE.md / WARP.md 不在 repo 內，無事可做 — 跳過）
+- [x] **Plan D**：migrations-archive 砍（11 個歷史 SQL / 54KB，無代碼 ref）+ .next 構建緩存清理（1.4GB）+ Phase 4 標 ✅ 完成
+- [x] migration 合併為 001_init.sql（schema.sql 已是 single source of truth 415 行；lib/db/index.ts 保留 dropCheckConstraint × 3 為 idempotent helper，不影響 fresh install）
 - [ ] 構建緩存類文件刪除（.next、node_modules cache）
 - [ ] migration 合併為 001_init.sql（DB schema reset）
 - [x] 版本號重置 1.0.0（package.json + README）
