@@ -36,6 +36,17 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 ## [Unreleased] — Phase 5（開源就緒，未開始）
 
+### 2026-05-01 Plan D — recut file lock（S-05 race fix）
+
+新增 `lib/utils/key-mutex.ts` 通用 per-key async mutex helper（in-process FIFO 序列化 + 引用計數清理 + 例外不阻塞排隊）+ 6 個單元測試（FIFO 順序 / 不同 key 並行 / 例外釋放 lock / 清理 entry / 返回值 / 多 caller 順序）。
+
+`app/api/highlights/[id]/recut/route.ts`：
+- 把 cuts.json/manifest.json 的 read-modify-write 整段（含 ffmpeg）包進 `withKeyLock(\`highlights-recut:${jobId}\`, async () => { ... })`
+- 同 job 並發 recut 自動 FIFO 排隊；不同 job 並行
+- 解決 S-05 測試發現的 race：之前 3 個 concurrent recut 雖無 cuts.json corrupt（fs.writeFile atomic），但 last-writer-wins 是隨機的；現在保證 FIFO 順序
+
+樣本：765 unit tests pass（從 759 升 +6 mutex tests）；tsc / biome 全綠。
+
 修 Codex 獨立測試報告（CODEX_FINDINGS.md）的 13 個 issue，分 W0-W3 四波交付。
 
 ### W0 — TS production errors + biome lint 全綠（commit `831a876`）
