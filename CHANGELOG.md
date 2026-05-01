@@ -2,7 +2,7 @@
 
 LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch），日期格式 YYYY-MM-DD。
 
-## [1.0.0] — 2026-05-01（自媒體生產台 v1，commit `0dc20df`）
+## [1.0.0] — 2026-05-01（自媒體生產台 v1，commit `5df8bd0`）
 
 從 ChuangCut（v16.x）重構為 LaputaMediaCenter v1.0.0。版本號 reset 為「v1 自媒體生產台」起點。
 
@@ -15,10 +15,10 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - 配音 QA（8 维度，dubbing 模式內建）
 
 **Phase 4 cleanup（W0-W3 + Fish Audio purge + 版本號 reset）**：
-- W0：6 类 TS production error + 51 文件 biome auto-fix + 9 个手动 lint（commit `831a876`）
-- W1：Mandarin prompt 6 step + 5 SYSTEM_INSTRUCTION + UI 文案 + 35 测试（commit `60becb4`）
-- W2：4 工具 nav + dashboard + AUTH-aware login + health 4-mode + MD/PDF clear + podcast CTA + UI 术语去工程化（commit `9bb63d0`）
-- W3：9:16 ffmpeg + settings 404 silent + mobile chip + 品牌統一 + CHANGELOG.md（commit `570e9f0`）
+- W0：6 类 TS production error + 51 文件 biome auto-fix + 9 个手动 lint（commit `5086379`）
+- W1：Mandarin prompt 6 step + 5 SYSTEM_INSTRUCTION + UI 文案 + 35 测试（commit `da26ac5`）
+- W2：4 工具 nav + dashboard + AUTH-aware login + health 4-mode + MD/PDF clear + podcast CTA + UI 术语去工程化（commit `1437bd7`）
+- W3：9:16 ffmpeg + settings 404 silent + mobile chip + 品牌統一 + CHANGELOG.md（commit `e2dc1e7`）
 - Plan A 实机验证：W2-W3 改动 + S-01 并发 jobs / S-04 上传边界 / S-05 并发 recut 全过
 - Plan B：Fish Audio **主線 UI / provider 已移除**，types `TTSProvider` 收歛為 `'edge_tts'` / `tts-config.tsx` 移除 Fish 全部 state+handler+UI / `status-badge.tsx` 移除 fish_audio_* labels；**legacy report/cost compat 保留**（lib/cost/、lib/db/tables/job-costs.ts、components/report/sections/* 仍能渲染歷史 job 的 fish_audio 統計欄位，顯示 0 次時隱藏）。版本號 reset 16.0.0 → 1.0.0
 
@@ -130,7 +130,7 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - 但用戶的 `pnpm dev` 啟的 dev server 用默認 `data/db.sqlite`
 - 結果：seed 寫的 fixture job 在 e2e DB，dev server 從 data DB 讀，找不到 → 404
 
-**修法**（commit `f6f0216`）:
+**修法**（commit `84007c0`）:
 
 注：原 commit subject `feat(D): recut file lock` 用詞不準（Codex P2 #11），實作是 in-process mutex；本 CHANGELOG 標題已校正。多 process 部署仍需單獨升級。
 
@@ -151,7 +151,7 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - 修 README 殘留 CCUT/chuangcut（line 72/76-78/153）→ 統一 LaputaMediaCenter / C:/tmp/laputa
 - LICENSE_KEY 改為註解（默認可空）
 
-### 2026-05-01 Codex 第二輪 P1 三個 fix（commit `f2200d0`）
+### 2026-05-01 Codex 第二輪 P1 三個 fix（commit `512b330`）
 
 修 Codex 後續審查抓到的「W1-W3 半完成」3 個 P1：
 
@@ -185,13 +185,13 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 修 Codex 獨立測試報告（CODEX_FINDINGS.md）的 13 個 issue，分 W0-W3 四波交付。
 
-### W0 — TS production errors + biome lint 全綠（commit `831a876`）
+### W0 — TS production errors + biome lint 全綠（commit `5086379`）
 
 - TS：6 类 production error 修复（md_draft/pdf_draft union、duplicate ok key、Fish Audio @deprecated 兼容、ASR re-export 路径、readdirSync 类型、MajorStep union 同步）
 - Lint：51 文件 biome 自动修（safe + unsafe）+ 9 个手动修（noImplicitAnyLet、a11y backdrop modal、useExhaustiveDependencies、noAssignInExpressions）
 - 验证：tsc 0 errors、biome 0 issues、103 测试文件 / 724 通过
 
-### W1 — Mandarin prompt 分支 + cost/lang form copy（commit `60becb4`）
+### W1 — Mandarin prompt 分支 + cost/lang form copy（commit `da26ac5`）
 
 - 新增 i18n helpers：`isMandarinTarget` / `MANDARIN_HARD_RULES` / `getMandarinStyleInstruction` / `getMandarinLanguageLabel` / `getMandarinRules` / `resolveLanguageInstruction` 3-way 分支
 - 6 个 LLM step prompt + 5 个 SYSTEM_INSTRUCTION 加 Mandarin 分支：之前选「普通话」prompt 只说「保持源语言」，英文素材直接吐英文 → 现在明确要求标准普通话 / 简体中文翻译
@@ -200,7 +200,7 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - /highlights form：字幕翻译文案改为人话「粵语/普通话：hook+summary+字幕都翻；自动：保持源语言」
 - 测试：+35 个 Mandarin tests（759 通过，从 724 升）
 
-### W2 — 4 工具 nav + 首頁 + AUTH-aware login + health + UX polish（commit `9bb63d0`）
+### W2 — 4 工具 nav + 首頁 + AUTH-aware login + health + UX polish（commit `1437bd7`）
 
 - Header：加「工具」下拉（4 个 Phase 3.C 自媒体工具）；AUTH disabled 时显示「本地模式」badge 而非登入/註冊
 - Dashboard（首頁）：4 个工具从「下一步」→「可用」+ 各自 href + cta；hero 文案「6 个工具已可跑」
