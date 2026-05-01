@@ -14,8 +14,8 @@ export function ScriptWorkbench() {
         </div>
         <h1 className="text-2xl font-bold text-claude-dark-900">一份观点稿，4 个平台版本</h1>
         <p className="text-sm text-claude-dark-400">
-          LLM 两阶段改写：先理解 + 给每平台适配建议（brief），再单次 call 输出 YouTube 长 / 抖音 60s
-          / 小红书 / 公众号 4 版脚本（可选其中几个）。
+          LLM 两阶段改写：先理解 + 给每平台适配建议（brief），再一次性输出 YouTube 长视频 / 抖音 60s
+          / 小红书 / 公众号 4 版脚本（可只勾选其中几个）。
         </p>
       </header>
 
@@ -28,9 +28,9 @@ export function ScriptWorkbench() {
         </CardHeader>
         <CardContent className="grid gap-3 text-sm text-claude-dark-500 md:grid-cols-4">
           <Stage no={1} title="素材吸收" desc="文本 / MD / PDF / 视频 → 转录" />
-          <Stage no={2} title="brief" desc="核心观点 + 鉤子 + 平台建议" />
-          <Stage no={3} title="4 版改写" desc="单次 LLM call 输出选定平台" />
-          <Stage no={4} title="交付包" desc="N 个 .md + manifest" />
+          <Stage no={2} title="内容简报" desc="核心观点 + 鉤子 + 各平台适配建议" />
+          <Stage no={3} title="4 版改写" desc="一次 LLM 输出所有选定平台" />
+          <Stage no={4} title="交付包" desc="N 个 markdown 脚本 + 产物清单" />
         </CardContent>
       </Card>
 

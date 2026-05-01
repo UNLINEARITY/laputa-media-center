@@ -113,6 +113,18 @@ export function PodcastForm() {
     }
   }, [])
 
+  /**
+   * 切換 source mode 時清空 uploadedPath，避免「上傳 MD → 切到 PDF → 提交時 source_type=pdf 但 path 是 MD 的」
+   * 文本模式不持有 uploadedPath；MD↔PDF 互切都要清。
+   */
+  const handleModeChange = (m: SourceMode) => {
+    if (m !== sourceMode) {
+      setUploadedPath('')
+      setUploadedFilename('')
+    }
+    setSourceMode(m)
+  }
+
   const submit = useCallback(async () => {
     let source: string
     let sourceType: 'text_draft' | 'md_draft' | 'pdf_draft'
@@ -228,7 +240,7 @@ export function PodcastForm() {
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => setSourceMode(opt.value)}
+                    onClick={() => handleModeChange(opt.value)}
                     className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-all ${
                       active
                         ? 'border-claude-orange-300 bg-claude-orange-50 text-claude-orange-700'
@@ -401,8 +413,34 @@ export function PodcastForm() {
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> 加载声线列表...
               </div>
             ) : voices.length === 0 ? (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                ⚠️ 本地未注册任何声线，请先在 dubbing 流程注册并验证你的克隆声线。
+              <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                <div className="font-medium">⚠️ 本地未注册任何声线</div>
+                <div className="leading-relaxed text-amber-700">
+                  播客需要至少 1 个 MiniMax 声线（voice_id）才能合成配音。下面 3 个入口任选一个：
+                </div>
+                <div className="grid gap-1.5 pt-1">
+                  <a
+                    href="/settings#minimax_tts"
+                    className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
+                  >
+                    <span>① 配置 MiniMax API key</span>
+                    <span aria-hidden>→</span>
+                  </a>
+                  <a
+                    href="/dubbing"
+                    className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
+                  >
+                    <span>② 跑一次 dubbing 工作流（自动注册克隆声线）</span>
+                    <span aria-hidden>→</span>
+                  </a>
+                  <a
+                    href="/settings#creator_assets"
+                    className="inline-flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-2.5 py-1.5 font-medium text-amber-800 hover:bg-amber-50"
+                  >
+                    <span>③ 在创作者资产手动添加声线（voice_id）</span>
+                    <span aria-hidden>→</span>
+                  </a>
+                </div>
               </div>
             ) : (
               <div className="grid gap-2 md:grid-cols-2">

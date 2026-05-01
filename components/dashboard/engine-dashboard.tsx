@@ -13,8 +13,10 @@ import {
   Languages,
   Mic2,
   Podcast,
+  Scissors,
   Settings,
   Sparkles,
+  Type,
   UserRound,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -48,12 +50,48 @@ const ENGINE_MODULES = [
     active: true,
   },
   {
-    title: '普通话 / 广东话本地化',
+    title: '普通话 / 粤语本地化',
     description: '把外语影片转成中文口播、字幕和可选口型同步成片。',
     status: '主线',
     href: '/dubbing',
     cta: '开配音台',
     icon: Languages,
+    active: true,
+  },
+  {
+    title: '播客整理',
+    description: '把长文/字幕整理成单人或双人播客脚本，并合成 MiniMax 配音。',
+    status: '可用',
+    href: '/podcast',
+    cta: '生成播客',
+    icon: Podcast,
+    active: true,
+  },
+  {
+    title: '高亮切片',
+    description: '长视频 → LLM 找金句/反转/情绪点，切 30-60s 短片并烧录字幕。',
+    status: '可用',
+    href: '/highlights',
+    cta: '生成高亮',
+    icon: Scissors,
+    active: true,
+  },
+  {
+    title: '多平台改写',
+    description: '同一份稿件 → YouTube 长视频 / 抖音 60s / 小红书图文 / 公众号 4 平台版本。',
+    status: '可用',
+    href: '/script-rewrite',
+    cta: '改写多平台',
+    icon: FileVideo,
+    active: true,
+  },
+  {
+    title: '标题与开头',
+    description: '5 个候选标题（含 SEO 关键词与鉤子强度评分） + 开头 30 秒重写。',
+    status: '可用',
+    href: '/title-hooks',
+    cta: '优化标题',
+    icon: Type,
     active: true,
   },
   {
@@ -64,24 +102,6 @@ const ENGINE_MODULES = [
     cta: '查看任务',
     icon: Clock3,
     active: true,
-  },
-  {
-    title: '播客整理',
-    description: '把长谈话整理成开场、分段、重点和可口播稿。',
-    status: '下一步',
-    href: '/ingest',
-    cta: '先导入素材',
-    icon: Podcast,
-    active: false,
-  },
-  {
-    title: '短视频切片',
-    description: '找出可发布片段，生成标题、口播重写和字幕节奏。',
-    status: '下一步',
-    href: '/ingest',
-    cta: '先导入素材',
-    icon: FileVideo,
-    active: false,
   },
   {
     title: '品牌素材库',
@@ -189,15 +209,19 @@ export function EngineDashboard() {
               把素材和观点，接成可持续发布的音视频内容生产线。
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-claude-dark-500">
-              当前主线是外语影片本地化：吸收素材、理解上下文、按你的受众改写口播，再输出普通话、广东话或多语配音成片。
+              6 个工具已可跑：影片本地化、播客整理、高亮切片、多平台改写、标题优化、配音
+              QA。普通话与粤语都跑得通。
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button type="button" variant="primary" onClick={() => router.push('/ingest')}>
                 开始影片本地化
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Button type="button" variant="outline" onClick={() => router.push('/dubbing')}>
-                直接开配音台
+              <Button type="button" variant="outline" onClick={() => router.push('/podcast')}>
+                生成播客
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.push('/highlights')}>
+                高亮切片
               </Button>
               <Button type="button" variant="outline" onClick={() => router.push('/jobs')}>
                 查看任务
@@ -209,10 +233,11 @@ export function EngineDashboard() {
             <p className="text-sm font-semibold text-claude-dark-900">当前可跑闭环</p>
             <div className="mt-3 space-y-2">
               {[
-                'YouTube / 本地影片吸收',
-                'ASR 转录与上下文理解',
-                '普通话 / 广东话口播改写',
-                'MiniMax 配音与成片输出',
+                '影片本地化（普通话 / 粤语）',
+                '播客整理（长文 → 双人脚本 + 配音）',
+                '高亮切片（长视频 → 短片 + 字幕）',
+                '多平台改写（YT / 抖音 / 小红书 / 公众号）',
+                '标题与开头优化',
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-claude-dark-500">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />

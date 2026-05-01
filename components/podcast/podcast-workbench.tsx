@@ -14,8 +14,8 @@ export function PodcastWorkbench() {
         </div>
         <h1 className="text-2xl font-bold text-claude-dark-900">从文字稿到播客 MP3</h1>
         <p className="text-sm text-claude-dark-400">
-          LLM 两阶段改写（先理解、再口语化）+ MiniMax 配音 + ffmpeg 合成。 产物：podcast.mp3 ·
-          podcast_script.md · podcast_brief.json · podcast_manifest.json
+          LLM 两阶段改写（先理解、再口语化）+ MiniMax 配音 + ffmpeg 合成。 产物包含：完整播客
+          mp3、口语化脚本、内容简报与产物清单（manifest）。
         </p>
       </header>
 
@@ -30,7 +30,7 @@ export function PodcastWorkbench() {
           <Stage no={1} title="素材吸收" desc="文本 / MD / PDF → 结构化转录" />
           <Stage no={2} title="理解 + 改写" desc="brief → 口语脚本（含开场鉤子 / 转场 / 结尾）" />
           <Stage no={3} title="MiniMax 配音" desc="按段调用 t2a_v2，pacing 控制语速" />
-          <Stage no={4} title="交付包" desc="ffmpeg concat + manifest" />
+          <Stage no={4} title="交付包" desc="ffmpeg 合并 + 产物清单" />
         </CardContent>
       </Card>
 

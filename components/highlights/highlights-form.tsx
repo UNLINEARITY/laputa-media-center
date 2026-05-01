@@ -284,9 +284,9 @@ export function HighlightsForm() {
           </div>
         </div>
 
-        {/* hook_text 输出语言 */}
+        {/* 亮点文案 / 字幕输出语言 */}
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-claude-dark-700">hook_text 输出语言</Label>
+          <Label className="text-xs font-semibold text-claude-dark-700">亮点文案与字幕语言</Label>
           <div className="flex flex-wrap gap-2">
             {(
               [
@@ -313,8 +313,8 @@ export function HighlightsForm() {
             })}
           </div>
           <p className="text-[11px] text-claude-dark-400">
-            粤语 / 普通话：hook_text、summary 与烧录字幕 (.ass) 都会用 LLM 翻译为目标语言。 auto /
-            保持源语言：字幕仍用原 transcript，不调用翻译 LLM。
+            粤语 / 普通话：亮点摘要与烧录字幕都会用 LLM 翻译为目标语言。 自动 /
+            保持源语言：字幕用原转录文本，不再调用翻译。
           </p>
         </div>
 

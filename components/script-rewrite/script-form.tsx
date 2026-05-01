@@ -54,6 +54,18 @@ export function ScriptForm() {
     })
   }
 
+  /**
+   * 切換 source mode 時清空 uploadedPath，避免「上傳 MD → 切到 PDF → 提交時 source_type=pdf 但 path 是 MD 的」
+   * 文本模式不持有 uploadedPath；MD↔PDF 互切都要清。
+   */
+  const handleModeChange = (m: SourceMode) => {
+    if (m !== sourceMode) {
+      setUploadedPath('')
+      setUploadedFilename('')
+    }
+    setSourceMode(m)
+  }
+
   const handleUpload = useCallback(async (file: File) => {
     setUploading(true)
     try {
@@ -152,7 +164,7 @@ export function ScriptForm() {
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setSourceMode(m)}
+                  onClick={() => handleModeChange(m)}
                   className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-all ${
                     active
                       ? 'border-claude-orange-300 bg-claude-orange-50 text-claude-orange-700'
