@@ -58,24 +58,35 @@ http://localhost:8899
 ```bash
 pnpm install
 pnpm db:init
-pnpm dev
+pnpm dev               # 本地开发服务器（端口 8899，使用 data/db.sqlite）
+pnpm dev:e2e           # 用 e2e fixture DB 启动 dev server，配 test:e2e:reuse 用
 pnpm lint
-pnpm test
+pnpm test:unit         # 单元测试（vitest）
+pnpm test:e2e          # E2E 测试（playwright 自动启 dev server，端口 3899）
+pnpm test:e2e:reuse    # E2E 复用模式（必须先 pnpm dev:e2e；端口 8899）
 pnpm build
 ```
+
+#### E2E 测试两种模式
+
+- **默认模式 `pnpm test:e2e`**：playwright 自动启动 dev server 在 3899 端口（同时设 `DATABASE_URL=tmp/playwright-e2e/no-paid-mainline.sqlite`）。
+  必须先关闭其他 dev server（Next 16 不允许同 repo 多 dev 实例）。
+- **复用模式 `pnpm test:e2e:reuse`**：使用现有 dev server（端口 8899）。
+  必须先 `pnpm dev:e2e` 启动 dev server，**否则 fixture seed 写入的 DB 与 dev server 读取的 DB 不一致，所有 fixture job 返 404**。
 
 ## 环境变量
 
 创建 `.env.local`：
 
 ```env
-LICENSE_KEY=CCUT-XXXXXXXX-XXXX
+# LICENSE_KEY 可选：本地 / 开发模式留空即可（health check 标记 mode=local_dev）
+# LICENSE_KEY=
 DATABASE_URL=file:./data/db.sqlite
 
 # 运行时目录。建议放在项目根目录之外，避免生成视频触发 Next.js 重编译。
-# RUNTIME_DIR=C:/tmp/chuangcut
-# TEMP_DIR=C:/tmp/chuangcut/temp
-# OUTPUT_DIR=C:/tmp/chuangcut/output
+# RUNTIME_DIR=C:/tmp/laputa
+# TEMP_DIR=C:/tmp/laputa/temp
+# OUTPUT_DIR=C:/tmp/laputa/output
 
 ENCRYPTION_KEY=your-64-character-hex-encryption-key
 AUTH_ENABLED=true
@@ -150,7 +161,7 @@ API 创建任务时仍要求本次声线使用确认；本地 registry 的授权
 ## 项目结构
 
 ```text
-chuangcut-video-workflow/
+laputa-media-center/
 ├── app/                    # Next.js 页面和 API Routes
 │   ├── api/                # ingest / dubbing / jobs / settings APIs
 │   ├── ingest/             # 素材吸收工作台

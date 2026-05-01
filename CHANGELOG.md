@@ -36,6 +36,32 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 ## [Unreleased] — Phase 5（開源就緒，未開始）
 
+### 2026-05-01 修 e2e reuse mode 環境匹配 + Codex #5 reuseExistingServer DX
+
+**Root cause**：之前 `pnpm test:e2e` 默認模式 12/12 全綠，但 reuse mode（`PLAYWRIGHT_REUSE_SERVER=true PLAYWRIGHT_PORT=8899`）下會 fixture 404。原因：
+- Reuse mode 下 playwright 不啟 webserver，但 `playwright.config.ts:17` 仍把 `process.env.DATABASE_URL` 設為 `tmp/playwright-e2e/no-paid-mainline.sqlite`
+- Seed 寫進這個 e2e DB
+- 但用戶的 `pnpm dev` 啟的 dev server 用默認 `data/db.sqlite`
+- 結果：seed 寫的 fixture job 在 e2e DB，dev server 從 data DB 讀，找不到 → 404
+
+**修法**（commit pending）:
+- 加 `pnpm dev:e2e` script：用 cross-env 把 DATABASE_URL/RUNTIME_DIR/TEMP_DIR/OUTPUT_DIR/AUTH_ENABLED/ALLOW_PAID_DYNAMIC_TESTS 等對應到 playwright 預期 paths，dev server 與 seed 走同一個 DB
+- 加 `pnpm test:e2e:reuse` script：直接設 `PLAYWRIGHT_REUSE_SERVER=true PLAYWRIGHT_PORT=8899`，不再要用戶手寫 env
+- 加 `cross-env` devDep（10KB pure-JS，跨 Win/Unix shell）
+- `playwright.config.ts` reuse mode 啟用時 console.log 大字提示「dev server 必須用 `pnpm dev:e2e` 啟動」
+
+**驗證**:
+- Default mode：`pnpm test:e2e` → 12/12 pass / 1.1 min（已驗）
+- Reuse mode 新 flow：`pnpm dev:e2e &` + `pnpm test:e2e:reuse` → 12/12 pass / 58s（已驗）
+- 對比修前 reuse mode：fixture 404 cascade 失敗
+
+**順帶修 Codex 第二輪 P1 #5**（reuseExistingServer DX 改善）。
+
+附帶 README 更新:
+- 加「E2E 測試兩種模式」章節，明確說明 default vs reuse 的 trade-off
+- 修 README 殘留 CCUT/chuangcut（line 72/76-78/153）→ 統一 LaputaMediaCenter / C:/tmp/laputa
+- LICENSE_KEY 改為註解（默認可空）
+
 ### 2026-05-01 Codex 第二輪 P1 三個 fix（commit `f2200d0`）
 
 修 Codex 後續審查抓到的「W1-W3 半完成」3 個 P1：

@@ -6,6 +6,7 @@
   "author": "LaputaMediaCenter",
   "scripts": {
     "dev": "node --max-old-space-size=4096 node_modules/next/dist/bin/next dev -p 8899",
+    "dev:e2e": "cross-env DATABASE_URL=tmp/playwright-e2e/no-paid-mainline.sqlite RUNTIME_DIR=tmp/playwright-runtime/no-paid-mainline TEMP_DIR=tmp/playwright-runtime/no-paid-mainline/temp OUTPUT_DIR=tmp/playwright-runtime/no-paid-mainline/output AUTH_ENABLED=false ALLOW_PAID_DYNAMIC_TESTS=false ALLOW_STRESS_DYNAMIC_TESTS=false DUBBING_REQUIRE_REAL_MINIMAX_TTS=false node --max-old-space-size=4096 node_modules/next/dist/bin/next dev -p 8899",
     "build": "next build",
     "start": "node --max-old-space-size=4096 node_modules/next/dist/bin/next start",
     "lint": "biome check .",
@@ -15,6 +16,7 @@
     "test:unit": "vitest run",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test --pass-with-no-tests",
+    "test:e2e:reuse": "cross-env PLAYWRIGHT_REUSE_SERVER=true PLAYWRIGHT_PORT=8899 playwright test --pass-with-no-tests",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
@@ -89,6 +91,7 @@
     "@vitest/coverage-v8": "^4.0.14",
     "@vitest/ui": "^4.0.14",
     "baseline-browser-mapping": "^2.10.24",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.2.3",
     "jsdom": "^27.2.0",
     "minimatch": "^10.1.1",

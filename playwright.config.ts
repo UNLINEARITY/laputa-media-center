@@ -19,6 +19,19 @@ process.env.RUNTIME_DIR = e2eRuntimeDir
 process.env.TEMP_DIR = e2eTempDir
 process.env.OUTPUT_DIR = e2eOutputDir
 
+// Reuse mode UX：明确提示用户必须用 `pnpm dev:e2e` 启服务才能让 dev server 用同一个 DB
+// 否则 seed 写入 tmp/playwright-e2e/*.sqlite，但 dev server 默认用 data/db.sqlite → fixture 404
+// 详见 CHANGELOG.md「e2e reuse mode 環境匹配」段
+if (reuseExistingServer) {
+  console.log('\n[playwright] Reuse mode 启用')
+  console.log(`[playwright]   target: ${e2eBaseUrl}`)
+  console.log(`[playwright]   expected DB: ${e2eDatabaseUrl}`)
+  console.log('[playwright]   ⚠️  dev server 必须用 `pnpm dev:e2e` 启动（同步 DATABASE_URL），')
+  console.log(
+    '[playwright]      否则 seed 写入与 dev server 读取的 DB 不同 → 所有 fixture job 返 404。\n',
+  )
+}
+
 /**
  * Playwright 端到端测试配置文件
  *
