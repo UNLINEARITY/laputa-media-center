@@ -30,7 +30,7 @@ describe('runtime fingerprint route', () => {
       runtime_contract: 'laputa-runtime-fingerprint',
       runtime_fingerprint: {
         package_name: 'laputa-media-center',
-        package_version: '0.1.0',
+        package_version: '1.0.0',
       },
     })
     expect(

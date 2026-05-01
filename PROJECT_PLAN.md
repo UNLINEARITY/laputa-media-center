@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 4 進行中 — Codex 報告 13 issue 全修（W0-W3 commits `831a876` + `60becb4` + `9bb63d0` + `570e9f0`）+ Mandarin prompt 分支補齊 + 4 工具 nav/dashboard/health/UX 全到位
-**下次從哪裡繼續**：用戶確認 W0-W3 滿意後啟動 Phase 4 剩餘（agent docs / docs 大瘦身 / migration 合一 / 版本號 1.0.0）OR 直接進 Phase 5（開源就緒：secrets 掃描 / README EN/ZH / install scripts / demo GIF）
+**當前 Phase**：Phase 4 進行中 — Codex 報告 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 完全砍除 + 版本號 reset 1.0.0
+**下次從哪裡繼續**：可選 (1) docs/ 大瘦身 + agent docs 合併 + migration 合一（Phase 4 完整收尾）OR (2) 直接進 Phase 5（開源就緒：secrets 掃描 / README EN/ZH / install scripts / demo GIF）OR (3) 加 recut file lock（S-05 deferred 點）
 
 **📅 2026-05-14 自我提醒（remote schedule 暫不可用，手寫於此）**：
 - 跑 `git log --oneline -20` 看最近 2 週 Phase 3.C 實機驗收狀態
@@ -579,17 +579,19 @@
 - [x] **API 完成**：`app/api/podcast/route.ts` 創建 podcast job（schema 校驗 + voice_id 必填 + workflow 註冊）
 - [ ] **真實驗收**：留用戶手動跑（需要 Gemini key + MiniMax key + 已註冊聲線）
 
-### Phase 4：清理 + 重置 🟡 進行中（2026-05-01 W0-W3 完成）
+### Phase 4：清理 + 重置 🟡 進行中（2026-05-01 W0-W3 + B 完成）
 - [x] **W0**：TS production errors 全修 + biome lint 全綠（commit `831a876`）
 - [x] **W1**：Mandarin prompt 分支補齊 + /title-hooks cost 文案修正（commit `60becb4`）
 - [x] **W2**：4 工具 nav + 首頁 dashboard + AUTH-aware login + /api/health + MD/PDF 切換清空 + podcast 無聲線 CTA + UI 術語去工程化（commit `9bb63d0`）
 - [x] **W3**：9:16 ffmpeg scale+pad+setsar + preview aspect + settings 404 silent + mobile chip 32px + 品牌統一（site-logo / footer / license-error / README）+ CODEX_HANDOFF.md 受保護資產路徑修正 + CHANGELOG.md 起步（commit `570e9f0`）
+- [x] **Plan A 實機驗證**：/api/health + dashboard + 9:16 ffprobe + S-01 並發 jobs + S-04 上傳邊界 + S-05 並發 recut 全過
+- [x] **Plan B**：Fish Audio UI 完全砍除（tts-config.tsx + types/ai/tts.ts + status-badge.tsx）+ 版本號 reset 16.0.0 → 1.0.0
 - [ ] Agent docs 合併（CLAUDE.md / WARP.md 還沒在 repo 內，目前只 AGENTS.md）
 - [ ] docs/ 大瘦身（待 Phase 5 前處理）
 - [ ] 構建緩存類文件刪除（.next、node_modules cache）
 - [ ] migration 合併為 001_init.sql（DB schema reset）
-- [ ] 版本號重置 1.0.0（package.json 從 16.0.0 → 1.0.0）
-- [x] 寫 CHANGELOG（CHANGELOG.md，W0-W3 + Phase 1-3.C 歷史摘要）
+- [x] 版本號重置 1.0.0（package.json + README）
+- [x] 寫 CHANGELOG（CHANGELOG.md，1.0.0 entry + W0-W3 + Phase 1-3.C 歷史摘要）
 
 ### Phase 5：開源就緒
 - [ ] secrets 全項目掃描

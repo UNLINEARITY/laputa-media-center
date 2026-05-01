@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 import {
   Button,
   Card,
-  Input,
   Label,
   Select,
   SelectContent,
@@ -23,22 +22,14 @@ import {
   TTS_DEFAULTS,
 } from '@/types/ai/tts'
 
-/** TTS Provider 选项 */
+/** TTS Provider 选项（Phase 1.B 砍 Fish Audio 後僅剩 edge_tts 旧剪辑兼容） */
 const TTS_PROVIDER_OPTIONS = [
   {
     value: 'edge_tts',
     label: 'Microsoft Edge TTS（旧剪辑兼容）',
     description: '旧旁白后备',
   },
-  {
-    value: 'fish_audio',
-    label: 'Fish Audio（历史兼容）',
-    description: '旧项目音色',
-  },
 ] as const
-
-/** Fish Audio 验证状态 */
-type VerifyStatus = 'idle' | 'saved_unverified' | 'verifying' | 'verified' | 'error'
 
 interface TTSConfigProps {
   onConfigChange?: () => void
@@ -63,13 +54,6 @@ export function TTSConfig({ onConfigChange }: TTSConfigProps) {
   >({})
   const [loadingVoices, setLoadingVoices] = useState(false)
   const [legacyTtsConfirmed, setLegacyTtsConfirmed] = useState(false)
-
-  // Fish Audio 配置
-  const [fishVoiceId, setFishVoiceId] = useState<string>('')
-  const [fishVoiceName, setFishVoiceName] = useState<string>('')
-  const [fishVerifyConfirmed, setFishVerifyConfirmed] = useState(false)
-  const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>('idle')
-  const [verifyError, setVerifyError] = useState<string>('')
 
   // 音量配置
   const [dubVolume, setDubVolume] = useState<number>(TTS_DEFAULTS.DUBBED_VOLUME)
@@ -128,19 +112,6 @@ export function TTSConfig({ onConfigChange }: TTSConfigProps) {
             TTS_DEFAULTS.EDGE_TTS_DEFAULT_VOICE,
         )
         setEdgeRate(data.configs[TTS_CONFIG_KEYS.EDGE_TTS_RATE] || TTS_DEFAULTS.EDGE_TTS_RATE)
-
-        // 加载 Fish Audio 配置
-        const savedFishVoiceId = data.configs[TTS_CONFIG_KEYS.FISH_AUDIO_VOICE_ID] || ''
-        const savedFishVoiceName = data.configs[TTS_CONFIG_KEYS.FISH_AUDIO_VOICE_NAME] || ''
-        setFishVoiceId(savedFishVoiceId)
-        setFishVoiceName(savedFishVoiceName)
-
-        // 已保存的 Fish Audio 兼容音色只代表有历史记录，不等于本次远端验证通过。
-        if (savedFishVoiceId && savedFishVoiceName) {
-          setVerifyStatus('saved_unverified')
-        } else {
-          setVerifyStatus('idle')
-        }
 
         // 加载配音音量配置
         const savedDubVolume = parseFloat(data.configs[TTS_CONFIG_KEYS.DUBBED_VOLUME] || '')
@@ -243,80 +214,9 @@ export function TTSConfig({ onConfigChange }: TTSConfigProps) {
     }
   }, [defaultLanguage, provider, edgeVoice])
 
-  // ========== Fish Audio 验证 ==========
-
-  const handleVerifyFishVoice = async () => {
-    if (!fishVoiceId.trim()) {
-      setVerifyError('请输入音色 ID')
-      setVerifyStatus('error')
-      return
-    }
-
-    if (!fishVerifyConfirmed) {
-      setVerifyError('Fish Audio 旧兼容验证会访问外部服务；请先确认。')
-      setVerifyStatus('error')
-      return
-    }
-
-    setVerifyStatus('verifying')
-    setVerifyError('')
-
-    try {
-      const response = await fetch('/api/tts/verify-voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          voice_id: fishVoiceId.trim(),
-          confirmLegacyFishAudio: true,
-          confirmPaidVerification: true,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.valid) {
-        setFishVoiceName(data.voice_name)
-        setVerifyStatus('verified')
-        setVerifyError('')
-        setFishVerifyConfirmed(false)
-      } else {
-        setVerifyStatus('error')
-        setVerifyError(data.message || data.error || '验证失败')
-        setFishVoiceName('')
-      }
-    } catch {
-      setVerifyStatus('error')
-      setVerifyError('网络错误，请重试')
-      setFishVoiceName('')
-    }
-  }
-
-  // Fish Voice ID 变化时重置验证状态
-  const handleFishVoiceIdChange = (value: string) => {
-    setFishVoiceId(value)
-    setFishVerifyConfirmed(false)
-    if (verifyStatus !== 'idle') {
-      setVerifyStatus('idle')
-      setVerifyError('')
-      setFishVoiceName('')
-    }
-  }
-
   // ========== 保存配置 ==========
 
   const handleSave = async () => {
-    if (provider === 'fish_audio') {
-      if (!fishVoiceId.trim()) {
-        toast.error('请输入 Fish Audio 兼容音色 ID')
-        return
-      }
-
-      if (!fishVoiceName.trim() || verifyStatus === 'error') {
-        toast.error('请先验证 Fish Audio 兼容音色 ID，或沿用已保存的兼容音色。')
-        return
-      }
-    }
-
     setSaving(true)
 
     try {
@@ -325,8 +225,6 @@ export function TTSConfig({ onConfigChange }: TTSConfigProps) {
         [TTS_CONFIG_KEYS.DEFAULT_LANGUAGE]: defaultLanguage,
         [TTS_CONFIG_KEYS.EDGE_TTS_DEFAULT_VOICE]: edgeVoice,
         [TTS_CONFIG_KEYS.EDGE_TTS_RATE]: edgeRate,
-        [TTS_CONFIG_KEYS.FISH_AUDIO_VOICE_ID]: fishVoiceId,
-        [TTS_CONFIG_KEYS.FISH_AUDIO_VOICE_NAME]: fishVoiceName,
         [TTS_CONFIG_KEYS.DUBBED_VOLUME]: dubVolume.toString(),
         [TTS_CONFIG_KEYS.BGM_VOLUME]: bgmVolume.toString(),
       }
@@ -358,11 +256,7 @@ export function TTSConfig({ onConfigChange }: TTSConfigProps) {
     if (!status) return null
 
     if (status.available) {
-      return (
-        <span className="ml-2 text-xs text-green-600">
-          ● {providerType === 'fish_audio' ? '兼容配置存在' : '内置可用'}
-        </span>
-      )
+      return <span className="ml-2 text-xs text-green-600">● 内置可用</span>
     }
     if (status.requiresConfig && !status.configured) {
       return <span className="ml-2 text-xs text-yellow-600">● 需配置</span>
@@ -535,68 +429,6 @@ export function TTSConfig({ onConfigChange }: TTSConfigProps) {
           </div>
         )}
 
-        {/* Fish Audio 音色配置 */}
-        {provider === 'fish_audio' && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-claude-dark-900">
-              Fish Audio 兼容音色 ID
-            </Label>
-            <div className="flex gap-2 max-w-md">
-              <Input
-                value={fishVoiceId}
-                onChange={(e) => handleFishVoiceIdChange(e.target.value)}
-                placeholder="输入旧项目 Fish Audio 音色 ID"
-                className="flex-1 border-claude-dark-300/30 focus:border-claude-orange-500 focus:ring-claude-orange-500/20"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleVerifyFishVoice}
-                disabled={
-                  verifyStatus === 'verifying' || !fishVoiceId.trim() || !fishVerifyConfirmed
-                }
-                className="border-claude-dark-300/30 hover:bg-claude-dark-50"
-              >
-                {verifyStatus === 'verifying' ? '验证中...' : '验证'}
-              </Button>
-            </div>
-            <label className="flex max-w-md items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-5 text-amber-800">
-              <input
-                type="checkbox"
-                checked={fishVerifyConfirmed}
-                onChange={(event) => setFishVerifyConfirmed(event.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-              />
-              <span>
-                我确认验证 Fish Audio 旧兼容音色会访问外部
-                provider，可能产生费用；服务端还必须显式设置 ALLOW_PAID_DYNAMIC_TESTS=true。
-              </span>
-            </label>
-
-            {/* 验证状态 */}
-            {verifyStatus === 'verified' && fishVoiceName && (
-              <p className="text-xs text-green-600 flex items-center gap-1">
-                <span>●</span> 远端验证通过：{fishVoiceName}
-              </p>
-            )}
-            {verifyStatus === 'saved_unverified' && fishVoiceName && (
-              <p className="text-xs text-amber-700 flex items-center gap-1">
-                <span>●</span> 已保存兼容音色：{fishVoiceName}；未执行本次远端验证。
-              </p>
-            )}
-            {verifyStatus === 'error' && verifyError && (
-              <p className="text-xs text-red-600 flex items-center gap-1">
-                <span>●</span> {verifyError}
-              </p>
-            )}
-            {verifyStatus === 'idle' && (
-              <p className="text-xs text-claude-dark-400">
-                旧剪辑兼容任务会使用此音色 ID；当前主线请使用 MiniMax voice_id。
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Provider 状态显示 */}
         {providerStatus.length > 0 && (
           <div className="mt-4 p-3 bg-claude-dark-50/50 rounded-lg">
@@ -608,13 +440,11 @@ export function TTSConfig({ onConfigChange }: TTSConfigProps) {
                     className={`w-2 h-2 rounded-full ${status.available ? 'bg-green-500' : status.requiresConfig && !status.configured ? 'bg-yellow-500' : 'bg-red-500'}`}
                   />
                   <span className="text-claude-dark-600">
-                    {status.provider === 'edge_tts' ? 'Edge TTS' : 'Fish Audio（兼容）'}:
+                    {status.provider === 'edge_tts' ? 'Edge TTS' : status.provider}:
                   </span>
                   <span className="text-claude-dark-500">
                     {status.available
-                      ? status.provider === 'fish_audio'
-                        ? '兼容配置存在，不代表本次验证通过'
-                        : '内置可用'
+                      ? '内置可用'
                       : status.requiresConfig && !status.configured
                         ? '需要补齐对应兼容配置'
                         : '不可用'}

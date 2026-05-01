@@ -2,6 +2,29 @@
 
 LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch），日期格式 YYYY-MM-DD。
 
+## [1.0.0] — 2026-05-01（自媒體生產台 v1，commit `<TBD>`）
+
+從 ChuangCut（v16.x）重構為 LaputaMediaCenter v1.0.0。版本號 reset 為「v1 自媒體生產台」起點。
+
+**主要工具線**：
+- 影片本地化（普通话 / 粤语）— `/dubbing`
+- 播客整理（长文/字幕 → 双人脚本 + MiniMax 配音）— `/podcast`
+- 高亮切片（长视频 → 30-60s 短片 + 烧录字幕）— `/highlights`
+- 多平台改写（YT/抖音/小红书/公众号）— `/script-rewrite`
+- 标题与开头优化（5 候选标题 + 开头 30s 重写）— `/title-hooks`
+- 配音 QA（8 维度，dubbing 模式內建）
+
+**Phase 4 cleanup（W0-W3 + Fish Audio purge + 版本號 reset）**：
+- W0：6 类 TS production error + 51 文件 biome auto-fix + 9 个手动 lint（commit `831a876`）
+- W1：Mandarin prompt 6 step + 5 SYSTEM_INSTRUCTION + UI 文案 + 35 测试（commit `60becb4`）
+- W2：4 工具 nav + dashboard + AUTH-aware login + health 4-mode + MD/PDF clear + podcast CTA + UI 术语去工程化（commit `9bb63d0`）
+- W3：9:16 ffmpeg + settings 404 silent + mobile chip + 品牌統一 + CHANGELOG.md（commit `570e9f0`）
+- Plan A 实机验证：W2-W3 改动 + S-01 并发 jobs / S-04 上传边界 / S-05 并发 recut 全过
+- Plan B：Fish Audio UI 完全砍除（types `TTSProvider` 收歛為 `'edge_tts'` / `tts-config.tsx` 移除 Fish 全部 state+handler+UI / `status-badge.tsx` 移除 fish_audio_* labels），版本號 reset 16.0.0 → 1.0.0
+
+**保留**（為向後兼容）：
+- `lib/cost/`、`lib/db/tables/job-costs.ts`、`lib/loaders/report-loader.ts` — 歷史 cost tracking 不砍，舊 job report 仍能渲染 fish_audio 列（顯示 0 次）
+
 ## [Unreleased] — Phase 4 cleanup（2026-05-01 進行中）
 
 修 Codex 獨立測試報告（CODEX_FINDINGS.md）的 13 個 issue，分 W0-W3 四波交付。

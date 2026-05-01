@@ -5,14 +5,14 @@
 
 // ========== Provider 枚举 ==========
 
-/** TTS 服务提供商类型 */
-export type TTSProvider = 'fish_audio' | 'edge_tts'
+/** TTS 服务提供商类型（Fish Audio 已 Phase 1.B 砍除，留 edge_tts 為旧剪辑兼容後備） */
+export type TTSProvider = 'edge_tts'
 
 // ========== 语音配置 ==========
 
 /** 通用语音配置 */
 export interface TTSVoiceConfig {
-  /** 语音 ID（Fish Audio 为 voice_id，Edge TTS 为 voice name） */
+  /** 语音 ID（Edge TTS 为 voice name） */
   voiceId: string
   /** 语速调节（Edge TTS: -50% ~ +100%，如 '+10%'） */
   rate?: string
@@ -112,13 +112,6 @@ export const TTS_CONFIG_KEYS = {
   DUBBED_VOLUME: 'dubbed_volume',
   /** 配乐音量（0.0-1.2，默认 0.15，超过 1.0 时盖过配音） */
   BGM_VOLUME: 'bgm_volume',
-  /**
-   * @deprecated Phase 1.B 砍 Fish Audio 全鏈路，這 2 個 key 留給舊 settings UI 兼容。
-   * 已不再被 runtime 任何 provider 讀取；Phase 4 整理 TTSConfig UI 時連同移除。
-   */
-  FISH_AUDIO_VOICE_ID: 'fish_audio_voice_id',
-  /** @deprecated 同上 */
-  FISH_AUDIO_VOICE_NAME: 'fish_audio_voice_name',
 } as const
 
 /** TTS 默认配置 */

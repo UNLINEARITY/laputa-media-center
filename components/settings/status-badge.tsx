@@ -64,12 +64,10 @@ interface StatusChipProps {
 }
 
 export function StatusChip({ label, badge }: StatusChipProps) {
-  // 服务名称映射表
+  // 服务名称映射表（Phase 1.B 砍 Fish Audio，僅留 Google + MiniMax 主線）
   const serviceNameMap: Record<string, string> = {
     google_ai_studio: 'Google AI Studio',
     google_vertex: 'Google Vertex',
-    fish_audio_ai_studio: 'Fish Audio（兼容）',
-    fish_audio_vertex: 'Fish Audio（兼容）',
     minimax_tts: 'MiniMax 配音',
   }
 
