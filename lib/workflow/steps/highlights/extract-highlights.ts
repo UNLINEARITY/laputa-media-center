@@ -22,6 +22,7 @@ import type { WorkflowContext } from '../../types'
 import { BaseStep } from '../base'
 import { getHighlightCutsDir, getHighlightsArtifactOutputPath } from './artifact-paths'
 import type { HighlightCandidate, HighlightsBrief } from './find-highlights'
+import { translateSegmentsForSubtitle } from './translate-segments'
 
 interface TranscriptSegment {
   start: number
@@ -70,11 +71,18 @@ function pickSegmentsForClip(
   return segments.filter((s) => s.end > clipStart && s.start < clipEnd)
 }
 
+/** 唯一識別一個 ASR segment（用來查 translation map） */
+function asrSegmentId(s: TranscriptSegment): string {
+  return `${s.start.toFixed(3)}_${s.end.toFixed(3)}`
+}
+
 function buildClipAss(opt: {
   segments: TranscriptSegment[]
   clipStart: number
   clipEnd: number
   presetId: SubtitlePresetId
+  /** 可選翻譯 map：asrSegmentId → 翻譯後文本；無則用 ASR 原文 */
+  translations?: Map<string, string>
 }): string {
   // ASR 段（譬如 whisper）经常把 20+ 秒文本合成一个 segment，直接当 ASS Dialogue
   // 会全部叠在一起。要把每個長 segment 再按句号/逗号切成 ~3-5s 短 chunks，
@@ -82,8 +90,9 @@ function buildClipAss(opt: {
   const allSubSegs: { text: string; startTime: number; endTime: number }[] = []
   for (const s of opt.segments) {
     const segDuration = Math.max(0.5, s.end - s.start)
-    const text = s.text.trim()
-    if (!text) continue
+    const original = s.text.trim()
+    if (!original) continue
+    const text = opt.translations?.get(asrSegmentId(s)) || original
     const subSegs = splitIntoSegments(text, segDuration, { maxChars: 18, minChars: 4 })
     // 子段时间是相对该 segment 的（0 → segDuration），加 offset 转为相对 clip
     const offset = Math.max(0, s.start - opt.clipStart)
@@ -93,6 +102,14 @@ function buildClipAss(opt: {
       if (endTime > startTime) {
         allSubSegs.push({ text: sub.text, startTime, endTime })
       }
+    }
+  }
+  // 加 0.1s gap 避免相鄰 chunks 邊界疊加（兩三條同框視覺問題）
+  for (let i = 0; i < allSubSegs.length - 1; i++) {
+    const cur = allSubSegs[i]
+    const next = allSubSegs[i + 1]
+    if (cur.endTime > next.startTime - 0.1) {
+      cur.endTime = Math.max(cur.startTime + 0.3, next.startTime - 0.1)
     }
   }
   return generateSegmentedASS({
@@ -162,6 +179,8 @@ export async function processHighlightCandidate(opt: {
   presetId: SubtitlePresetId
   fontsDir: string
   aspect: '16:9' | '9:16'
+  /** 可選翻譯 map：asrSegmentId → 翻譯後文本（粵語等）；無則用 ASR 原文 */
+  translations?: Map<string, string>
 }): Promise<HighlightCutRecord> {
   const seqIdx = String(opt.index + 1).padStart(2, '0')
   const slug = slugify(opt.candidate.hook_text || opt.candidate.id)
@@ -175,6 +194,7 @@ export async function processHighlightCandidate(opt: {
     clipStart: opt.candidate.start,
     clipEnd: opt.candidate.end,
     presetId: opt.presetId,
+    translations: opt.translations,
   })
   await writeFile(assPath, ass, 'utf-8')
 
@@ -212,6 +232,8 @@ export class ExtractHighlightsStep extends BaseStep<ExtractHighlightsOutput> {
     const presetId = ((config.highlights_subtitle_preset as SubtitlePresetId) ||
       'xhs_fresh') as SubtitlePresetId
     const aspect = ((config.highlights_aspect as '16:9' | '9:16') || '16:9') as '16:9' | '9:16'
+    const targetLanguage = (config.highlights_target_language as string) || 'auto'
+    const sourceLanguage = (config.source_language as string) || 'auto'
 
     const briefFile = getHighlightsArtifactOutputPath(ctx.jobId, 'highlights.brief')
     if (!existsSync(briefFile)) {
@@ -238,6 +260,37 @@ export class ExtractHighlightsStep extends BaseStep<ExtractHighlightsOutput> {
     const ffmpeg = getIngestFfmpeg()
     const fontsDir = path.join(process.cwd(), 'resource/fonts')
 
+    // 翻譯 highlight 範圍內的 ASR segments（去重）→ asrSegmentId → 翻譯文本 map
+    // 若 target_language 不是粵語，translateSegmentsForSubtitle 會直接返回原文 1:1 map
+    const segmentsInHighlights = new Map<string, TranscriptSegment>()
+    for (const c of brief.highlights) {
+      for (const s of pickSegmentsForClip(segments, c.start, c.end)) {
+        const id = asrSegmentId(s)
+        if (!segmentsInHighlights.has(id)) segmentsInHighlights.set(id, s)
+      }
+    }
+    const translateInput = Array.from(segmentsInHighlights.entries()).map(([id, s]) => ({
+      id,
+      text: s.text.trim(),
+    }))
+    this.log(ctx, '准备字幕翻译', {
+      target_language: targetLanguage,
+      asr_segments_in_highlights: translateInput.length,
+    })
+    const translation = await translateSegmentsForSubtitle({
+      segments: translateInput,
+      targetLanguage,
+      sourceLanguage,
+    })
+    if (translation.warning) {
+      this.log(ctx, `字幕翻译: ${translation.warning}`, { provider: translation.llmProvider })
+    } else if (translation.llmProvider) {
+      this.log(ctx, '字幕翻译完成', {
+        provider: translation.llmProvider,
+        translated_count: translation.translations.size,
+      })
+    }
+
     const cuts: HighlightCutRecord[] = []
     let failed = 0
     for (let i = 0; i < brief.highlights.length; i++) {
@@ -253,6 +306,7 @@ export class ExtractHighlightsStep extends BaseStep<ExtractHighlightsOutput> {
           presetId,
           fontsDir,
           aspect,
+          translations: translation.translations,
         })
         cuts.push(cut)
         this.log(ctx, '高亮片段切出', {

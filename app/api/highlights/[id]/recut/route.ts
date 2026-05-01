@@ -27,6 +27,7 @@ import type {
   HighlightCandidate,
   HighlightsBrief,
 } from '@/lib/workflow/steps/highlights/find-highlights'
+import { translateSegmentsForSubtitle } from '@/lib/workflow/steps/highlights/translate-segments'
 import type { SubtitlePresetId } from '@/lib/subtitle/types'
 
 const recutItemSchema = z.object({
@@ -139,6 +140,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const presetId = ((config.highlights_subtitle_preset as SubtitlePresetId) ||
       'xhs_fresh') as SubtitlePresetId
     const aspect = ((config.highlights_aspect as '16:9' | '9:16') || '16:9') as '16:9' | '9:16'
+    const targetLanguage = (config.highlights_target_language as string) || 'auto'
+    const sourceLanguage = (config.source_language as string) || 'auto'
+
+    // 翻譯 recut 範圍內的 ASR segments（粵語等）；非粵語直接 1:1 用原文
+    const segmentsInRecut = new Map<string, { start: number; end: number; text: string }>()
+    for (const item of data.cuts) {
+      for (const s of segments) {
+        if (s.end > item.start && s.start < item.end) {
+          const id = `${s.start.toFixed(3)}_${s.end.toFixed(3)}`
+          if (!segmentsInRecut.has(id)) segmentsInRecut.set(id, s)
+        }
+      }
+    }
+    const translation = await translateSegmentsForSubtitle({
+      segments: Array.from(segmentsInRecut.entries()).map(([id, s]) => ({
+        id,
+        text: s.text.trim(),
+      })),
+      targetLanguage,
+      sourceLanguage,
+    })
+    if (translation.warning) {
+      logger.warn('Highlights recut: 字幕翻译警告', {
+        jobId,
+        warning: translation.warning,
+      })
+    }
 
     const updatedCuts: HighlightCutRecord[] = [...cutsData.cuts]
     const errors: { clip_id: string; message: string }[] = []
@@ -190,6 +218,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           presetId,
           fontsDir,
           aspect,
+          translations: translation.translations,
         })
         if (existingCutIdx >= 0) {
           updatedCuts[existingCutIdx] = recut
