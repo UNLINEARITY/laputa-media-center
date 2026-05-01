@@ -367,6 +367,8 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             showKey={openaiShow}
             setShowKey={setOpenaiShow}
             saving={openaiSaving}
+            testing={testing === 'openai'}
+            testResult={testResults.openai || null}
             onSave={async () => {
               setOpenaiSaving(true)
               const ok = await saveProviderConfig('openai', openaiKey, openaiModel, openaiBaseUrl)
@@ -376,6 +378,17 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
                 setOpenaiBaseUrl('')
               }
               setOpenaiSaving(false)
+            }}
+            onSaveAndTest={async () => {
+              setOpenaiSaving(true)
+              const ok = await saveProviderConfig('openai', openaiKey, openaiModel, openaiBaseUrl)
+              setOpenaiSaving(false)
+              if (ok) {
+                setOpenaiKey('')
+                setOpenaiModel('')
+                setOpenaiBaseUrl('')
+                await handleTest('openai')
+              }
             }}
             keyPlaceholder="sk-..."
             modelPlaceholder="gpt-4o-mini"
@@ -397,6 +410,8 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             showKey={mistralShow}
             setShowKey={setMistralShow}
             saving={mistralSaving}
+            testing={testing === 'mistral'}
+            testResult={testResults.mistral || null}
             onSave={async () => {
               setMistralSaving(true)
               const ok = await saveProviderConfig('mistral', mistralKey, mistralModel, mistralBaseUrl)
@@ -406,6 +421,17 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
                 setMistralBaseUrl('')
               }
               setMistralSaving(false)
+            }}
+            onSaveAndTest={async () => {
+              setMistralSaving(true)
+              const ok = await saveProviderConfig('mistral', mistralKey, mistralModel, mistralBaseUrl)
+              setMistralSaving(false)
+              if (ok) {
+                setMistralKey('')
+                setMistralModel('')
+                setMistralBaseUrl('')
+                await handleTest('mistral')
+              }
             }}
             keyPlaceholder="..."
             modelPlaceholder="mistral-small-latest"
@@ -432,7 +458,10 @@ interface CredentialEditorProps {
   showKey: boolean
   setShowKey: (v: boolean) => void
   saving: boolean
+  testing: boolean
+  testResult: TestResult | null
   onSave: () => void | Promise<void>
+  onSaveAndTest: () => void | Promise<void>
   keyPlaceholder: string
   modelPlaceholder: string
   baseUrlPlaceholder: string
@@ -508,20 +537,51 @@ function CredentialEditor(props: CredentialEditorProps) {
         />
         <p className="text-[11px] text-claude-dark-400">{props.baseUrlHint}</p>
       </div>
-      <Button
-        size="sm"
-        onClick={() => void props.onSave()}
-        disabled={props.saving || !props.keyValue.trim()}
-        className="bg-claude-orange-500 text-white hover:bg-claude-orange-600"
-      >
-        {props.saving ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> 保存中
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void props.onSave()}
+          disabled={props.saving || props.testing || !props.keyValue.trim()}
+        >
+          {props.saving ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> 保存中
+            </span>
+          ) : (
+            '仅保存'
+          )}
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => void props.onSaveAndTest()}
+          disabled={props.saving || props.testing || !props.keyValue.trim()}
+          className="bg-claude-orange-500 text-white hover:bg-claude-orange-600"
+        >
+          {props.saving || props.testing ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {props.saving ? '保存中' : '测试连接中'}
+            </span>
+          ) : (
+            '保存并测试连接'
+          )}
+        </Button>
+        {props.testResult && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+              props.testResult.ok
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-red-200 bg-red-50 text-red-700'
+            }`}
+            title={props.testResult.message}
+          >
+            {props.testResult.ok
+              ? `✓ 通过 ${props.testResult.latencyMs ?? '-'}ms`
+              : `✗ ${props.testResult.message?.slice(0, 40) || '失败'}`}
           </span>
-        ) : (
-          `保存 ${props.kind === 'openai' ? 'OpenAI' : 'Mistral'} 配置`
         )}
-      </Button>
+      </div>
     </div>
   )
 }
