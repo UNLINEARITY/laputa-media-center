@@ -20,9 +20,12 @@ import {
   Label,
 } from '@/components/ui'
 
+type TargetLang = 'auto' | 'mandarin' | 'cantonese'
+
 export default function TitleHooksPage() {
   const [text, setText] = useState('')
   const [originalTitle, setOriginalTitle] = useState('')
+  const [targetLang, setTargetLang] = useState<TargetLang>('auto')
   const [open, setOpen] = useState(false)
 
   const handleOpen = useCallback(() => {
@@ -86,6 +89,40 @@ export default function TitleHooksPage() {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="text-xs">输出语言</Label>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { id: 'auto', label: '自动（保持源语言）' },
+                  { id: 'mandarin', label: '普通话' },
+                  { id: 'cantonese', label: '粵語（港式）' },
+                ] as const
+              ).map((opt) => {
+                const active = targetLang === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setTargetLang(opt.id)}
+                    className={`rounded-md border px-3 py-1.5 text-xs transition-all ${
+                      active
+                        ? 'border-claude-orange-300 bg-claude-orange-50 text-claude-orange-700'
+                        : 'border-claude-cream-200 bg-white text-claude-dark-500 hover:border-claude-cream-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+            {targetLang === 'cantonese' && (
+              <p className="text-[11px] text-claude-dark-400">
+                将注入港式粵語 prompt 规则（我哋、嘅、喺、嚟、係 等），输出会带粵語语感。
+              </p>
+            )}
+          </div>
+
           <Button
             onClick={handleOpen}
             disabled={!canSubmit}
@@ -109,6 +146,7 @@ export default function TitleHooksPage() {
                 transcript: { text: text.trim() },
                 original_title: originalTitle.trim() || undefined,
                 source_language: 'zh',
+                target_language: targetLang,
               }
             : null
         }

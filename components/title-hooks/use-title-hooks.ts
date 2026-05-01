@@ -30,6 +30,7 @@ export interface TitleHookInputUI {
   }
   original_title?: string
   source_language?: string
+  target_language?: 'auto' | 'mandarin' | 'cantonese'
 }
 
 export function useTitleHooks() {

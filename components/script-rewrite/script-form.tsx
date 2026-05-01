@@ -23,6 +23,7 @@ import {
 
 type SourceMode = 'text' | 'md' | 'pdf'
 type PlatformId = 'youtube' | 'douyin' | 'xhs' | 'wechat'
+type TargetLang = 'auto' | 'mandarin' | 'cantonese'
 
 const PLATFORMS: { id: PlatformId; label: string; hint: string; icon: string }[] = [
   { id: 'youtube', label: 'YouTube 长视频', hint: '5-15 分钟，分章节 + b-roll', icon: '🎬' },
@@ -41,6 +42,7 @@ export function ScriptForm() {
   const [platforms, setPlatforms] = useState<Set<PlatformId>>(
     new Set(['youtube', 'douyin', 'xhs', 'wechat']),
   )
+  const [targetLang, setTargetLang] = useState<TargetLang>('auto')
   const [submitting, setSubmitting] = useState(false)
 
   const togglePlatform = (id: PlatformId) => {
@@ -109,6 +111,7 @@ export function ScriptForm() {
           source_type: sourceType,
           source_language: 'auto',
           script_platforms: Array.from(platforms),
+          script_target_language: targetLang,
         }),
       })
       if (!res.ok) {
@@ -123,7 +126,7 @@ export function ScriptForm() {
     } finally {
       setSubmitting(false)
     }
-  }, [sourceMode, textDraft, uploadedPath, platforms, router])
+  }, [sourceMode, textDraft, uploadedPath, platforms, targetLang, router])
 
   return (
     <Card className="border-claude-cream-200 bg-white">
@@ -238,6 +241,41 @@ export function ScriptForm() {
               )
             })}
           </div>
+        </div>
+
+        {/* 输出语言 */}
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-claude-dark-700">输出语言</Label>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                { id: 'auto', label: '自动（保持源语言）' },
+                { id: 'mandarin', label: '普通话' },
+                { id: 'cantonese', label: '粵語（港式）' },
+              ] as const
+            ).map((opt) => {
+              const active = targetLang === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setTargetLang(opt.id)}
+                  className={`rounded-md border px-3 py-1.5 text-xs transition-all ${
+                    active
+                      ? 'border-claude-orange-300 bg-claude-orange-50 text-claude-orange-700'
+                      : 'border-claude-cream-200 bg-white text-claude-dark-500 hover:border-claude-cream-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+          {targetLang === 'cantonese' && (
+            <p className="text-[11px] text-claude-dark-400">
+              4 个平台都按港式粵語改写：YouTube/抖音偏口语，小红书/公众号偏书面，但都用我哋、嘅、喺等粵語助词。
+            </p>
+          )}
         </div>
 
         <Button

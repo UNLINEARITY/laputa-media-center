@@ -9,6 +9,11 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
+import {
+  type CantoneseStyle,
+  getCantoneseRules,
+  isCantoneseTarget,
+} from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -71,25 +76,55 @@ const SYSTEM_INSTRUCTION = `你是一位资深中文自媒体多平台脚本改�
 - 微信公众号：正式标题 + 副标题 + 长文 Markdown（约 1000-2000 字）
 所有输出严格符合 JSON schema；不要进行语言翻译；保持源语言。`
 
+/**
+ * 各平台對應的粵語風格：
+ * - YouTube 長視頻 → localized_script（演說稿改寫）
+ * - 抖音 60s → short_video（短視頻配音）
+ * - 小紅書圖文 → written（書面 + 粵語助詞，跳過 TTS 節奏規則）
+ * - 公眾號長文 → written（書面）
+ */
+const PLATFORM_TO_CANTONESE_STYLE: Record<PlatformId, CantoneseStyle> = {
+  youtube: 'localized_script',
+  douyin: 'short_video',
+  xhs: 'written',
+  wechat: 'written',
+}
+
 function buildScriptPromptPayload(opt: {
   brief: MultiPlatformBrief
   sourceText: string
   platforms: PlatformId[]
   creatorContext?: Record<string, unknown>
   language?: string
+  targetLanguage?: string
 }) {
+  const isCantonese = isCantoneseTarget(opt.targetLanguage)
+  // 為每個 selected platform 生成各自的粵語規則塊；無 selected → 空對象
+  const cantonesePerPlatform: Record<string, string[]> = {}
+  if (isCantonese) {
+    for (const p of opt.platforms) {
+      cantonesePerPlatform[p] = getCantoneseRules({
+        targetLanguage: opt.targetLanguage,
+        style: PLATFORM_TO_CANTONESE_STYLE[p],
+      })
+    }
+  }
   return {
     task: 'Rewrite the source draft into platform-specific scripts',
     source_language: opt.language || 'auto',
+    target_language: opt.targetLanguage || 'auto',
     selected_platforms: opt.platforms,
     instructions: [
       '1) 仅为 selected_platforms 中的平台输出对应字段；其它字段返回 null',
       '2) youtube_long: sections 4-8 段，每段 voice_over 100-300 字，b_roll_hint 一句话',
       '3) douyin_short: hook 一句 ≤ 20 字，body 60-150 字，cta 一句，subtitle_lines 按句拆分',
-      '4) xhs_post: cover_title ≤ 20 字，body_markdown 含 emoji 与小标题，tags 5-8 个（中文 + #）',
+      '4) xhs_post: cover_title ≤ 20 字，body_markdown 含 emoji 与小标题（不要在 body 末尾重复 tags），tags 5-8 个（中文 + #，仅出现在 tags 数组）',
       '5) wechat_article: title 正式，subtitle 可选，body_markdown 1000-2000 字',
-      '6) 不进行语言翻译；保持源语言',
+      isCantonese
+        ? '6) 输出语言：港式粤语 — 不同平台风格不同，按 cantonese_rules_per_platform 各自的规则块改写'
+        : '6) 不进行语言翻译；保持源语言',
     ],
+    cantonese_rules_per_platform: cantonesePerPlatform,
     response_schema: {
       youtube_long:
         '{ title, estimated_minutes, sections: [{id, heading, voice_over, b_roll_hint?}] } | null',
@@ -233,6 +268,7 @@ export class GeneratePlatformScriptsStep extends BaseStep<GeneratePlatformScript
       'wechat',
     ]
     const sourceLanguage = (config.source_language as string) || 'auto'
+    const targetLanguage = (config.script_target_language as string) || 'auto'
     const creatorContext =
       config.creator_context && typeof config.creator_context === 'object'
         ? (config.creator_context as Record<string, unknown>)
@@ -267,6 +303,7 @@ export class GeneratePlatformScriptsStep extends BaseStep<GeneratePlatformScript
             platforms,
             creatorContext,
             language: sourceLanguage,
+            targetLanguage,
           }),
         ),
         responseMimeType: 'application/json',

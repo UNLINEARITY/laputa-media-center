@@ -6,6 +6,7 @@
  */
 
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
+import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type {
   OpeningOptimization,
@@ -17,7 +18,7 @@ import type {
 const SYSTEM_INSTRUCTION = `你是一位资深中文自媒体标题策划与开场鉤子优化师。
 你擅长在不夸张、不标题党的前提下，把一篇文稿的核心观点转化为 5 条「能在算法和人眼之间都站得住」的标题候选；
 并把开头前 30 秒改写成更抓眼但仍然忠于原意的版本。
-所有输出严格符合 JSON schema；不要进行语言翻译；保持源语言。`
+所有输出严格符合 JSON schema；不要进行语言翻译；保持源语言（除非显式指定 target_language）。`
 
 const MAX_TRANSCRIPT_CHARS = 8000 // 给 LLM 的 transcript 截断上限
 
@@ -37,9 +38,17 @@ function extractFirst30Seconds(input: TitleHookInput): string {
 
 function buildPromptPayload(input: TitleHookInput, first30s: string) {
   const fullText = input.transcript.text.slice(0, MAX_TRANSCRIPT_CHARS)
+  const isCantonese = isCantoneseTarget(input.target_language)
+  // 標題 + 開頭優化都偏 short_video 風格（短、抓眼、可朗讀）
+  const cantoneseRules = getCantoneseRules({
+    targetLanguage: input.target_language,
+    style: 'short_video',
+    includeSpokenNumbers: true,
+  })
   return {
     task: 'Generate 5 title candidates and optimize opening for a self-media video',
     source_language: input.source_language || 'zh',
+    target_language: input.target_language || 'auto',
     instructions: [
       '1) 通读全文 + 原标题（若有），提炼核心观点',
       '2) 输出 5 条候选标题（titles），每条 ≤ 30 字',
@@ -48,15 +57,20 @@ function buildPromptPayload(input: TitleHookInput, first30s: string) {
       '   - rationale 一句话解释为何这个标题抓眼',
       '   - 5 条至少跨 2 种风格（如：观点式 / 反问式 / 悬念式 / 数字列表式 / 对比式）',
       '3) 开头优化：original_first_30s 是前 30 秒原文，optimized_first_30s 是改写版，change_summary 说明改进点',
+      '   - optimized_first_30s 必须明显不同于 original_first_30s（重写鉤子、调整开场节奏、强化第一秒抓眼）',
+      '   - 不要直接复制原文；如无空间改写，至少调整开头 1-2 句的语序与措辞',
       '4) 不夸张、不标题党、不用「震惊!!」「太可怕了」之类廉价词',
-      '5) 不进行语言翻译；保持源语言',
+      isCantonese
+        ? '5) 输出语言：港式粤语（详见下方 cantonese_rules）'
+        : '5) 不进行语言翻译；保持源语言',
     ],
+    cantonese_rules: cantoneseRules,
     response_schema: {
       titles:
         '[{ text: string ≤30字, seo_keywords: string[2-4], hook_strength: 1|2|3|4|5, rationale: string }]',
       opening_optimization: {
         original_first_30s: 'string',
-        optimized_first_30s: 'string ≤200字',
+        optimized_first_30s: 'string ≤200字（必须重写，不能照抄原文）',
         change_summary: 'string ≤80字',
       },
     },

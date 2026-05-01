@@ -29,6 +29,7 @@ const requestSchema = z.object({
   }),
   original_title: z.string().max(200).optional(),
   source_language: z.string().max(20).optional(),
+  target_language: z.enum(['auto', 'mandarin', 'cantonese']).optional().default('auto'),
 })
 
 export async function POST(req: NextRequest) {

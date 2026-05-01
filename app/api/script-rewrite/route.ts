@@ -34,6 +34,7 @@ const createScriptSchema = z.object({
   script_platforms: z.array(platformSchema).min(1).default(['youtube', 'douyin', 'xhs', 'wechat']),
   script_target_minutes_youtube: z.number().int().min(2).max(60).optional(),
   script_target_seconds_douyin: z.number().int().min(15).max(180).optional(),
+  script_target_language: z.enum(['auto', 'mandarin', 'cantonese']).optional().default('auto'),
   creator_context: z.record(z.string(), z.unknown()).optional(),
 })
 
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
       script_platforms: data.script_platforms,
       script_target_minutes_youtube: data.script_target_minutes_youtube,
       script_target_seconds_douyin: data.script_target_seconds_douyin,
+      script_target_language: data.script_target_language,
       creator_context: data.creator_context,
     } as JobConfig
 

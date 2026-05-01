@@ -46,4 +46,11 @@ export interface TitleHookInput {
   original_title?: string
   /** 源语言（默认 zh） */
   source_language?: string
+  /**
+   * 目标语言：
+   * - 'auto'（默认）：保持源语言
+   * - 'mandarin'：普通话
+   * - 'cantonese'：港式粤语（注入 lib/i18n/cantonese-prompt.ts 规则）
+   */
+  target_language?: 'auto' | 'mandarin' | 'cantonese'
 }

@@ -247,6 +247,13 @@ export interface JobConfig {
   script_platforms?: ('youtube' | 'douyin' | 'xhs' | 'wechat')[]
   script_target_minutes_youtube?: number
   script_target_seconds_douyin?: number
+  /**
+   * 目標語言（Phase 3.C-B / 3.C-A 共用）
+   * - 'auto'（默認）：保持源語言
+   * - 'mandarin'：普通話
+   * - 'cantonese'：港式粵語（觸發 lib/i18n/cantonese-prompt.ts 規則）
+   */
+  script_target_language?: 'auto' | 'mandarin' | 'cantonese'
 
   /**
    * 高亮自动切片（Phase 3.C-A）

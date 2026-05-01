@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
+import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -48,10 +49,19 @@ function buildBriefPromptPayload(opt: {
   targetSecondsDouyin?: number
   creatorContext?: Record<string, unknown>
   language?: string
+  targetLanguage?: string
 }) {
+  const isCantonese = isCantoneseTarget(opt.targetLanguage)
+  // brief 階段是分析 + hook_candidates，偏 short_video 風格（鉤子要朗朗上口）
+  const cantoneseRules = getCantoneseRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'short_video',
+    includeSpokenNumbers: true,
+  })
   return {
     task: 'Analyze a draft for multi-platform script adaptation',
     source_language: opt.language || 'auto',
+    target_language: opt.targetLanguage || 'auto',
     target_minutes_youtube: opt.targetMinutesYoutube ?? 8,
     target_seconds_douyin: opt.targetSecondsDouyin ?? 60,
     instructions: [
@@ -64,8 +74,11 @@ function buildBriefPromptPayload(opt: {
       '   - xhs: tone（亲切 / 专业 / 锐评）+ cover_title_idea（封面标题创意，≤20 字）',
       '   - wechat: length_chars（建议字数）+ structure（结构骨架，如「现象-分析-观点-结尾」）',
       '5) glossary 抽 0-6 条术语 + 偏好措辞',
-      '6) 不进行语言翻译；保持源语言',
+      isCantonese
+        ? '6) 输出语言：港式粤语（hook_candidates / opener_style / cover_title_idea 等所有面向用户的文案都要粤化，详见 cantonese_rules）'
+        : '6) 不进行语言翻译；保持源语言',
     ],
+    cantonese_rules: cantoneseRules,
     response_schema: {
       summary: 'string',
       core_points: '[{ id: string, gist: string }]',
@@ -128,6 +141,7 @@ export class BuildMultiPlatformBriefStep extends BaseStep<BuildMultiPlatformBrie
   async execute(ctx: WorkflowContext): Promise<BuildMultiPlatformBriefOutput> {
     const config = ctx.input.config as unknown as Record<string, unknown>
     const sourceLanguage = (config.source_language as string) || 'auto'
+    const targetLanguage = (config.script_target_language as string) || 'auto'
     const youtubeMinutes = config.script_target_minutes_youtube as number | undefined
     const douyinSeconds = config.script_target_seconds_douyin as number | undefined
     const creatorContext =
@@ -165,6 +179,7 @@ export class BuildMultiPlatformBriefStep extends BaseStep<BuildMultiPlatformBrie
             targetSecondsDouyin: douyinSeconds,
             creatorContext,
             language: sourceLanguage,
+            targetLanguage,
           }),
         ),
         responseMimeType: 'application/json',
