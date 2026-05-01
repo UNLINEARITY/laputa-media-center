@@ -40,7 +40,7 @@
 - 使用繁體中文交流，可混用英文技術詞
 - 錯別字 / 簡轉繁混用 → 結合上下文理解
 - 偏好風格：先說結論、複雜問題拆解、給選項而非單一方案
-- 用戶 email：hkdadinsz@gmail.com
+- 維護者聯絡方式：開源後填 GitHub profile / public email（Wave 5.1 secrets 掃描後脫敏）
 - 用戶硬件：Intel i5-14600KF / 64GB RAM / RTX 5060 Ti 16GB（Blackwell）/ Windows 11 64-bit
 
 ## 核心設計原則

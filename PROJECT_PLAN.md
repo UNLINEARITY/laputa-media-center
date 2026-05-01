@@ -1,8 +1,11 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：✅ **Phase 4 完成**（v1.0.0 起點：Codex 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 主線 UI/provider 移除（legacy report/cost compat 保留）+ Plan C docs slim 88% + Plan D migrations-archive 砍 + 版本號 reset 1.0.0）
-**下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `f2200d0` `f6f0216` `d6f4333` `82333c2` `331ca8f`）。**主線：進 Phase 5 開源就緒**（secrets 全項目掃描 / README EN/ZH / install scripts / demo GIF / GitHub push）。
+**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets 掃描完成：強義 secrets = 0 leak；個資採 B+ 脫敏不重寫 history。下一步：LICENSE / README / install scripts / 首次嚮導 / push）
+**下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `f2200d0` `f6f0216` `d6f4333` `82333c2` `331ca8f`）。**主線：進 Phase 5 開源就緒**（secrets 全項目掃描 / history rewrite 清舊工作流帳號殘留 / README EN/ZH / install scripts / demo GIF / GitHub push）。
+
+**Phase 5 push 前阻塞項**:
+- Git history rewrite：清除 history 中所有舊工作流帳號 slug / 對應 Gmail / 相關衍生字串（不要在 repo 再寫成連續明文；記法：`laputa` + `gong-zuo-liu`）；**保留** `hkdadinsz@gmail.com`、`hkdadinsz`、`laputa`。
 
 **Phase 5 跟進清單**（不阻塞 release，但建議在 GitHub push 前處理）:
 - `tests/workflow/podcast-tts-mode.test.ts` 13 tests 是 schema 重寫 + 文檔斷言，需改成 import `@/app/api/podcast/route` 內部 schema export，並 execute `PodcastTtsStep` 真 early return path（Codex P3，user 確認非阻塞）
@@ -385,15 +388,16 @@
 
 **步驟**：
 1. 全文搜索殘留 secrets / 個人路徑（多輪 grep）
-2. 寫 README.md（中文 + 英文）
-3. 加 LICENSE（用戶確認 MIT 或 AGPL）
-4. CONTRIBUTING.md（明確「貢獻者可用任何 AI 工具」）
-5. 錄 1-2 分鐘 demo GIF / 視頻
-6. UI 截圖 3-5 張
-7. 安裝引導：`scripts/install.ps1` + `install.sh`
-8. 第一次運行嚮導 UI
-9. 刪 `_archive/`
-10. 用戶確認 → push GitHub
+2. Git history rewrite 清舊工作流帳號殘留（保留 `hkdadinsz*` / `laputa`）
+3. 寫 README.md（中文 + 英文）
+4. 加 LICENSE（用戶確認 MIT 或 AGPL）
+5. CONTRIBUTING.md（明確「貢獻者可用任何 AI 工具」）
+6. 錄 1-2 分鐘 demo GIF / 視頻
+7. UI 截圖 3-5 張
+8. 安裝引導：`scripts/install.ps1` + `install.sh`
+9. 第一次運行嚮導 UI
+10. 刪 `_archive/`
+11. 用戶確認 → push GitHub
 
 **驗證標準**：
 - ✅ 從零環境（新 Windows）按 README 5 分鐘內跑通
@@ -603,16 +607,29 @@
 - [x] 版本號重置 1.0.0（package.json + README）
 - [x] 寫 CHANGELOG（CHANGELOG.md，1.0.0 entry + W0-W3 + Phase 1-3.C 歷史摘要）
 
-### Phase 5：開源就緒
-- [ ] secrets 全項目掃描
+### Phase 5：開源就緒（進行中 2026-05-01）
+- [x] **Wave 5.1 secrets 全項目掃描完成**（commit pending B+ 脫敏）:
+  - **強義 secrets = 0 leak**：無 OpenAI/Google/GitHub/HF/AWS/Anthropic key、無 SESSION_SECRET / ENCRYPTION_KEY 真值、無 LICENSE_KEY 真值、無 私鑰 PEM、無 URL embedded credentials、無 yt-dlp cookies、working tree 完全乾淨
+  - **個資 5 類**（非 security incident，是隱私決策）：
+    1. `hkdadinsz@gmail.com` 在 AGENTS.md:43 + 全 55 commit author metadata
+    2. `noreply@laputamediacenter.local` 在 commits `ac7dc06` / `d0ac9f3` 已刪除的 docs/agent/credentials.md（在 history 仍可 git show）
+    3. Zeabur project IDs（已 Phase 1 decommissioned，曝光無實際風險）
+    4. GitHub username `laputamediacenter` 在 deleted history（PAT 是 `ghp_xxx` 占位符不是實值）
+    5. Cloudflare R2 public bucket URL（intentionally 公開，無風險）
+  - **採 B+ 方案**（非 C 完整 history 重寫）：
+    - AGENTS.md:43 working tree 脫敏為「維護者聯絡方式：開源後填」
+    - repo-local `user.email` 改為 `noreply@laputamediacenter.local`（後續 commit 不再用 personal email；GLOBAL git config 不動）
+    - 不重寫已存 55 commit 的 author metadata（cost > benefit；接受 5/1 之前 commits 的 email 曝光）
+    - 5/1 之後 commits 都用 noreply alias
+- [ ] Git history rewrite 清舊工作流帳號殘留（已選 B+ 不做 C 完整重寫；如未來決定改為 C，再啟動）
 - [ ] README 中英文
-- [ ] LICENSE
+- [ ] LICENSE（暫定 MIT，未落檔）
 - [ ] CONTRIBUTING.md
 - [ ] demo GIF / 截圖
 - [ ] install.ps1 / install.sh
 - [ ] 首次運行嚮導
 - [ ] 刪 _archive/
-- [ ] push GitHub
+- [ ] push GitHub（必須在 Wave 5.1 + 至少 LICENSE / README / install scripts 完成後）
 
 ---
 

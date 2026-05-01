@@ -152,8 +152,8 @@ export function convertToHttpsUrl(gsUri: string): string {
 
 /**
  * 将 HTTPS URL 转换为 gs:// URI
- * 例如: https://laputamediacenter.storage.googleapis.com/Inbox/xierda.mp4
- * 转换为: gs://laputamediacenter/Inbox/xierda.mp4
+ * 例如: https://example-bucket.storage.googleapis.com/Inbox/sample.mp4
+ * 转换为: gs://example-bucket/Inbox/sample.mp4
  */
 export function convertToGsUri(httpsUrl: string): string {
   // 空值检查
