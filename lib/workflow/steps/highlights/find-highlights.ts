@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
+import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -71,10 +72,19 @@ function buildHighlightsPromptPayload(opt: {
   targetCount: number
   totalDuration: number
   language?: string
+  targetLanguage?: string
 }) {
+  const isCantonese = isCantoneseTarget(opt.targetLanguage)
+  // hook_text / summary 是給用戶選段看的，不會 TTS，但仍要粵化（給 HK 用戶讀）
+  const cantoneseRules = getCantoneseRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'short_video',
+    includeSpokenNumbers: false, // hook_text 不會朗讀
+  })
   return {
     task: 'Extract high-value 30-60s highlight clips from a transcript with timestamps',
     source_language: opt.language || 'auto',
+    target_language: opt.targetLanguage || 'auto',
     target_count: opt.targetCount,
     total_duration_seconds: opt.totalDuration,
     instructions: [
@@ -84,9 +94,12 @@ function buildHighlightsPromptPayload(opt: {
       '4) score：1-10 评分（10 = 必剪）',
       '5) type 限定 5 种枚举：quotable / plot_twist / emotional_peak / storytelling / takeaway',
       '6) context_snippet：可选，给该段前后各 20 字上下文',
-      '7) 不要语言翻译；保持源语言',
+      isCantonese
+        ? '7) hook_text / summary 用港式粤语（详见 cantonese_rules）；context_snippet 可保源语言'
+        : '7) 不要语言翻译；保持源语言',
       '8) summary：一句话说明这批片段共同表达什么主题',
     ],
+    cantonese_rules: cantoneseRules,
     response_schema: {
       highlights: '[{ id: string, start: number, end: number, hook_text: string, score: number, type: enum, context_snippet?: string }]',
       summary: 'string',
@@ -206,6 +219,7 @@ export class FindHighlightsStep extends BaseStep<FindHighlightsOutput> {
   async execute(ctx: WorkflowContext): Promise<FindHighlightsOutput> {
     const config = ctx.input.config as unknown as Record<string, unknown>
     const sourceLanguage = (config.source_language as string) || 'auto'
+    const targetLanguage = (config.highlights_target_language as string) || 'auto'
     const targetCount = Math.max(3, Math.min(10, Number(config.highlights_target_count) || 5))
 
     const ingestDir = getIngestArtifactDir(ctx.jobId)
@@ -253,6 +267,7 @@ export class FindHighlightsStep extends BaseStep<FindHighlightsOutput> {
             targetCount,
             totalDuration,
             language: sourceLanguage,
+            targetLanguage,
           }),
         ),
         responseMimeType: 'application/json',

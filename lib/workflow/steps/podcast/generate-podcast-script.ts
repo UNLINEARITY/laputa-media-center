@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
+import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import type { WorkflowContext } from '../../types'
@@ -57,10 +58,19 @@ function buildScriptPromptPayload(opt: {
   secondaryVoiceLabel?: string
   creatorContext?: Record<string, unknown>
   language?: string
+  targetLanguage?: string
 }) {
+  const isCantonese = isCantoneseTarget(opt.targetLanguage)
+  // 播客 script 偏 podcast/conversational 風格 + 數字朗讀規則（會 TTS）
+  const cantoneseRules = getCantoneseRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'podcast',
+    includeSpokenNumbers: true,
+  })
   return {
     task: 'Rewrite the source draft into a podcast spoken script',
     source_language: opt.language || 'auto',
+    target_language: opt.targetLanguage || 'auto',
     target_tone: opt.targetTone,
     target_duration_minutes: opt.targetDurationMinutes,
     speaker_mode: opt.speakerMode,
@@ -77,9 +87,14 @@ function buildScriptPromptPayload(opt: {
       '6) 每段 text 必须可直接朗读（口语化，不要 markdown / 列表 / 标题）',
       '7) pacing_hint 在情绪转换或重点处给 slow，常规给 normal，激情段给 fast',
       '8) pause_after_ms 在 segment 间默认 600，章节结尾加到 1200',
-      '9) 估算总时长 estimated_duration_seconds（普通话约 4-5 字/秒）',
-      '10) 不要进行语言翻译；保持源语言',
+      isCantonese
+        ? '9) 估算总时长 estimated_duration_seconds（粤语约 4-5 字/秒）'
+        : '9) 估算总时长 estimated_duration_seconds（普通话约 4-5 字/秒）',
+      isCantonese
+        ? '10) 输出语言：港式粤语 — 每段 segments[].text 都用粤语口语（详见 cantonese_rules）'
+        : '10) 不要进行语言翻译；保持源语言',
     ],
+    cantonese_rules: cantoneseRules,
     response_schema: {
       title: 'string',
       estimated_duration_seconds: 'number',
@@ -201,6 +216,7 @@ export class GeneratePodcastScriptStep extends BaseStep<GeneratePodcastScriptOut
     const primaryVoiceId = (config.voice_id as string) || ''
     const secondaryVoiceId = (config.podcast_secondary_voice_id as string) || ''
     const sourceLanguage = (config.source_language as string) || 'auto'
+    const targetLanguage = (config.podcast_target_language as string) || 'auto'
     const creatorContext =
       config.creator_context && typeof config.creator_context === 'object'
         ? (config.creator_context as Record<string, unknown>)
@@ -244,6 +260,7 @@ export class GeneratePodcastScriptStep extends BaseStep<GeneratePodcastScriptOut
             secondaryVoiceLabel: secondaryVoiceId,
             creatorContext,
             language: sourceLanguage,
+            targetLanguage,
           }),
         ),
         responseMimeType: 'application/json',

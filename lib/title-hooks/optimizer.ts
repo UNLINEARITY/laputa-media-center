@@ -143,6 +143,37 @@ function fallbackResult(input: TitleHookInput, first30s: string): TitleHookResul
   }
 }
 
+/**
+ * 判斷 LLM 返的開頭優化是否真的改寫了。
+ * 寬鬆相似度：歸一化空白後若 95%+ 字符相同，視為「沒改」。
+ * （LLM 偶爾會 echo 原文，prompt 改不了）
+ *
+ * Exported for unit tests.
+ */
+export function isOpeningRewriteEffective(original: string, optimized: string): boolean {
+  if (!optimized || !optimized.trim()) return false
+  const norm = (s: string) => s.replace(/\s+/g, '').replace(/[，。！？、]/g, '').trim()
+  const a = norm(original)
+  const b = norm(optimized)
+  if (!a || !b) return false
+  if (a === b) return false
+  // 短文本：要求至少 30% 不同
+  // 長文本：要求至少 15% 不同
+  const minLen = Math.min(a.length, b.length)
+  const maxLen = Math.max(a.length, b.length)
+  const lengthRatio = minLen / maxLen
+  if (lengthRatio > 0.95) {
+    // 長度幾乎一樣 → 計算字符差異
+    let same = 0
+    for (let i = 0; i < minLen; i++) {
+      if (a[i] === b[i]) same++
+    }
+    const sameRatio = same / minLen
+    return sameRatio < 0.85
+  }
+  return true
+}
+
 function normalizeTitleSuggestion(raw: unknown): TitleSuggestion | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
@@ -192,16 +223,74 @@ export async function optimizeTitleHooks(
       return fb
     }
 
+    let optimizedText =
+      typeof parsed.opening_optimization?.optimized_first_30s === 'string'
+        ? parsed.opening_optimization.optimized_first_30s.slice(0, 400)
+        : ''
+    let changeSummary =
+      typeof parsed.opening_optimization?.change_summary === 'string'
+        ? parsed.opening_optimization.change_summary.slice(0, 200)
+        : ''
+
+    // Bug fix: LLM 偶爾 echo 原文。檢測到沒實質改寫 → 用更強硬 prompt retry 一次。
+    let openingFallbackUsed = false
+    if (!isOpeningRewriteEffective(first30s, optimizedText)) {
+      try {
+        const retryPrompt = {
+          task: 'Rewrite the opening 30 seconds of a self-media video',
+          source_language: input.source_language || 'zh',
+          target_language: input.target_language || 'auto',
+          mandate: 'YOU MUST REWRITE. Echoing or near-copying the original is a hard failure.',
+          original_first_30s: first30s,
+          rules: [
+            '换不同的开场顺序：把最有力的论点 / 数字 / 反问放到第 1-2 句',
+            '替换至少 50% 的措辞（同义词、节奏调整、删减啰嗦）',
+            '强化第一秒抓眼：可用反问 / 数字 / 反差 / 悬念',
+            '保持原意不偏移；不添加新事实',
+            input.target_language === 'cantonese'
+              ? '输出语言：港式粤语（我哋、嘅、喺、嚟、係 等粤语助词）'
+              : '保持源语言',
+          ],
+          response_schema: {
+            optimized_first_30s: 'string ≤200字，必须明显不同于 original_first_30s',
+            change_summary: 'string ≤80字',
+          },
+        }
+        const retry = await provider.generateContent({
+          systemInstruction:
+            'You are a professional rewriter. You MUST rewrite the opening passage. Echoing the original is unacceptable.',
+          prompt: JSON.stringify(retryPrompt),
+          responseMimeType: 'application/json',
+          maxOutputTokens: 600,
+        })
+        const retryParsed = safeParseResult(retry.text)
+        const retryOptimized =
+          typeof retryParsed?.opening_optimization?.optimized_first_30s === 'string'
+            ? retryParsed.opening_optimization.optimized_first_30s.slice(0, 400)
+            : typeof (retryParsed as { optimized_first_30s?: string })?.optimized_first_30s ===
+                'string'
+              ? (retryParsed as { optimized_first_30s: string }).optimized_first_30s.slice(0, 400)
+              : ''
+        if (isOpeningRewriteEffective(first30s, retryOptimized)) {
+          optimizedText = retryOptimized
+          changeSummary =
+            typeof retryParsed?.opening_optimization?.change_summary === 'string'
+              ? retryParsed.opening_optimization.change_summary.slice(0, 200)
+              : changeSummary || '已重新改写'
+        } else {
+          openingFallbackUsed = true
+        }
+      } catch {
+        openingFallbackUsed = true
+      }
+    }
+
     const opening: OpeningOptimization = {
       original_first_30s: first30s,
-      optimized_first_30s:
-        typeof parsed.opening_optimization?.optimized_first_30s === 'string'
-          ? parsed.opening_optimization.optimized_first_30s.slice(0, 400)
-          : first30s,
-      change_summary:
-        typeof parsed.opening_optimization?.change_summary === 'string'
-          ? parsed.opening_optimization.change_summary.slice(0, 200)
-          : '',
+      optimized_first_30s: optimizedText || first30s,
+      change_summary: openingFallbackUsed
+        ? '（LLM 兩次都未實質改寫，回退原文。建議重試或檢查 prompt）'
+        : changeSummary,
     }
 
     // 不足 5 条用兜底补齐
@@ -218,6 +307,7 @@ export async function optimizeTitleHooks(
       titles,
       opening_optimization: opening,
       llmProvider: provider.id,
+      warning: openingFallbackUsed ? '开头 30s 优化两次都未实质改写' : undefined,
     }
   } catch (err) {
     const fb = fallbackResult(input, first30s)

@@ -28,6 +28,7 @@ const createHighlightsSchema = z.object({
   highlights_target_count: z.number().int().min(3).max(10).optional().default(5),
   highlights_subtitle_preset: subtitlePresetSchema.optional().default('xhs_fresh'),
   highlights_aspect: aspectSchema.optional().default('16:9'),
+  highlights_target_language: z.enum(['auto', 'mandarin', 'cantonese']).optional().default('auto'),
 })
 
 const VIDEO_LIKE_SOURCE_TYPES = new Set(['youtube', 'local_video', 'local_audio', 'web_video'])
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
       highlights_target_count: data.highlights_target_count,
       highlights_subtitle_preset: data.highlights_subtitle_preset,
       highlights_aspect: data.highlights_aspect,
+      highlights_target_language: data.highlights_target_language,
     } as JobConfig
 
     const jobId = jobsRepo.create({

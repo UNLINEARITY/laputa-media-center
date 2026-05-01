@@ -248,12 +248,16 @@ export interface JobConfig {
   script_target_minutes_youtube?: number
   script_target_seconds_douyin?: number
   /**
-   * 目標語言（Phase 3.C-B / 3.C-A 共用）
+   * 目標語言（Phase 3.C-B / 3.C-A / 3.B 各 tool 獨立配置）
    * - 'auto'（默認）：保持源語言
    * - 'mandarin'：普通話
    * - 'cantonese'：港式粵語（觸發 lib/i18n/cantonese-prompt.ts 規則）
    */
   script_target_language?: 'auto' | 'mandarin' | 'cantonese'
+  /** 播客模式目標語言（Phase 3.B + 粵語接入） */
+  podcast_target_language?: 'auto' | 'mandarin' | 'cantonese'
+  /** 高亮切片 hook_text 目標語言（Phase 3.C-A + 粵語接入） */
+  highlights_target_language?: 'auto' | 'mandarin' | 'cantonese'
 
   /**
    * 高亮自动切片（Phase 3.C-A）

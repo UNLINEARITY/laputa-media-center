@@ -12,6 +12,7 @@
 import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { safeParseJson } from '@/lib/ai/gemini/parsers/json-extractor'
+import { getCantoneseRules, isCantoneseTarget } from '@/lib/i18n/cantonese-prompt'
 import { getActiveLlmProvider } from '@/lib/providers/registry'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import path from 'node:path'
@@ -57,10 +58,19 @@ function buildBriefPromptPayload(opt: {
   speakerMode: string
   creatorContext?: Record<string, unknown>
   language?: string
+  targetLanguage?: string
 }) {
+  const isCantonese = isCantoneseTarget(opt.targetLanguage)
+  // 播客 brief 偏 podcast/conversational 風格
+  const cantoneseRules = getCantoneseRules({
+    targetLanguage: opt.targetLanguage,
+    style: 'podcast',
+    includeSpokenNumbers: true,
+  })
   return {
     task: 'Analyze a draft for podcast script rewriting',
     source_language: opt.language || 'auto',
+    target_language: opt.targetLanguage || 'auto',
     target_tone: opt.targetTone,
     target_duration_minutes: opt.targetDurationMinutes,
     speaker_mode: opt.speakerMode,
@@ -71,8 +81,11 @@ function buildBriefPromptPayload(opt: {
       '4) 给一个 opening_hook_idea（开场钩子素材）和 closing_callback_idea（结尾回扣）',
       '5) 抽 0-8 条术语（glossary），给中文播客口语化的偏好措辞',
       '6) 选定一个 target_tone：conversational / narrative / analytical / storytelling',
-      '7) 不要进行语言翻译；保持源语言',
+      isCantonese
+        ? '7) 输出语言：港式粤语（summary / key_points.gist / opening_hook_idea / closing_callback_idea / glossary.preferred_wording 全部粤化，详见 cantonese_rules）'
+        : '7) 不要进行语言翻译；保持源语言',
     ],
+    cantonese_rules: cantoneseRules,
     response_schema: {
       summary: 'string',
       key_points: '[{ id: string, gist: string }]',
@@ -138,6 +151,7 @@ export class BuildPodcastBriefStep extends BaseStep<BuildPodcastBriefOutput> {
     const targetDuration = config.podcast_target_duration_minutes as number | undefined
     const speakerMode = (config.podcast_speaker_mode as string) || 'single_narrator'
     const sourceLanguage = (config.source_language as string) || 'auto'
+    const targetLanguage = (config.podcast_target_language as string) || 'auto'
     const creatorContext =
       config.creator_context && typeof config.creator_context === 'object'
         ? (config.creator_context as Record<string, unknown>)
@@ -183,6 +197,7 @@ export class BuildPodcastBriefStep extends BaseStep<BuildPodcastBriefOutput> {
             speakerMode,
             creatorContext,
             language: sourceLanguage,
+            targetLanguage,
           }),
         ),
         responseMimeType: 'application/json',

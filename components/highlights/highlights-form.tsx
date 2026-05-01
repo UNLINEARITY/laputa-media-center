@@ -49,6 +49,7 @@ export function HighlightsForm() {
   const [targetCount, setTargetCount] = useState(5)
   const [presetId, setPresetId] = useState<PresetId>('xhs_fresh')
   const [aspect, setAspect] = useState<'16:9' | '9:16'>('16:9')
+  const [targetLang, setTargetLang] = useState<'auto' | 'mandarin' | 'cantonese'>('auto')
   const [submitting, setSubmitting] = useState(false)
 
   const handleUpload = useCallback(async (file: File) => {
@@ -105,6 +106,7 @@ export function HighlightsForm() {
           highlights_target_count: targetCount,
           highlights_subtitle_preset: presetId,
           highlights_aspect: aspect,
+          highlights_target_language: targetLang,
         }),
       })
       if (!res.ok) {
@@ -119,7 +121,7 @@ export function HighlightsForm() {
     } finally {
       setSubmitting(false)
     }
-  }, [sourceMode, youtubeUrl, uploadedPath, targetCount, presetId, aspect, router])
+  }, [sourceMode, youtubeUrl, uploadedPath, targetCount, presetId, aspect, targetLang, router])
 
   return (
     <Card className="border-claude-cream-200 bg-white">
@@ -282,6 +284,39 @@ export function HighlightsForm() {
               )
             })}
           </div>
+        </div>
+
+        {/* hook_text 输出语言 */}
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-claude-dark-700">hook_text 输出语言</Label>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                { id: 'auto', label: '自动（保持源语言）' },
+                { id: 'mandarin', label: '普通话' },
+                { id: 'cantonese', label: '粵語（港式）' },
+              ] as const
+            ).map((opt) => {
+              const active = targetLang === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setTargetLang(opt.id)}
+                  className={`rounded-md border px-3 py-1.5 text-xs transition-all ${
+                    active
+                      ? 'border-claude-orange-300 bg-claude-orange-50 text-claude-orange-700'
+                      : 'border-claude-cream-200 bg-white text-claude-dark-500 hover:border-claude-cream-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-claude-dark-400">
+            只影响 hook_text / summary 文案；视频字幕 (.ass) 仍来自原 transcript。
+          </p>
         </div>
 
         <Button

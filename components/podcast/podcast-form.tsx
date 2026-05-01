@@ -62,6 +62,7 @@ export function PodcastForm() {
   const [tone, setTone] = useState<Tone>('conversational')
   const [duration, setDuration] = useState<number>(10)
   const [speakerMode, setSpeakerMode] = useState<SpeakerMode>('single_narrator')
+  const [targetLang, setTargetLang] = useState<'auto' | 'mandarin' | 'cantonese'>('auto')
 
   const [primaryVoiceId, setPrimaryVoiceId] = useState('')
   const [secondaryVoiceId, setSecondaryVoiceId] = useState('')
@@ -172,6 +173,7 @@ export function PodcastForm() {
           podcast_tone: tone,
           podcast_target_duration_minutes: duration,
           podcast_speaker_mode: speakerMode,
+          podcast_target_language: targetLang,
           voice_id: primaryVoiceId,
           podcast_secondary_voice_id:
             speakerMode === 'two_host' ? secondaryVoiceId : undefined,
@@ -203,6 +205,7 @@ export function PodcastForm() {
     minimaxGateAck,
     tone,
     duration,
+    targetLang,
     router,
   ])
 
@@ -360,6 +363,42 @@ export function PodcastForm() {
                 )
               })}
             </div>
+          </div>
+
+          {/* 输出语言 */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-claude-dark-700">输出语言</Label>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { id: 'auto', label: '自动（保持源语言）' },
+                  { id: 'mandarin', label: '普通话' },
+                  { id: 'cantonese', label: '粵語（港式）' },
+                ] as const
+              ).map((opt) => {
+                const active = targetLang === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setTargetLang(opt.id)}
+                    className={`rounded-md border px-3 py-1.5 text-xs transition-all ${
+                      active
+                        ? 'border-claude-orange-300 bg-claude-orange-50 text-claude-orange-700'
+                        : 'border-claude-cream-200 bg-white text-claude-dark-500 hover:border-claude-cream-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+            {targetLang === 'cantonese' && (
+              <p className="text-[11px] text-claude-dark-400">
+                brief / script / segments.text 全部用港式粵語（我哋、嘅、喺、嚟、係 等）；
+                配音聲線需自選粵語可用聲線，否則 TTS 會 fallback。
+              </p>
+            )}
           </div>
 
           {/* 声线 */}
