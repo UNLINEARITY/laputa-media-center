@@ -55,24 +55,31 @@ export class OpenAILLMProvider implements ILLMProvider {
     try {
       const { default: OpenAI } = await import('openai')
       const client = new OpenAI({ apiKey: key, baseURL: getOpenAIBaseUrl() })
-      const resp = await client.chat.completions.create({
+      // 用 streaming：兼容原生 OpenAI（可流可不流）+ 強制流式代理（如某些國內中轉站）
+      const stream = await client.chat.completions.create({
         model: getOpenAIModel(),
         messages: [{ role: 'user', content: 'ping' }],
-        max_tokens: 8,
+        max_tokens: 16,
+        stream: true,
       })
-      const choices = (resp as { choices?: unknown[] })?.choices
-      if (!Array.isArray(choices) || choices.length === 0) {
-        // 代理可能返回了非標準 schema 或錯誤結構，把 raw 的前 200 字塞進 message 方便排錯
-        const raw = JSON.stringify(resp).slice(0, 200)
+      let chunkCount = 0
+      let content = ''
+      for await (const chunk of stream) {
+        chunkCount++
+        const delta = chunk.choices?.[0]?.delta?.content
+        if (typeof delta === 'string') content += delta
+        if (chunkCount > 100) break // 安全閥
+      }
+      if (chunkCount === 0) {
         return {
           ok: false,
-          message: `代理返回非標準 schema（無 choices）：${raw}`,
+          message: '代理沒返回任何 stream chunk（連接通但無響應）',
           latencyMs: Date.now() - start,
         }
       }
       return {
         ok: true,
-        message: 'OpenAI 响应正常',
+        message: `OpenAI 响应正常（${chunkCount} chunks${content ? ', 累積 ' + content.length + ' 字' : ''}）`,
         latencyMs: Date.now() - start,
       }
     } catch (err) {
@@ -97,31 +104,45 @@ export class OpenAILLMProvider implements ILLMProvider {
     }
     messages.push({ role: 'user', content: opts.prompt })
 
+    // 用 streaming：兼容原生 OpenAI + 強制流式代理（國內中轉站常見）
     const requestBody: Parameters<typeof client.chat.completions.create>[0] = {
       model: opts.modelId || getOpenAIModel(),
       messages,
       max_tokens: opts.maxOutputTokens,
       temperature: opts.temperature,
+      stream: true,
     }
     if (opts.responseMimeType === 'application/json') {
       requestBody.response_format = { type: 'json_object' }
     }
 
-    const resp = await client.chat.completions.create(requestBody, {
+    const stream = await client.chat.completions.create(requestBody, {
       signal: opts.abortSignal,
     })
-    const completion = resp as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-    const text = completion.choices?.[0]?.message?.content || ''
+
+    let text = ''
+    let inputTokens: number | undefined
+    let outputTokens: number | undefined
+    // OpenAI streaming：累積 delta.content，最後一個 chunk 可能有 usage（取決於 proxy）
+    for await (const chunk of stream as AsyncIterable<{
+      choices?: Array<{ delta?: { content?: string } }>
+      usage?: { prompt_tokens?: number; completion_tokens?: number }
+    }>) {
+      const delta = chunk.choices?.[0]?.delta?.content
+      if (typeof delta === 'string') text += delta
+      if (chunk.usage) {
+        inputTokens = chunk.usage.prompt_tokens
+        outputTokens = chunk.usage.completion_tokens
+      }
+    }
 
     return {
       text,
-      raw: completion,
-      usage: completion.usage
-        ? {
-            inputTokens: completion.usage.prompt_tokens,
-            outputTokens: completion.usage.completion_tokens,
-          }
-        : undefined,
+      raw: { text },
+      usage:
+        inputTokens !== undefined || outputTokens !== undefined
+          ? { inputTokens, outputTokens }
+          : undefined,
       providerId: this.id,
     }
   }
