@@ -2,7 +2,7 @@
 
 LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch），日期格式 YYYY-MM-DD。
 
-## [1.0.0] — 2026-05-01（自媒體生產台 v1，commit `<TBD>`）
+## [1.0.0] — 2026-05-01（自媒體生產台 v1，commit `0dc20df`）
 
 從 ChuangCut（v16.x）重構為 LaputaMediaCenter v1.0.0。版本號 reset 為「v1 自媒體生產台」起點。
 

@@ -2,7 +2,12 @@
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
 **當前 Phase**：✅ **Phase 4 完成**（v1.0.0 起點：Codex 13 issue 全修 + Plan A 實機驗證全過 + Plan B Fish Audio 主線 UI/provider 移除（legacy report/cost compat 保留）+ Plan C docs slim 88% + Plan D migrations-archive 砍 + 版本號 reset 1.0.0）
-**下次從哪裡繼續**：可選 (1) Phase 5（開源就緒）OR (2) 修 Codex 第二輪剩餘 P1（#2 Podcast fallback 產品決策 / #5 e2e reuseExistingServer / #6 full tsc test fixture 重構）OR (3) 修 e2e downstream fixture job 404（`/jobs/e2e-dub-full` 等 mainline fixture seed 鏈獨立 bug，與 Codex P1 #3/#4/#1 無關）OR (4) Codex P2 五個（README CCUT 殘留 / Fish Audio claim 文案 / PROJECT_PLAN migration 自相矛盾 / UI 工程術語整理 / recut lock 命名澄清）OR (5) 收工
+**下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `f2200d0` `f6f0216` `d6f4333` `82333c2` `331ca8f`）。**主線：進 Phase 5 開源就緒**（secrets 全項目掃描 / README EN/ZH / install scripts / demo GIF / GitHub push）。
+
+**Phase 5 跟進清單**（不阻塞 release，但建議在 GitHub push 前處理）:
+- `tests/workflow/podcast-tts-mode.test.ts` 13 tests 是 schema 重寫 + 文檔斷言，需改成 import `@/app/api/podcast/route` 內部 schema export，並 execute `PodcastTtsStep` 真 early return path（Codex P3，user 確認非阻塞）
+- `scripts/migrations/` 29 個 .js legacy archive 評估是否一併砍掉或移到 `_archive/`（Codex P2 #9 後續）
+- prod 型別漂移收歛（Phase 4 W6 期間 cast 吸收的 3 處：`StepContext` 兩個定義、`TranslationCredentialStatusForDisplay`、`ClosedLoopReadiness`）— 真 cross-file refactor，建議列開源後 v1.1 再做
 
 **📅 2026-05-14 自我提醒（remote schedule 暫不可用，手寫於此）**：
 - 跑 `git log --oneline -20` 看最近 2 週 Phase 3.C 實機驗收狀態
