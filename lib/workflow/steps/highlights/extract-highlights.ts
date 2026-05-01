@@ -15,6 +15,7 @@ import path from 'node:path'
 import { getIngestArtifactDir } from '@/lib/ingest/artifacts'
 import { getIngestFfmpeg } from '@/lib/ingest/runtime'
 import { generateSegmentedASS } from '@/lib/subtitle/generator'
+import { splitIntoSegments } from '@/lib/subtitle/segment-splitter'
 import { escapeFFmpegPath, execFfmpeg } from '@/lib/utils/ffmpeg-utils'
 import type { SubtitlePresetId } from '@/lib/subtitle/types'
 import type { WorkflowContext } from '../../types'
@@ -75,13 +76,27 @@ function buildClipAss(opt: {
   clipEnd: number
   presetId: SubtitlePresetId
 }): string {
-  const relativeSegments = opt.segments.map((s) => ({
-    text: s.text.trim(),
-    startTime: Math.max(0, s.start - opt.clipStart),
-    endTime: Math.min(opt.clipEnd - opt.clipStart, s.end - opt.clipStart),
-  }))
+  // ASR 段（譬如 whisper）经常把 20+ 秒文本合成一个 segment，直接当 ASS Dialogue
+  // 会全部叠在一起。要把每個長 segment 再按句号/逗号切成 ~3-5s 短 chunks，
+  // 走 lib/subtitle/segment-splitter.ts 的 splitIntoSegments。
+  const allSubSegs: { text: string; startTime: number; endTime: number }[] = []
+  for (const s of opt.segments) {
+    const segDuration = Math.max(0.5, s.end - s.start)
+    const text = s.text.trim()
+    if (!text) continue
+    const subSegs = splitIntoSegments(text, segDuration, { maxChars: 18, minChars: 4 })
+    // 子段时间是相对该 segment 的（0 → segDuration），加 offset 转为相对 clip
+    const offset = Math.max(0, s.start - opt.clipStart)
+    for (const sub of subSegs) {
+      const startTime = Math.max(0, offset + sub.startTime)
+      const endTime = Math.min(opt.clipEnd - opt.clipStart, offset + sub.endTime)
+      if (endTime > startTime) {
+        allSubSegs.push({ text: sub.text, startTime, endTime })
+      }
+    }
+  }
   return generateSegmentedASS({
-    segments: relativeSegments,
+    segments: allSubSegs,
     videoSize: VIDEO_BASE_SIZE,
     presetId: opt.presetId,
   })
