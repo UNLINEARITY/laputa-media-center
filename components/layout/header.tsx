@@ -24,6 +24,10 @@ interface AuthStatus {
   username: string | null
 }
 
+type AuthStatusState = AuthStatus & {
+  loaded: boolean
+}
+
 /** 4 個自媒體工具（Phase 3.C 新工具，nav 二級入口） */
 const TOOL_ITEMS = [
   { href: '/podcast', label: '播客整理', desc: '长文/字幕 → 双人播客脚本 + TTS' },
@@ -36,10 +40,11 @@ export function Header() {
   const pathname = usePathname()
   const router = useRouter()
 
-  const [authStatus, setAuthStatus] = useState<AuthStatus>({
-    authEnabled: true, // 預設 true 避免 flash 顯示「本地模式」
+  const [authStatus, setAuthStatus] = useState<AuthStatusState>({
+    authEnabled: false,
     isAuthenticated: false,
     username: null,
+    loaded: false,
   })
 
   const navItems = [
@@ -63,10 +68,11 @@ export function Header() {
             authEnabled: data.authEnabled !== false,
             isAuthenticated: data.isAuthenticated,
             username: data.username,
+            loaded: true,
           })
         }
       } catch {
-        // 静默处理
+        setAuthStatus((current) => ({ ...current, loaded: true }))
       }
     }
 
@@ -204,10 +210,14 @@ export function Header() {
 
           {/* 用户菜单 / 登录按钮 — AUTH disabled 時不顯示，避免朋友以為必須註冊 */}
           {!authStatus.authEnabled ? (
-            // 本地免登錄模式：顯示 badge 而非登入按鈕
-            <span className="hidden items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 sm:inline-flex">
-              本地模式
-            </span>
+            authStatus.loaded ? (
+              // 本地免登錄模式：顯示 badge 而非登入按鈕
+              <span className="hidden items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 sm:inline-flex">
+                本地模式
+              </span>
+            ) : (
+              <span className="hidden h-7 w-20 sm:inline-flex" aria-hidden="true" />
+            )
           ) : authStatus.isAuthenticated ? (
             // 已登录：显示用户菜单
             <DropdownMenu>

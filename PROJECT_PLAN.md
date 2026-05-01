@@ -1,7 +1,7 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓。剩 demo GIF + 首次運行嚮導 + push GitHub）
+**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓。剩 demo GIF + 首次運行嚮導 + push GitHub）
 **下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `512b330` `84007c0` `563dd77` `8caa7b5` `a6f93c3`）。**主線：Phase 5 push 前最後決策**（直接 push / 先補 demo GIF / 先做首次運行嚮導）。
 
 **Phase 5 push 前防洩漏狀態**:
@@ -632,6 +632,11 @@
   - `README.en.md` 新建簡版（Features 6 工具 + Quick Start + Local-first design + API key config + Architecture 簡述 + 鏈接中文版深度細節）
   - `CONTRIBUTING.md` 新建：setup / 三層 test gate（typecheck:app must / typecheck:all+lint+test:unit recommended / e2e if workflow）/ commit style / 8 個受保護資產規則 / welcome vs push back
   - `install.ps1` + `install.sh`：讀 package.json metadata 做版本檢查（Node + pnpm），soft-check ffmpeg/yt-dlp（warn only），自動 pnpm install + db:init
+- [x] **Push 前 UI P0 收尾**:
+  - footer MIT 文案對齊；header 本地模式不再先閃登入/註冊
+  - `/jobs` 任務類型以 `job_type` 為 normal form，修高亮 / 多平台誤顯示「素材吸收」
+  - pagination range guard 補強，`/jobs` rendered 分頁文案確認為 `显示 1 到 10 条，共 14 条`
+  - Playwright rendered `/jobs` 驗證：本地模式 1、login/register links 0、MIT License 1、All rights reserved 0、素材吸收 0
 - [ ] demo GIF / 截圖
 - [ ] 首次運行嚮導
 - [ ] 刪 _archive/（Wave 5.1 確認過已不存在 ✓）

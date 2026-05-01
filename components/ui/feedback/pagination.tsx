@@ -107,8 +107,15 @@ export function Pagination({
   const pageNumbers = generatePageNumbers(currentPage, totalPages)
 
   // 计算显示范围
-  const startItem = totalItems && pageSize ? (currentPage - 1) * pageSize + 1 : undefined
-  const endItem = totalItems && pageSize ? Math.min(currentPage * pageSize, totalItems) : undefined
+  const hasItemRange =
+    typeof totalItems === 'number' &&
+    Number.isFinite(totalItems) &&
+    totalItems > 0 &&
+    typeof pageSize === 'number' &&
+    Number.isFinite(pageSize) &&
+    pageSize > 0
+  const startItem = hasItemRange ? (currentPage - 1) * pageSize + 1 : undefined
+  const endItem = hasItemRange ? Math.min(currentPage * pageSize, totalItems) : undefined
 
   return (
     <>
@@ -118,7 +125,7 @@ export function Pagination({
       >
         {/* 左侧：统计信息 */}
         <div className="text-sm sm:text-base text-claude-dark-400">
-          {totalItems !== undefined && pageSize !== undefined && startItem && endItem ? (
+          {hasItemRange && startItem !== undefined && endItem !== undefined ? (
             <span>
               显示 <span className="font-medium text-claude-dark-900">{startItem}</span> 到{' '}
               <span className="font-medium text-claude-dark-900">{endItem}</span> 条，共{' '}

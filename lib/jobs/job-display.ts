@@ -1,5 +1,20 @@
-import { CONTENT_INGEST_JOB_TYPE, TRANSLATION_DUBBING_JOB_TYPE } from '@/lib/workflow/workflow-ids'
+import {
+  CONTENT_INGEST_JOB_TYPE,
+  HIGHLIGHTS_EXTRACTION_JOB_TYPE,
+  isMainlineJobType,
+  MULTI_PLATFORM_SCRIPT_JOB_TYPE,
+  PODCAST_PRODUCTION_JOB_TYPE,
+  TRANSLATION_DUBBING_JOB_TYPE,
+} from '@/lib/workflow/workflow-ids'
 import type { Job } from '@/types'
+
+const JOB_KIND_LABELS = {
+  [CONTENT_INGEST_JOB_TYPE]: '素材导入',
+  [TRANSLATION_DUBBING_JOB_TYPE]: '转译配音',
+  [PODCAST_PRODUCTION_JOB_TYPE]: '播客整理',
+  [MULTI_PLATFORM_SCRIPT_JOB_TYPE]: '多平台改写',
+  [HIGHLIGHTS_EXTRACTION_JOB_TYPE]: '高亮切片',
+} as const
 
 export interface JobRunScopeLabel {
   mode: 'sample' | 'full'
@@ -10,7 +25,7 @@ export interface JobRunScopeLabel {
 
 export function isIngestJob(job: Job): boolean {
   if (job.job_type === CONTENT_INGEST_JOB_TYPE) return true
-  if (job.job_type === TRANSLATION_DUBBING_JOB_TYPE) return false
+  if (isMainlineJobType(job.job_type)) return false
 
   // Legacy/sparse-job compatibility only. New mainline identity must come from job_type.
   return Boolean(
@@ -20,7 +35,7 @@ export function isIngestJob(job: Job): boolean {
 
 export function isDubbingJob(job: Job): boolean {
   if (job.job_type === TRANSLATION_DUBBING_JOB_TYPE) return true
-  if (job.job_type === CONTENT_INGEST_JOB_TYPE) return false
+  if (isMainlineJobType(job.job_type)) return false
 
   // Legacy/sparse-job compatibility only. New mainline identity must come from job_type.
   return Boolean(
@@ -33,8 +48,9 @@ export function isDubbingJob(job: Job): boolean {
 }
 
 export function getJobKindLabel(job: Job): string {
+  if (isMainlineJobType(job.job_type)) return JOB_KIND_LABELS[job.job_type]
   if (isDubbingJob(job)) return '转译配音'
-  if (isIngestJob(job)) return '素材吸收'
+  if (isIngestJob(job)) return '素材导入'
   return job.style_name && job.style_name !== '未知风格' ? job.style_name : '内容处理'
 }
 

@@ -20,7 +20,7 @@
           {/* 版权 */}
           <div className="space-y-4 sm:text-right sm:items-end flex flex-col">
             <p className="text-sm text-claude-dark-400 sm:self-end">
-              © {currentYear} LaputaMediaCenter · All rights reserved
+              © {currentYear} LaputaMediaCenter contributors · MIT License
             </p>
           </div>
         </div>

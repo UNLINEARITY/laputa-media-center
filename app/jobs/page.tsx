@@ -48,7 +48,7 @@ export default async function JobsPage({ searchParams: searchParamsPromise }: Jo
       {/* 页面头部 */}
       <PageHeader
         title="任务控制台"
-        description="实时监控素材吸收、转译配音、QA 与交付进度，快速定位失败流程和产物状态"
+        description="实时监控素材导入、转译配音、QA 与交付进度，快速定位失败流程和产物状态"
         actions={
           <>
             <form action="/jobs" method="get">

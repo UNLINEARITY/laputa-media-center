@@ -34,7 +34,25 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 **Phase 4 ✅ 完成**：v1.0.0 是「自媒體生產台」起點，從 ChuangCut v16.x 重構接手後第一個 cleaned, audited, version-reset 版本。
 
-## [Unreleased] — Phase 5（開源就緒，未開始）
+## [Unreleased] — Phase 5（開源就緒，進行中）
+
+### 2026-05-01 Push 前 UI P0 收尾
+
+根據 Claude Design 對 7 個頁面的 rendered UI review，先修 push 前會被截圖看到的矛盾 / broken state，不做大規模 redesign。
+
+- Footer 法律文案與 MIT 對齊：`All rights reserved` → `LaputaMediaCenter contributors · MIT License`
+- Header auth widget 改為載入態佔位，避免本地模式頁面先閃出「登录 / 注册」
+- `/jobs` 任務類型改以 `job_type` 為 normal form：`content_ingest` / `translation_dubbing` / `podcast_production` / `multi_platform_script` / `highlights_extraction` 都有固定使用者文案，避免高亮 / 多平台任務被 legacy fallback 誤顯示為「素材吸收」
+- 分頁 range 判斷改用 number/finite checks，避免顯示範圍變數缺值時產生空洞文案
+- `/jobs` 頁面文案把「素材吸收」收斂為「素材导入」
+- 新增 job-display 測試，鎖定 podcast / multi-platform / highlights 不再被 legacy config hints 誤判
+
+驗證：
+- `pnpm typecheck:app`: 0 errors
+- `pnpm typecheck:all`: 0 errors
+- `pnpm exec biome check`（7 touched files）: 0 issues
+- `pnpm vitest run tests/jobs/job-display.test.ts`: 31 pass
+- Playwright rendered `/jobs`: 本地模式 1、login/register links 0、MIT License 1、All rights reserved 0、素材吸收 0、分頁 `显示 1 到 10 条，共 14 条`
 
 ### 2026-05-01 Codex P1 #2 — Podcast 加 script_only 模式（兌現「免費優先」承諾）
 

@@ -137,7 +137,7 @@ describe('job display helpers', () => {
     const item = job({ config: { max_concurrent_scenes: 1, source_type: 'youtube' } })
 
     expect(isIngestJob(item)).toBe(true)
-    expect(getJobKindLabel(item)).toBe('素材吸收')
+    expect(getJobKindLabel(item)).toBe('素材导入')
   })
 
   it('uses job_type as the canonical ingest identity for sparse mainline jobs', () => {
@@ -149,7 +149,7 @@ describe('job display helpers', () => {
 
     expect(isIngestJob(item)).toBe(true)
     expect(isDubbingJob(item)).toBe(false)
-    expect(getJobKindLabel(item)).toBe('素材吸收')
+    expect(getJobKindLabel(item)).toBe('素材导入')
     expect(getJobRunScopeLabel(item)).toBeNull()
     expect(buildDubbingDeliveryPackage(item)).toBeNull()
   })
@@ -164,9 +164,25 @@ describe('job display helpers', () => {
 
     expect(isIngestJob(item)).toBe(true)
     expect(isDubbingJob(item)).toBe(false)
-    expect(getJobKindLabel(item)).toBe('素材吸收')
+    expect(getJobKindLabel(item)).toBe('素材导入')
     expect(getJobRunScopeLabel(item)).toBeNull()
     expect(buildDubbingDeliveryPackage(item)).toBeNull()
+  })
+
+  it.each([
+    ['podcast_production', '播客整理'],
+    ['multi_platform_script', '多平台改写'],
+    ['highlights_extraction', '高亮切片'],
+  ] as const)('labels %s jobs from job_type instead of legacy config hints', (jobType, label) => {
+    const item = job({
+      job_type: jobType,
+      config: { max_concurrent_scenes: 1, source_type: 'youtube', ingest_goal: 'highlights' },
+    })
+
+    expect(isIngestJob(item)).toBe(false)
+    expect(isDubbingJob(item)).toBe(false)
+    expect(getJobKindLabel(item)).toBe(label)
+    expect(getJobKindWithScopeLabel(item)).toBe(label)
   })
 
   it('uses stable source labels for recent jobs and lists', () => {

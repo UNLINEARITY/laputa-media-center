@@ -160,13 +160,13 @@ export function JobListClient({
             <Film className="h-12 w-12 text-claude-dark-400" />
             <p className="text-lg font-semibold text-claude-dark-400">还没有创建任务</p>
             <p className="max-w-sm text-sm text-claude-dark-300">
-              从素材吸收入口导入第一条内容，后续可以进入转文本、短视频、播客或翻译配音流程。
+              从素材导入入口加入第一条内容，后续可以进入转文本、短视频、播客或翻译配音流程。
             </p>
             <Link
               href="/ingest"
               className="mt-2 text-sm text-claude-orange-500 hover:text-claude-orange-600 underline"
             >
-              前往素材吸收
+              前往素材导入
             </Link>
           </CardContent>
         </Card>
