@@ -12,8 +12,8 @@ import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { jobsRepo } from '@/lib/db/core/jobs'
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
 import {
-  getHighlightCutsDir,
-  getHighlightsArtifactOutputPath,
+  resolveHighlightCutsDir,
+  resolveHighlightsArtifactPath,
 } from '@/lib/workflow/steps/highlights/artifact-paths'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -52,19 +52,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
-  const manifestFile = getHighlightsArtifactOutputPath(jobId, 'highlights.manifest')
-  const briefFile = getHighlightsArtifactOutputPath(jobId, 'highlights.brief')
-  const cutsDir = getHighlightCutsDir(jobId)
-  const cutsJsonPath = path.join(cutsDir, 'cuts.json')
+  // 路径优先级：temp（运行中）→ output（完成态）
+  const manifestFile = resolveHighlightsArtifactPath(jobId, 'highlights.manifest')
+  const briefFile = resolveHighlightsArtifactPath(jobId, 'highlights.brief')
+  const cutsDir = resolveHighlightCutsDir(jobId)
+  const cutsJsonPath = cutsDir ? path.join(cutsDir, 'cuts.json') : null
 
   let manifest: Record<string, unknown> | null = null
-  if (existsSync(manifestFile)) {
+  if (manifestFile && existsSync(manifestFile)) {
     try {
       manifest = JSON.parse(await readFile(manifestFile, 'utf-8'))
     } catch {
       manifest = null
     }
-  } else if (existsSync(cutsJsonPath)) {
+  } else if (cutsJsonPath && existsSync(cutsJsonPath)) {
     try {
       const cutsData = JSON.parse(await readFile(cutsJsonPath, 'utf-8'))
       manifest = { partial: true, ...cutsData }
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   let brief: Record<string, unknown> | null = null
-  if (existsSync(briefFile)) {
+  if (briefFile && existsSync(briefFile)) {
     try {
       brief = JSON.parse(await readFile(briefFile, 'utf-8'))
     } catch {

@@ -12,7 +12,7 @@ import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { jobsRepo } from '@/lib/db/core/jobs'
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
 import { logger } from '@/lib/utils/logger'
-import { getHighlightCutsDir } from '@/lib/workflow/steps/highlights/artifact-paths'
+import { resolveHighlightCutsDir } from '@/lib/workflow/steps/highlights/artifact-paths'
 
 export async function GET(
   req: NextRequest,
@@ -57,7 +57,10 @@ export async function GET(
     }
   }
 
-  const cutsDir = getHighlightCutsDir(jobId)
+  const cutsDir = resolveHighlightCutsDir(jobId)
+  if (!cutsDir) {
+    return NextResponse.json({ error: 'Highlights cuts dir not found' }, { status: 404 })
+  }
   const filePath = path.join(cutsDir, filename)
   const resolved = path.resolve(filePath)
   const cutsDirResolved = path.resolve(cutsDir)

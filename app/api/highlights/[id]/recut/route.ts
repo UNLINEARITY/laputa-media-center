@@ -16,8 +16,8 @@ import { getIngestFfmpeg } from '@/lib/ingest/runtime'
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
 import { logger } from '@/lib/utils/logger'
 import {
-  getHighlightCutsDir,
-  getHighlightsArtifactOutputPath,
+  resolveHighlightCutsDir,
+  resolveHighlightsArtifactPath,
 } from '@/lib/workflow/steps/highlights/artifact-paths'
 import {
   processHighlightCandidate,
@@ -91,22 +91,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json()
     const data = recutBodySchema.parse(body)
 
-    const briefFile = getHighlightsArtifactOutputPath(jobId, 'highlights.brief')
-    const cutsDir = getHighlightCutsDir(jobId)
-    const cutsJsonPath = path.join(cutsDir, 'cuts.json')
-    const manifestFile = getHighlightsArtifactOutputPath(jobId, 'highlights.manifest')
+    // 路径优先级：temp（运行中）→ output（完成态）
+    const briefFile = resolveHighlightsArtifactPath(jobId, 'highlights.brief')
+    const cutsDir = resolveHighlightCutsDir(jobId)
+    const cutsJsonPath = cutsDir ? path.join(cutsDir, 'cuts.json') : null
+    const manifestFile = resolveHighlightsArtifactPath(jobId, 'highlights.manifest')
 
-    for (const required of [briefFile, cutsJsonPath]) {
-      if (!existsSync(required)) {
-        logger.warn('Highlights recut blocked - artifact missing', {
-          jobId,
-          missing: path.basename(required),
-        })
-        return NextResponse.json(
-          { error: 'Highlights artifacts not ready', message: '高亮工件未就绪' },
-          { status: 409 },
-        )
-      }
+    if (!briefFile || !cutsDir || !cutsJsonPath || !existsSync(cutsJsonPath)) {
+      logger.warn('Highlights recut blocked - artifact missing', {
+        jobId,
+        briefFile,
+        cutsDir,
+        cutsJsonPath,
+      })
+      return NextResponse.json(
+        { error: 'Highlights artifacts not ready', message: '高亮工件未就绪' },
+        { status: 409 },
+      )
     }
 
     const brief = JSON.parse(await readFile(briefFile, 'utf-8')) as HighlightsBrief
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       'utf-8',
     )
 
-    if (existsSync(manifestFile)) {
+    if (manifestFile && existsSync(manifestFile)) {
       const manifest = JSON.parse(await readFile(manifestFile, 'utf-8'))
       manifest.cuts = updatedCuts.map((cut) => ({
         id: cut.id,
