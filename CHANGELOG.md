@@ -36,6 +36,24 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 ## [Unreleased] — Phase 5（開源就緒，進行中）
 
+### 2026-05-01 Tool catalog normal form
+
+用 primitive-first reduction 收斂首頁 dashboard、Header 工具下拉兩套並行工具分類，先做最小可逆遷移，不碰 `/ingest` 處理目標、不碰 `/settings` 架構。
+
+- 新增 `lib/product/tool-catalog.ts`：8 個工具的單一 normal form（id / label / shortDescription / input / output / href / cta / status / setup requirements）
+- 新增 selector：`getHeaderToolItems()`、`getDashboardTools()`、`getRecommendedFirstRunTool()`，consumer 不再各自硬編碼分類
+- Dashboard 改由 catalog 映射 view model；planned `brand-assets` 保留在 catalog 但不在公開首頁展示
+- Header 工具下拉改由 catalog selector 派生，與 dashboard 共用同一份工具名與描述
+- 不加入 `costLevel`，避免把「免 MiniMax 配音」誤寫成「免 API key」；真相用 `requiredSetup` / `optionalSetup` 表達
+- 新增 `tests/product/tool-catalog.test.ts`，鎖定 id/href 唯一、推薦工具恰好一個、planned 工具不進 dashboard/header、文案 snapshot
+
+驗證：
+- `pnpm typecheck:app`: 0 errors
+- `pnpm typecheck:all`: 0 errors
+- `pnpm exec biome check`（4 touched files）: 0 issues
+- `pnpm vitest run tests/product/tool-catalog.test.ts`: 22 pass
+- Playwright rendered `/`: `品牌素材库` 0，Header 工具下拉顯示 4 個 catalog-derived 工具
+
 ### 2026-05-01 Push 前 UI P0 收尾
 
 根據 Claude Design 對 7 個頁面的 rendered UI review，先修 push 前會被截圖看到的矛盾 / broken state，不做大規模 redesign。

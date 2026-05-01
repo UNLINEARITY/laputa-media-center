@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui'
+import { getHeaderToolItems } from '@/lib/product/tool-catalog'
 import { cn } from '@/lib/utils/cn'
 import { SiteLogo } from './site-logo'
 
@@ -28,13 +29,12 @@ type AuthStatusState = AuthStatus & {
   loaded: boolean
 }
 
-/** 4 個自媒體工具（Phase 3.C 新工具，nav 二級入口） */
-const TOOL_ITEMS = [
-  { href: '/podcast', label: '播客整理', desc: '长文/字幕 → 双人播客脚本 + TTS' },
-  { href: '/highlights', label: '高亮切片', desc: '长视频 → 30-60s 高亮短片 + 字幕' },
-  { href: '/script-rewrite', label: '多平台改写', desc: '同一份稿 → YT/抖音/小红书/公众号' },
-  { href: '/title-hooks', label: '标题与开头', desc: '5 个候选标题 + 开头 30s 改写' },
-] as const
+/**
+ * 4 個自媒體工具（Phase 3.C 新工具，nav 二級入口）。
+ * 數據來自 tool-catalog normal form — 不在這裡硬編碼，避免跟首頁 dashboard
+ * 工具卡 / `/ingest` 處理目標等表面分類各寫一份。
+ */
+const TOOL_ITEMS = getHeaderToolItems()
 
 export function Header() {
   const pathname = usePathname()
@@ -147,7 +147,7 @@ export function Header() {
                   className="flex flex-col items-start gap-0.5 py-2"
                 >
                   <span className="text-sm font-medium text-claude-dark-700">{tool.label}</span>
-                  <span className="text-[11px] text-claude-dark-400">{tool.desc}</span>
+                  <span className="text-[11px] text-claude-dark-400">{tool.shortDescription}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -199,7 +199,9 @@ export function Header() {
                     className="flex flex-col items-start gap-0.5 py-2"
                   >
                     <span className="text-sm font-medium text-claude-dark-700">{tool.label}</span>
-                    <span className="text-[11px] text-claude-dark-400">{tool.desc}</span>
+                    <span className="text-[11px] text-claude-dark-400">
+                      {tool.shortDescription}
+                    </span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

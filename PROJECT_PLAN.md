@@ -1,7 +1,7 @@
 # LaputaMediaCenter 開發計劃
 
 **最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓。剩 demo GIF + 首次運行嚮導 + push GitHub）
+**當前 Phase**：🟡 **Phase 5 進行中**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓ / tool-catalog normal form ✓。剩 demo GIF + 首次運行嚮導 + push GitHub）
 **下次從哪裡繼續**：✅ Codex 兩輪所有 issue 全修完（commit `512b330` `84007c0` `563dd77` `8caa7b5` `a6f93c3`）。**主線：Phase 5 push 前最後決策**（直接 push / 先補 demo GIF / 先做首次運行嚮導）。
 
 **Phase 5 push 前防洩漏狀態**:
@@ -637,6 +637,12 @@
   - `/jobs` 任務類型以 `job_type` 為 normal form，修高亮 / 多平台誤顯示「素材吸收」
   - pagination range guard 補強，`/jobs` rendered 分頁文案確認為 `显示 1 到 10 条，共 14 条`
   - Playwright rendered `/jobs` 驗證：本地模式 1、login/register links 0、MIT License 1、All rights reserved 0、素材吸收 0
+- [x] **Tool catalog normal form 收斂**:
+  - 新增 `lib/product/tool-catalog.ts`，把 Header 工具下拉與首頁 dashboard 兩套並行工具分類收斂到同一份 8-entry catalog
+  - selector 採 predicate filter，不在 entry 上加 `surfaces` flag；presentation icon / layout 仍留在 dashboard adapter
+  - `brand-assets` 保留為 roadmap entry，但 `status: 'planned'`，公開首頁默認不展示
+  - `recommendedFirstRun` 鎖定 podcast，文案明確「只需 LLM provider；不需 MiniMax、不需 ffmpeg、不需影片素材」
+  - 後續 PR 再收 `/ingest` 處理目標與 Requirement primitive，本次不擴大範圍
 - [ ] demo GIF / 截圖
 - [ ] 首次運行嚮導
 - [ ] 刪 _archive/（Wave 5.1 確認過已不存在 ✓）

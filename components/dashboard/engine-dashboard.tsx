@@ -28,7 +28,60 @@ import {
   getDubbingQaSummaryFromJob,
 } from '@/lib/jobs/dubbing-qa-summary'
 import { getJobKindLabel, getJobSourceLabel } from '@/lib/jobs/job-display'
+import {
+  getDashboardTools,
+  type ToolEntry,
+  type ToolId,
+  type ToolStatus,
+} from '@/lib/product/tool-catalog'
 import type { Job, JobStatus } from '@/types'
+
+/**
+ * 工具圖標映射 — icons 屬於 presentation，不放進 tool-catalog
+ * normal form。新增工具時要在 catalog 與這份 map 同步補齊。
+ */
+const TOOL_ICON_BY_ID: Record<ToolId, typeof BookOpenText> = {
+  ingest: BookOpenText,
+  dubbing: Languages,
+  podcast: Podcast,
+  highlights: Scissors,
+  'script-rewrite': FileVideo,
+  'title-hooks': Type,
+  jobs: Clock3,
+  'brand-assets': UserRound,
+}
+
+/** 工具狀態的中文顯示文案 */
+const TOOL_STATUS_LABEL: Record<ToolStatus, string> = {
+  available: '可用',
+  mainline: '主线',
+  planned: '规划中',
+}
+
+/** dashboard 卡片的 view-model — 由 tool-catalog 派生，加上 icon + active 樣式判斷 */
+interface DashboardModule {
+  id: ToolId
+  title: string
+  description: string
+  status: string
+  href: string
+  cta: string
+  icon: typeof BookOpenText
+  active: boolean
+}
+
+function toDashboardModule(tool: ToolEntry): DashboardModule {
+  return {
+    id: tool.id,
+    title: tool.label,
+    description: tool.shortDescription,
+    status: TOOL_STATUS_LABEL[tool.status],
+    href: tool.href,
+    cta: tool.cta,
+    icon: TOOL_ICON_BY_ID[tool.id],
+    active: tool.status !== 'planned',
+  }
+}
 
 const ENGINE_PIPELINE = [
   { label: '素材', value: '影片、音讯、文本、链接', icon: BookOpenText },
@@ -39,80 +92,12 @@ const ENGINE_PIPELINE = [
   { label: '成片', value: '字幕、口型、下载', icon: FileVideo },
 ]
 
-const ENGINE_MODULES = [
-  {
-    title: '素材吸收',
-    description: '读取 YouTube、本地影片或音讯，生成转录、时间码和后续处理计划。',
-    status: '可用',
-    href: '/ingest',
-    cta: '开始导入',
-    icon: BookOpenText,
-    active: true,
-  },
-  {
-    title: '普通话 / 粤语本地化',
-    description: '把外语影片转成中文口播、字幕和可选口型同步成片。',
-    status: '主线',
-    href: '/dubbing',
-    cta: '开配音台',
-    icon: Languages,
-    active: true,
-  },
-  {
-    title: '播客整理',
-    description: '把长文/字幕整理成单人或双人播客脚本，并合成 MiniMax 配音。',
-    status: '可用',
-    href: '/podcast',
-    cta: '生成播客',
-    icon: Podcast,
-    active: true,
-  },
-  {
-    title: '高亮切片',
-    description: '长视频 → LLM 找金句/反转/情绪点，切 30-60s 短片并烧录字幕。',
-    status: '可用',
-    href: '/highlights',
-    cta: '生成高亮',
-    icon: Scissors,
-    active: true,
-  },
-  {
-    title: '多平台改写',
-    description: '同一份稿件 → YouTube 长视频 / 抖音 60s / 小红书图文 / 公众号 4 平台版本。',
-    status: '可用',
-    href: '/script-rewrite',
-    cta: '改写多平台',
-    icon: FileVideo,
-    active: true,
-  },
-  {
-    title: '标题与开头',
-    description: '5 个候选标题（含 SEO 关键词与鉤子强度评分） + 开头 30 秒重写。',
-    status: '可用',
-    href: '/title-hooks',
-    cta: '优化标题',
-    icon: Type,
-    active: true,
-  },
-  {
-    title: '任务控制台',
-    description: '查看运行状态、步骤日志、失败原因、产物路径和最终下载结果。',
-    status: '可用',
-    href: '/jobs',
-    cta: '查看任务',
-    icon: Clock3,
-    active: true,
-  },
-  {
-    title: '品牌素材库',
-    description: '管理声线、词库、讲者资料、片头片尾与固定口播规则。',
-    status: '规划中',
-    href: '/settings#creator_assets',
-    cta: '配置声线',
-    icon: UserRound,
-    active: false,
-  },
-]
+/**
+ * 首頁工具卡 — 由 tool-catalog normal form 派生（不再硬編碼一份）。
+ * `getDashboardTools()` 默認排除 `status: 'planned'`，所以「品牌素材庫」
+ * 在公開首頁不顯示，只留在 catalog 作 roadmap 記錄。
+ */
+const ENGINE_MODULES: readonly DashboardModule[] = getDashboardTools().map(toDashboardModule)
 
 const QUICK_SETTINGS = [
   { label: '创作者资产与词库', href: '/settings#creator_assets', icon: FileText },
@@ -284,7 +269,7 @@ export function EngineDashboard() {
               const Icon = module.icon
               return (
                 <button
-                  key={module.title}
+                  key={module.id}
                   type="button"
                   onClick={() => router.push(module.href)}
                   className="min-h-44 w-full min-w-0 rounded-lg border border-claude-cream-200 bg-white px-4 py-4 text-left transition-colors hover:border-claude-orange-300 hover:bg-claude-cream-50"
