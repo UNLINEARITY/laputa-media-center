@@ -251,7 +251,7 @@ describe('DubbingForm creator assets', () => {
         priority: 20,
       },
     ])
-    const onSubmit = vi.fn()
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>()
 
     render(<DubbingForm onSubmit={onSubmit} />)
 
@@ -320,7 +320,7 @@ describe('DubbingForm creator assets', () => {
   })
 
   it('blocks automatic voice submission when the server preview is unavailable', async () => {
-    const onSubmit = vi.fn(async () => {})
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>(async () => {})
     const fetchMock = setupFetch(
       {},
       [
@@ -362,7 +362,7 @@ describe('DubbingForm creator assets', () => {
   })
 
   it('shows a clear blocker when no voice id, registry voice, or default voice exists', async () => {
-    const onSubmit = vi.fn(async () => {})
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>(async () => {})
     setupFetch()
 
     render(
@@ -516,7 +516,7 @@ describe('DubbingForm creator assets', () => {
   })
 
   it('merges source-job glossary prefill with long-term glossary before submitting', async () => {
-    const onSubmit = vi.fn(async () => {})
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>(async () => {})
     setupFetch(
       {},
       [{ voice_id: 'voice-main', created_at: 'saved' }],
@@ -563,7 +563,7 @@ describe('DubbingForm creator assets', () => {
   })
 
   it('keeps user-edited fields when source job prefill hydrates late', async () => {
-    const onSubmit = vi.fn(async () => {})
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>(async () => {})
     setupFetch()
 
     const { rerender } = render(
@@ -648,7 +648,7 @@ describe('DubbingForm creator assets', () => {
   })
 
   it('keeps sample-to-full snapshot preview isolated from current project glossary and creator profile', async () => {
-    const onSubmit = vi.fn(async () => {})
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>(async () => {})
     setupFetch(
       {
         default_voice_id: 'voice-current-profile',
@@ -931,7 +931,7 @@ describe('DubbingForm creator assets', () => {
   })
 
   it('lets the server voice registry choose a voice when no explicit voice id is set', async () => {
-    const onSubmit = vi.fn(async () => {})
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>(async () => {})
     setupFetch({}, [
       {
         voice_id: 'voice-generic',
@@ -970,7 +970,7 @@ describe('DubbingForm creator assets', () => {
   })
 
   it('normalizes provider gate confirmations before restoring and submitting them', async () => {
-    const onSubmit = vi.fn(async () => {})
+    const onSubmit = vi.fn<(values: DubbingFormValues) => Promise<void>>(async () => {})
     setupFetch({}, [{ voice_id: 'voice-main', created_at: 'saved' }])
 
     render(

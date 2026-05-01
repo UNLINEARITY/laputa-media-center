@@ -31,7 +31,7 @@ describe('AppliedAssetSummary', () => {
         secondary_voice_id: 'voice-guest',
         speaker_mode: 'alternate',
       },
-    } as Pick<Job, 'config'>)
+    } as unknown as unknown as Pick<Job, 'config'>)
     const summary = createAppliedAssetSummary(items)
 
     expect(items.map((item) => item.key)).toEqual([
@@ -63,7 +63,7 @@ describe('AppliedAssetSummary', () => {
           },
           localization_glossary: glossaryEntries,
         },
-      } as Pick<Job, 'config'>,
+      } as unknown as Pick<Job, 'config'>,
       {
         labels: {
           languageStyle: '口播节奏',
@@ -153,7 +153,7 @@ describe('AppliedAssetSummary', () => {
         voice_category: 'public_figure_commentary',
         voice_usage_confirmed: true,
       },
-    } as Pick<Job, 'config'>)
+    } as unknown as Pick<Job, 'config'>)
 
     expect(display).toMatchObject({
       voiceId: 'voice-trump-cn',
@@ -177,7 +177,7 @@ describe('AppliedAssetSummary', () => {
         voice_id: 'voice-legacy',
         voice_usage_label: '历史任务声线',
       },
-    } as Pick<Job, 'config'>)
+    } as unknown as Pick<Job, 'config'>)
 
     expect(display).toMatchObject({
       voiceId: 'voice-legacy',
@@ -199,7 +199,7 @@ describe('AppliedAssetSummary', () => {
         voice_category: 'authorized_clone',
         voice_usage_confirmed: true,
       },
-    } as Pick<Job, 'config'>)
+    } as unknown as Pick<Job, 'config'>)
 
     expect(display).toMatchObject({
       voiceId: 'voice-owned',
@@ -223,7 +223,7 @@ describe('AppliedAssetSummary', () => {
         secondary_voice_category: 'authorized_clone',
         voice_usage_confirmed: true,
       },
-    } as Pick<Job, 'config'>
+    } as unknown as Pick<Job, 'config'>
     const display = createSecondaryVoiceUsageDisplayFromJob(job)
     const items = buildAppliedDubbingAssetItemsFromJob(job)
     const secondaryUsageItem = items.find((item) => item.key === 'secondary_voice_usage')
@@ -238,7 +238,7 @@ describe('AppliedAssetSummary', () => {
     expect(secondaryUsageItem?.value).toContain('第二讲者已授权声线')
     expect(secondaryUsageItem?.value).not.toContain('voice-guest')
     expect(
-      createSecondaryVoiceUsageDisplayFromJob({ config: {} } as Pick<Job, 'config'>),
+      createSecondaryVoiceUsageDisplayFromJob({ config: {} } as unknown as Pick<Job, 'config'>),
     ).toBeNull()
   })
 })

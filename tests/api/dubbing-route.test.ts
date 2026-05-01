@@ -5,38 +5,53 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OUTPUT_DIR } from '@/lib/utils/paths'
 import type { Job, JobConfig } from '@/types'
 
-const authenticateOrRejectMock = vi.hoisted(() => vi.fn())
-const configsGetMock = vi.hoisted(() => vi.fn())
-const jobsCreateMock = vi.hoisted(() => vi.fn(() => 'job-created'))
-const jobsGetByIdMock = vi.hoisted(() => vi.fn())
-const jobsIsOwnedByTokenMock = vi.hoisted(() => vi.fn(() => true))
-const jobsListMock = vi.hoisted(() => vi.fn(() => []))
-const jobsListByTokenIdMock = vi.hoisted(() => vi.fn(() => []))
-const initStateMock = vi.hoisted(() => vi.fn())
-const getStateMock = vi.hoisted(() => vi.fn())
-const loadJobWithDetailsBatchMock = vi.hoisted(() => vi.fn())
-const enqueueMock = vi.hoisted(() => vi.fn(async () => undefined))
-const getMiniMaxCredentialMock = vi.hoisted(() => vi.fn())
+// Codex 第二輪 P1 #6 修：tests fixture drift。
+// vi.fn() 無泛型時 TS 推導為 () => undefined / never[] / 等過窄型別，導致後續 mockReturnValue 失敗。
+// 統一用 vi.fn<Sig>() 顯式聲明簽名，並在「return value 可能是 null/Job 等多種」時用 union 包寬。
+type AnyArgs = unknown[]
+type LooseFn<R = unknown> = (...args: AnyArgs) => R
+
+const authenticateOrRejectMock = vi.hoisted(() => vi.fn<LooseFn>())
+const configsGetMock = vi.hoisted(() => vi.fn<(key: string) => string | null>())
+const jobsCreateMock = vi.hoisted(() => vi.fn<LooseFn<string>>(() => 'job-created'))
+const jobsGetByIdMock = vi.hoisted(() => vi.fn<LooseFn>())
+const jobsIsOwnedByTokenMock = vi.hoisted(() => vi.fn<LooseFn<boolean>>(() => true))
+const jobsListMock = vi.hoisted(() => vi.fn<LooseFn<unknown[]>>(() => []))
+const jobsListByTokenIdMock = vi.hoisted(() => vi.fn<LooseFn<unknown[]>>(() => []))
+const initStateMock = vi.hoisted(() => vi.fn<LooseFn>())
+const getStateMock = vi.hoisted(() => vi.fn<LooseFn>())
+const loadJobWithDetailsBatchMock = vi.hoisted(() => vi.fn<LooseFn>())
+const enqueueMock = vi.hoisted(() => vi.fn<LooseFn<Promise<undefined>>>(async () => undefined))
+const getMiniMaxCredentialMock = vi.hoisted(() => vi.fn<LooseFn>())
+// 預設返完整 credential，但允許 mockReturnValue(null) 模擬未配置場景
+type DubbingTranslationCredentialLike = {
+  provider: string
+  apiKey: string
+  modelId: string
+  source: string
+} | null
 const getDubbingTranslationCredentialMock = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn<LooseFn<DubbingTranslationCredentialLike>>(() => ({
     provider: 'gemini',
     apiKey: 'gemini-key',
     modelId: 'gemini-2.5-flash',
     source: 'env',
   })),
 )
-const isDubbingPassthroughTranslationAllowedMock = vi.hoisted(() => vi.fn(() => false))
-const readMiniMaxVoiceRegistryEntriesMock = vi.hoisted(() => vi.fn(() => []))
+const isDubbingPassthroughTranslationAllowedMock = vi.hoisted(() =>
+  vi.fn<LooseFn<boolean>>(() => false),
+)
+const readMiniMaxVoiceRegistryEntriesMock = vi.hoisted(() => vi.fn<LooseFn<unknown[]>>(() => []))
 const resolveIngestArtifactPathByIdMock = vi.hoisted(() =>
-  vi.fn(() => 'C:\\tmp\\ingest-source.mp4'),
+  vi.fn<LooseFn<string | null>>(() => 'C:\\tmp\\ingest-source.mp4'),
 )
 const getClosedLoopReadinessMock = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn<LooseFn<{ required_confirmations: unknown[] }>>(() => ({
     required_confirmations: [],
   })),
 )
 const validateDubbingVideoSourceMock = vi.hoisted(() =>
-  vi.fn((source: string) => ({
+  vi.fn<LooseFn>((source) => ({
     ok: true,
     kind: 'local',
     status: 'ready',

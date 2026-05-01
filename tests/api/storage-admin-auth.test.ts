@@ -1,17 +1,39 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const validateSessionMock = vi.hoisted(() => vi.fn(async () => null))
-const verifyTokenMock = vi.hoisted(() => vi.fn(() => ({ valid: false })))
-const updateLastUsedMock = vi.hoisted(() => vi.fn())
-const getStorageStatsMock = vi.hoisted(() => vi.fn(async () => ({ totalSize: 0 })))
-const getLogStatsMock = vi.hoisted(() => vi.fn(() => ({ totalFiles: 0 })))
-const previewCleanupMock = vi.hoisted(() => vi.fn(async () => ({ totalSize: 0 })))
-const executeCleanupMock = vi.hoisted(() => vi.fn(async () => ({ success: true })))
-const getLogsToCleanMock = vi.hoisted(() => vi.fn(() => ({ totalFiles: 0 })))
-const cleanLogFilesMock = vi.hoisted(() => vi.fn(() => ({ deletedFiles: 0 })))
-const getTempStatsMock = vi.hoisted(() => vi.fn(async () => ({ totalSize: 0 })))
-const cleanTempFilesMock = vi.hoisted(() => vi.fn(async () => ({ deletedFiles: 0 })))
+// Codex P1 #6: tests fixture drift — vi.fn 寬簽名避免推導過窄
+type LooseFn<R = unknown> = (...args: unknown[]) => R
+const validateSessionMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<string | null>>>(async () => null),
+)
+const verifyTokenMock = vi.hoisted(() =>
+  vi.fn<LooseFn<{ valid: boolean; tokenId?: string }>>(() => ({ valid: false })),
+)
+const updateLastUsedMock = vi.hoisted(() => vi.fn<LooseFn>())
+const getStorageStatsMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<Record<string, unknown>>>>(async () => ({ totalSize: 0 })),
+)
+const getLogStatsMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Record<string, unknown>>>(() => ({ totalFiles: 0 })),
+)
+const previewCleanupMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<Record<string, unknown>>>>(async () => ({ totalSize: 0 })),
+)
+const executeCleanupMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<Record<string, unknown>>>>(async () => ({ success: true })),
+)
+const getLogsToCleanMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Record<string, unknown>>>(() => ({ totalFiles: 0 })),
+)
+const cleanLogFilesMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Record<string, unknown>>>(() => ({ deletedFiles: 0 })),
+)
+const getTempStatsMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<Record<string, unknown>>>>(async () => ({ totalSize: 0 })),
+)
+const cleanTempFilesMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<Record<string, unknown>>>>(async () => ({ deletedFiles: 0 })),
+)
 
 vi.mock('@/lib/auth/session', () => ({
   validateSession: validateSessionMock,

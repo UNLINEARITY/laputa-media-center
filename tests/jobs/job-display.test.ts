@@ -760,6 +760,7 @@ describe('job display helpers', () => {
       config: { max_concurrent_scenes: 1, voice_id: 'voice-a' },
       state: {
         step_context: {
+          // @ts-expect-error: artifact_manifest 缺自嚴版 StepContext，#6 範圍外
           artifact_manifest: {
             artifacts: {
               final_video: { path: 'C:\\tmp\\final.mp4' },

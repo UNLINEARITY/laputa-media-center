@@ -2,12 +2,14 @@ import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { JobConfig } from '@/types'
 
-const authenticateOrRejectMock = vi.hoisted(() => vi.fn())
-const jobsCreateMock = vi.hoisted(() => vi.fn(() => 'ingest-job-created'))
-const jobsDeleteMock = vi.hoisted(() => vi.fn())
-const jobsUpdateMock = vi.hoisted(() => vi.fn())
-const initStateMock = vi.hoisted(() => vi.fn())
-const enqueueMock = vi.hoisted(() => vi.fn(async () => undefined))
+// Codex P1 #6: tests fixture drift — vi.fn 寬簽名避免推導過窄
+type LooseFn<R = unknown> = (...args: unknown[]) => R
+const authenticateOrRejectMock = vi.hoisted(() => vi.fn<LooseFn>())
+const jobsCreateMock = vi.hoisted(() => vi.fn<LooseFn<string>>(() => 'ingest-job-created'))
+const jobsDeleteMock = vi.hoisted(() => vi.fn<LooseFn>())
+const jobsUpdateMock = vi.hoisted(() => vi.fn<LooseFn>())
+const initStateMock = vi.hoisted(() => vi.fn<LooseFn>())
+const enqueueMock = vi.hoisted(() => vi.fn<LooseFn<Promise<undefined>>>(async () => undefined))
 
 vi.mock('@/lib/auth/unified-auth', () => ({
   authenticateOrReject: authenticateOrRejectMock,

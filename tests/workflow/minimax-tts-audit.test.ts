@@ -5,8 +5,12 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorkflowContext } from '@/lib/workflow/types'
 
-const spawnMock = vi.hoisted(() => vi.fn())
-const getMiniMaxApiKeyMock = vi.hoisted(() => vi.fn(() => null))
+// Codex P1 #6: tests fixture drift — vi.fn 寬簽名。
+type LooseFn<R = unknown> = (...args: unknown[]) => R
+// spawnMock：用 vi.fn 默認 any 簽名（mockImplementation 可接受不同 ChildProcess 構造方式）
+// biome-ignore lint/suspicious/noExplicitAny: spawn mock impl 簽名多樣（cmd, args, options? 等），LooseFn 太嚴
+const spawnMock = vi.hoisted(() => vi.fn<(...args: any[]) => any>())
+const getMiniMaxApiKeyMock = vi.hoisted(() => vi.fn<LooseFn<string | null>>(() => null))
 
 vi.mock('node:child_process', () => ({
   spawn: spawnMock,

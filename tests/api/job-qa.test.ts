@@ -34,7 +34,8 @@ const persistenceMocks = vi.hoisted(() => ({
     target_language: report.stats.targetLanguage || undefined,
     top_recommendations: report.recommendedActions.slice(0, 3),
   })),
-  tryPersistDubbingQaReportSummary: vi.fn(async () => null),
+  // Codex P1 #6: 顯式 union 簽名，允許 mockResolvedValueOnce 給完整 DubbingQaSummary
+  tryPersistDubbingQaReportSummary: vi.fn<() => Promise<unknown>>(async () => null),
 }))
 
 function makeDubbingJob(overrides: Partial<Job> = {}): Job {

@@ -8,7 +8,10 @@ describe('Gemini AI Studio key verification', () => {
   })
 
   it('verifies official AI Studio credentials with generateContent only', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    // Codex P1 #6: 顯式聲明 fetchMock 簽名，否則 mock.calls[0] 會推導為 [] 導致 [0] TS2493
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () => new Response('{}', { status: 200 }),
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     const result = await verifyGeminiAIStudio({
@@ -27,7 +30,10 @@ describe('Gemini AI Studio key verification', () => {
   })
 
   it('does not require the removed Gemini File API upload path', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    // Codex P1 #6: 顯式聲明 fetchMock 簽名，否則 mock.calls[0] 會推導為 [] 導致 [0] TS2493
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () => new Response('{}', { status: 200 }),
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     await verifyGeminiAIStudio({

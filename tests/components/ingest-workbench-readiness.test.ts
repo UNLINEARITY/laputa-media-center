@@ -193,12 +193,10 @@ describe('IngestWorkbench readiness badges', () => {
 
   it('summarizes Gemini runtime key, model, and base-url sources without secrets', () => {
     expect(
+      // Codex P1 #6: TranslationCredentialStatusForDisplay 已收歛為 { configured, runtime? }
+      // verified/source/verification_state/detail 是舊版 status 欄位，prod consumer 已不讀取，移除
       getTranslationCredentialRuntimeRows({
         configured: true,
-        verified: false,
-        source: 'env',
-        verification_state: 'not_tracked',
-        detail: 'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。',
         runtime: {
           provider: 'gemini',
           api_key_source: 'env:GOOGLE_AI_STUDIO_API_KEY',
@@ -218,10 +216,6 @@ describe('IngestWorkbench readiness badges', () => {
       JSON.stringify(
         getTranslationCredentialRuntimeRows({
           configured: true,
-          verified: true,
-          source: 'settings',
-          verification_state: 'verified',
-          detail: '设置页 Gemini 翻译凭证已通过一次真实 provider 验证。',
           runtime: {
             provider: 'gemini',
             api_key_source: 'settings:google_ai_studio',

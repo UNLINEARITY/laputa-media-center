@@ -1,11 +1,30 @@
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ApiKeyService } from '@/types/api/api-key'
 
-const verifyApiKeyMock = vi.hoisted(() => vi.fn(async () => ({ valid: true, message: 'ok' })))
-const saveApiKeyMock = vi.hoisted(() => vi.fn())
-const markVerifiedMock = vi.hoisted(() => vi.fn())
-const getAllStatusMock = vi.hoisted(() => vi.fn(() => []))
-const clearGeminiRuntimeCacheMock = vi.hoisted(() => vi.fn())
+// 對齊 lib/db/core/api-keys.ts:153 getAllStatus 返回型別。
+// 顯式聲明 mock 簽名 → 避免 vi.fn(() => []) 推導為 () => never[] 導致下方 mockReturnValue([{...}]) 變 TS2322
+// （Codex 第二輪 P1 #6 修：tests fixture drift）
+type ApiKeyStatusRow = {
+  service: ApiKeyService
+  is_configured: boolean
+  is_verified: boolean
+  verified_at: number | null
+}
+
+const verifyApiKeyMock = vi.hoisted(() =>
+  vi.fn<() => Promise<{ valid: boolean; message: string }>>(async () => ({
+    valid: true,
+    message: 'ok',
+  })),
+)
+const saveApiKeyMock = vi.hoisted(() => vi.fn<(...args: unknown[]) => void>())
+const markVerifiedMock = vi.hoisted(() => vi.fn<(...args: unknown[]) => void>())
+const getAllStatusMock = vi.hoisted(() =>
+  // biome-ignore lint/suspicious/noExplicitAny: vitest mock 對齊 prod 簽名需要鬆型別
+  vi.fn<() => ApiKeyStatusRow[]>(() => [] as ApiKeyStatusRow[]),
+)
+const clearGeminiRuntimeCacheMock = vi.hoisted(() => vi.fn<() => void>())
 const originalAllowPaidDynamicTests = process.env.ALLOW_PAID_DYNAMIC_TESTS
 const originalLegacyTtsEnabled = process.env.LEGACY_TTS_ENABLED
 const originalGeminiApiKey = process.env.GEMINI_API_KEY
@@ -155,7 +174,7 @@ describe('api keys route Gemini runtime cache clearing', () => {
         verified_at: 1760000000000,
       },
       {
-        service: 'google_storage',
+        service: 'google_storage' as unknown as ApiKeyService, // legacy: removed from prod, kept for skip-test docs
         is_configured: false,
         is_verified: false,
         verified_at: null,
@@ -182,7 +201,7 @@ describe('api keys route Gemini runtime cache clearing', () => {
         verification_label: '已验证',
       }),
       expect.objectContaining({
-        service: 'google_storage',
+        service: 'google_storage' as unknown as ApiKeyService, // legacy: removed from prod, kept for skip-test docs
         is_configured: false,
         is_verified: false,
         verification_state: 'missing',
@@ -206,7 +225,7 @@ describe('api keys route Gemini runtime cache clearing', () => {
         verified_at: null,
       },
       {
-        service: 'google_storage',
+        service: 'google_storage' as unknown as ApiKeyService, // legacy: removed from prod, kept for skip-test docs
         is_configured: true,
         is_verified: false,
         verified_at: null,
@@ -235,7 +254,7 @@ describe('api keys route Gemini runtime cache clearing', () => {
         verification_label: '已保存待验证',
       }),
       expect.objectContaining({
-        service: 'google_storage',
+        service: 'google_storage' as unknown as ApiKeyService, // legacy: removed from prod, kept for skip-test docs
         is_configured: true,
         is_verified: false,
         source: 'settings',
@@ -317,7 +336,7 @@ describe('api keys route Gemini runtime cache clearing', () => {
         verified_at: null,
       },
       {
-        service: 'google_storage',
+        service: 'google_storage' as unknown as ApiKeyService, // legacy: removed from prod, kept for skip-test docs
         is_configured: false,
         is_verified: false,
         verified_at: null,
@@ -336,7 +355,7 @@ describe('api keys route Gemini runtime cache clearing', () => {
         verification_state: 'missing',
       }),
       expect.objectContaining({
-        service: 'google_storage',
+        service: 'google_storage' as unknown as ApiKeyService, // legacy: removed from prod, kept for skip-test docs
         is_configured: false,
         source: null,
         verification_state: 'missing',

@@ -1,9 +1,15 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const validateSessionMock = vi.hoisted(() => vi.fn(async () => null))
-const verifyTokenMock = vi.hoisted(() => vi.fn(() => ({ valid: false })))
-const updateLastUsedMock = vi.hoisted(() => vi.fn())
+// Codex P1 #6: tests fixture drift — vi.fn 寬簽名避免推導過窄
+type LooseFn<R = unknown> = (...args: unknown[]) => R
+const validateSessionMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<string | null>>>(async () => null),
+)
+const verifyTokenMock = vi.hoisted(() =>
+  vi.fn<LooseFn<{ valid: boolean; tokenId?: string }>>(() => ({ valid: false })),
+)
+const updateLastUsedMock = vi.hoisted(() => vi.fn<LooseFn>())
 const configsRepoMock = vi.hoisted(() => ({
   count: vi.fn(() => 0),
   delete: vi.fn(),

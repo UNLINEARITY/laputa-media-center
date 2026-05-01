@@ -6,35 +6,60 @@ import type {
   ClosedLoopReadiness,
 } from '@/lib/workflow/closed-loop-readiness'
 
+// Codex 第二輪 P1 #6 修：tests fixture drift。所有 vi.fn 顯式聲明寬簽名，避免 TS 推導過窄。
+type LooseFn<R = unknown> = (...args: unknown[]) => R
+
 const authenticateOrRejectMock = vi.hoisted(() =>
-  vi.fn(async () => ({
+  vi.fn<
+    LooseFn<
+      Promise<{
+        auth: { authenticated: boolean; source: string; tokenId?: string }
+        response: unknown
+      }>
+    >
+  >(async () => ({
     auth: { authenticated: true, source: 'session' },
     response: null,
   })),
 )
-const getClosedLoopReadinessMock = vi.hoisted(() => vi.fn())
+const getClosedLoopReadinessMock = vi.hoisted(() => vi.fn<LooseFn>())
 const jobsRepoMock = vi.hoisted(() => ({
-  create: vi.fn(),
-  delete: vi.fn(),
-  getById: vi.fn(() => ({ id: 'job123' })),
-  isOwnedByToken: vi.fn(() => true),
-  update: vi.fn(),
+  create: vi.fn<LooseFn>(),
+  delete: vi.fn<LooseFn>(),
+  getById: vi.fn<LooseFn>(() => ({ id: 'job123' })),
+  isOwnedByToken: vi.fn<LooseFn<boolean>>(() => true),
+  update: vi.fn<LooseFn>(),
 }))
-const saveProviderSmokeAuditLogMock = vi.hoisted(() => vi.fn())
-const findLatestPassedDryRunProviderSmokeAuditMock = vi.hoisted(() => vi.fn())
-const createProviderSmokeRunPermitMock = vi.hoisted(() => vi.fn())
-const findProviderSmokeRunPermitMock = vi.hoisted(() => vi.fn())
-const summarizeRealProviderSmokeAuditsSinceLatestReadyDryRunMock = vi.hoisted(() => vi.fn())
-const reserveRealProviderSmokeAttemptMock = vi.hoisted(() => vi.fn())
-const completeRealProviderSmokeAttemptReservationMock = vi.hoisted(() => vi.fn())
+const saveProviderSmokeAuditLogMock = vi.hoisted(() => vi.fn<LooseFn>())
+const findLatestPassedDryRunProviderSmokeAuditMock = vi.hoisted(() => vi.fn<LooseFn>())
+const createProviderSmokeRunPermitMock = vi.hoisted(() => vi.fn<LooseFn>())
+const findProviderSmokeRunPermitMock = vi.hoisted(() => vi.fn<LooseFn>())
+const summarizeRealProviderSmokeAuditsSinceLatestReadyDryRunMock = vi.hoisted(() =>
+  vi.fn<LooseFn>(),
+)
+const reserveRealProviderSmokeAttemptMock = vi.hoisted(() => vi.fn<LooseFn>())
+const completeRealProviderSmokeAttemptReservationMock = vi.hoisted(() => vi.fn<LooseFn>())
 const bootRuntimeFingerprintMock = vi.hoisted(() => ({
   package_name: 'laputa-media-center',
   package_version: '0.1.0',
   next_build_id: 'test-build',
 }))
-const verifyApiKeyMock = vi.hoisted(() => vi.fn(async () => ({ valid: true, message: 'ok' })))
+const verifyApiKeyMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Promise<{ valid: boolean; message: string }>>>(async () => ({
+    valid: true,
+    message: 'ok',
+  })),
+)
+// 預設帶 title/webpageUrl，但允許 mock 失敗 case 缺欄位（cast 在 mockReturnValueOnce 處）
+type ProbeIngestSourceResult = {
+  status: string
+  ok: boolean
+  message: string
+  title?: string
+  webpageUrl?: string
+}
 const probeIngestSourceMock = vi.hoisted(() =>
-  vi.fn(async () => ({
+  vi.fn<LooseFn<Promise<ProbeIngestSourceResult>>>(async () => ({
     status: 'ready',
     ok: true,
     message: '视频 metadata 可读取。',
@@ -42,8 +67,14 @@ const probeIngestSourceMock = vi.hoisted(() =>
     webpageUrl: 'https://www.youtube.com/watch?v=smoke',
   })),
 )
+type MiniMaxCredentialLike = {
+  apiKey: string
+  voiceId: string
+  source: string
+  path: string
+} | null
 const getMiniMaxCredentialMock = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn<LooseFn<MiniMaxCredentialLike>>(() => ({
     apiKey: 'minimax-key',
     voiceId: 'voice-main',
     source: 'settings',
@@ -51,7 +82,7 @@ const getMiniMaxCredentialMock = vi.hoisted(() =>
   })),
 )
 const getDubbingTranslationCredentialMock = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn<LooseFn>(() => ({
     provider: 'gemini',
     apiKey: 'gemini-key',
     modelId: 'gemini-2.5-flash-lite',
@@ -228,6 +259,8 @@ function providerGate(
 }
 
 function readiness(): ClosedLoopReadiness {
+  // Codex P1 #6: prod ClosedLoopReadiness 加了 translation_credential_status / tts_credential_status，
+  // 此 fixture 暫無對應欄位 (#6 範圍外，要動 closed-loop-readiness.ts 加完整 stub)，先 cast
   return {
     production_ready: true,
     smoke_ready: true,
@@ -277,7 +310,7 @@ function readiness(): ClosedLoopReadiness {
         capability: 'tts',
       }),
     ],
-  }
+  } as unknown as ClosedLoopReadiness
 }
 
 function request(body: Record<string, unknown> = {}) {
@@ -460,8 +493,16 @@ describe('ingest dubbing readiness provider smoke route', () => {
     jobsRepoMock.isOwnedByToken.mockReturnValue(true)
     getClosedLoopReadinessMock.mockReturnValue(readiness())
     findLatestPassedDryRunProviderSmokeAuditMock.mockReturnValue(passedDryRunEvidence())
-    createProviderSmokeRunPermitMock.mockImplementation(
-      ({ jobId, authPrincipal, commandBinding, commandHash, expiresAt, now }) => ({
+    createProviderSmokeRunPermitMock.mockImplementation(((opts: {
+      jobId: string
+      authPrincipal: unknown
+      commandBinding: unknown
+      commandHash: string
+      expiresAt: number
+      now: number
+    }) => {
+      const { jobId, authPrincipal, commandBinding, commandHash, expiresAt, now } = opts
+      return {
         schema_version: 1,
         type: 'provider_smoke_run_permit',
         permit_id: 'psp_test',
@@ -472,8 +513,8 @@ describe('ingest dubbing readiness provider smoke route', () => {
         command_hash: commandHash,
         command_binding: commandBinding,
         provider_calls_authorized: false,
-      }),
-    )
+      }
+    }) as unknown as Parameters<typeof createProviderSmokeRunPermitMock.mockImplementation>[0])
     findProviderSmokeRunPermitMock.mockImplementation(
       () => lastProviderSmokeRunPermit ?? providerSmokeRunPermit(),
     )

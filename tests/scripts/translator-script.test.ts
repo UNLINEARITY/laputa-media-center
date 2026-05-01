@@ -11,7 +11,7 @@ const translatorScript = path.join(process.cwd(), 'scripts', 'translator.py')
 let tempRoot: string | null = null
 let pythonAvailable = true
 
-function isolatedEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+function isolatedEnv(overrides: Partial<NodeJS.ProcessEnv> = {}): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, PYTHONIOENCODING: 'utf-8', ...overrides }
   delete env.CHUANGCUT_TRANSLATE_API_KEY
   delete env.GEMINI_API_KEY

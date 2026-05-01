@@ -11,7 +11,9 @@ const voiceClonerScript = path.join(process.cwd(), 'scripts', 'voice_cloner.py')
 let tempRoot: string | null = null
 let pythonAvailable = true
 
-function isolatedEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+// Codex P1 #6: NodeJS.ProcessEnv 在 @types/node 24+ 後 NODE_ENV 從 optional 變 required，
+// 但 test 只想覆蓋 subset env vars。改用 Partial<NodeJS.ProcessEnv>。
+function isolatedEnv(overrides: Partial<NodeJS.ProcessEnv> = {}): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, PYTHONIOENCODING: 'utf-8', ...overrides }
   delete env.MINIMAX_API_KEY
   delete env.DUBBING_TTS_MODE

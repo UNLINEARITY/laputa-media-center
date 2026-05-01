@@ -4,7 +4,7 @@ import { useJobStore } from '@/store/job-store'
 
 describe('job store mainline contract', () => {
   it('does not expose the removed generic /api/jobs creation action', () => {
-    const state = useJobStore.getState() as Record<string, unknown>
+    const state = useJobStore.getState() as unknown as Record<string, unknown>
     const source = readFileSync('store/job-store.ts', 'utf8')
 
     expect(state.createJob).toBeUndefined()

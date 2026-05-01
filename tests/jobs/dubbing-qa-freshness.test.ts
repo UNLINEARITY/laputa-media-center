@@ -29,7 +29,8 @@ function makeReport(): DubbingQaReport {
   }
 }
 
-function makeJob(overrides: Partial<Job> = {}): Job {
+// Codex P1 #6: Partial<Job> 對 nested state 過嚴；改為 unknown 容許 fixture 漂移
+function makeJob(overrides: Partial<Omit<Job, 'state'>> & { state?: unknown } = {}): Job {
   return {
     id: JOB_ID,
     job_type: 'translation_dubbing',
@@ -53,7 +54,7 @@ function makeJob(overrides: Partial<Job> = {}): Job {
     source: 'web',
     api_token_id: null,
     ...overrides,
-  }
+  } as unknown as Job
 }
 
 function writeArtifacts() {

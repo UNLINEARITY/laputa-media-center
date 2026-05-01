@@ -73,6 +73,7 @@ describe('dubbing run plan', () => {
         usage_label: '名人素材翻译/评论配音，需明确标注非本人原声',
         created_at: '2026-04-28',
         priority: 10,
+        applicable_people: ['Trump'], // Codex P1 #6: prod 加了 applicable_people required field
       },
     ]
     const plan = buildDubbingRunPlan({

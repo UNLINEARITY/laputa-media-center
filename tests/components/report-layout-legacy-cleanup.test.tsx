@@ -280,9 +280,10 @@ describe('ReportLayout legacy report cleanup', () => {
           state: state({ total_scenes: 4, processed_scenes: 2 }),
           scenes: [
             legacyScene({
-              split_video_url: null,
-              final_video_url: null,
-              selected_audio_url: null,
+              // Codex P1 #6: legacyScene 型別這 3 欄位是 string|undefined（非 null），改用 undefined
+              split_video_url: undefined,
+              final_video_url: undefined,
+              selected_audio_url: undefined,
             }),
           ],
           videos: [

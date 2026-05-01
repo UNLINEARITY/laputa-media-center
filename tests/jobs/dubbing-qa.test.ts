@@ -147,6 +147,7 @@ describe('dubbing QA helpers', () => {
           final_video_url: intermediatePath,
           final_video_local_path: intermediatePath,
           step_context: {
+            // @ts-expect-error: artifact_manifest 缺自嚴版 StepContext，#6 範圍外
             artifact_manifest: {
               artifacts: {
                 final_video: { path: intermediatePath },

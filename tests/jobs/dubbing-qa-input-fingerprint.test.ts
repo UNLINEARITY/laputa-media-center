@@ -41,6 +41,7 @@ describe('buildDubbingQaInputFingerprint', () => {
       dubbingJob({
         state: {
           step_context: {
+            // @ts-expect-error: artifact_manifest 缺自嚴版 StepContext，#6 範圍外
             artifact_manifest: {
               artifacts: {
                 final_video: { path: 'C:\\runtime\\output\\20260426-job123\\final.mp4' },

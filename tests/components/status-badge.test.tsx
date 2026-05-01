@@ -48,9 +48,9 @@ describe('StatusBadge', () => {
   })
 
   it.each([
-    'google_ai_studio',
-    'google_vertex',
-    'google_storage',
+    'google_ai_studio' as const,
+    'google_vertex' as const,
+    'google_storage' as 'google_ai_studio',
   ])('labels saved-only %s credentials as saved but unverified', (service) => {
     render(<StatusBadge service={service} statuses={[status({ service })]} />)
 
@@ -97,10 +97,10 @@ describe('StatusBadge', () => {
   it('labels missing credentials as not configured', () => {
     render(
       <StatusBadge
-        service="google_storage"
+        service={'google_storage' as 'google_ai_studio'}
         statuses={[
           status({
-            service: 'google_storage',
+            service: 'google_storage' as 'google_ai_studio',
             is_configured: false,
             source: null,
             verification_state: 'missing',

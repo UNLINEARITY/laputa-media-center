@@ -54,7 +54,7 @@ function dubbingJob(revisionNotes = '放慢停顿，避免逐句硬翻。'): Job
         { source: 'Lars', target: 'Lars von Thienen' },
       ],
     },
-  } as Job
+  } as unknown as unknown as Job
 }
 
 function promotedFullRunJob(): Job {
@@ -70,7 +70,7 @@ function promotedFullRunJob(): Job {
       sample_to_full: true,
       sample_asset_snapshot: true,
     },
-  } as Job
+  } as unknown as Job
 }
 
 describe('DubbingContextSection', () => {
@@ -146,7 +146,7 @@ describe('DubbingContextSection', () => {
         style_name: 'plain-edit',
         input_videos: [],
         config: { max_concurrent_scenes: 1 },
-      } as Job),
+      } as unknown as Job),
     ).toBe(false)
   })
 })

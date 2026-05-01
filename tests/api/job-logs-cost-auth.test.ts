@@ -1,15 +1,21 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const verifyTokenMock = vi.hoisted(() => vi.fn(() => ({ valid: false })))
-const updateLastUsedMock = vi.hoisted(() => vi.fn())
-const getJobByIdMock = vi.hoisted(() => vi.fn(() => null))
-const isOwnedByTokenMock = vi.hoisted(() => vi.fn(() => false))
-const queryJobLogsMock = vi.hoisted(() => vi.fn(() => []))
-const queryLogsByStepMock = vi.hoisted(() => vi.fn(() => ({})))
-const queryLogsByStageMock = vi.hoisted(() => vi.fn(() => ({})))
-const getLogCountMock = vi.hoisted(() => vi.fn(() => 0))
-const calculateJobCostMock = vi.hoisted(() => vi.fn(() => ({ total: 0 })))
+// Codex P1 #6: tests fixture drift — vi.fn 寬簽名避免推導過窄
+type LooseFn<R = unknown> = (...args: unknown[]) => R
+const verifyTokenMock = vi.hoisted(() =>
+  vi.fn<LooseFn<{ valid: boolean; tokenId?: string }>>(() => ({ valid: false })),
+)
+const updateLastUsedMock = vi.hoisted(() => vi.fn<LooseFn>())
+const getJobByIdMock = vi.hoisted(() => vi.fn<LooseFn<unknown>>(() => null))
+const isOwnedByTokenMock = vi.hoisted(() => vi.fn<LooseFn<boolean>>(() => false))
+const queryJobLogsMock = vi.hoisted(() => vi.fn<LooseFn<unknown[]>>(() => []))
+const queryLogsByStepMock = vi.hoisted(() => vi.fn<LooseFn<Record<string, unknown>>>(() => ({})))
+const queryLogsByStageMock = vi.hoisted(() => vi.fn<LooseFn<Record<string, unknown>>>(() => ({})))
+const getLogCountMock = vi.hoisted(() => vi.fn<LooseFn<number>>(() => 0))
+const calculateJobCostMock = vi.hoisted(() =>
+  vi.fn<LooseFn<Record<string, unknown>>>(() => ({ total: 0 })),
+)
 
 vi.mock('@/lib/auth/session', () => ({
   validateSession: vi.fn(async () => null),

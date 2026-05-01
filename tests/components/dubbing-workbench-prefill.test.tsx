@@ -340,7 +340,7 @@ describe('DubbingWorkbench URL prefill', () => {
         },
         localization_glossary: [{ source: 'Wave59', target: 'Wave五十九', note: '样片锁定' }],
       },
-    } as Job
+    } as unknown as Job
 
     window.history.pushState({}, '', '/dubbing?fromJob=sample-asset-1&sampleToFull=true')
     const urlPrefill = parseDubbingPrefillFromUrl()
@@ -383,7 +383,7 @@ describe('DubbingWorkbench URL prefill', () => {
           { source: 'Lars', target: 'Lars von Thienen' },
         ],
       },
-    } as Job
+    } as unknown as Job
 
     const values = buildDubbingPrefillFromSourceJob(sourceJob, 'cantonese')
 
@@ -437,7 +437,7 @@ describe('DubbingWorkbench URL prefill', () => {
           }),
         },
       ],
-    } as Job
+    } as unknown as Job
 
     const values = buildDubbingPrefillFromSourceJob(sourceJob, 'mandarin')
 
@@ -484,7 +484,7 @@ describe('DubbingWorkbench URL prefill', () => {
           },
         },
       },
-    } as Job
+    } as unknown as Job
 
     const values = buildDubbingPrefillFromSourceJob(sourceJob, 'mandarin', {
       'source_video.mp4': false,
@@ -531,7 +531,7 @@ describe('DubbingWorkbench URL prefill', () => {
           }),
         },
       ],
-    } as Job
+    } as unknown as Job
 
     const hydrated = mergeDubbingPrefillWithSourceJob(
       {

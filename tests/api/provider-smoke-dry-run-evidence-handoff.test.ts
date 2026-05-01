@@ -141,7 +141,8 @@ function readiness(): ClosedLoopReadiness {
         capability: 'tts',
       }),
     ],
-  }
+  } as unknown as ClosedLoopReadiness
+  // Codex P1 #6: prod ClosedLoopReadiness 加了 translation/tts_credential_status，#6 範圍外，cast 吸收
 }
 
 function request(body: Record<string, unknown>) {

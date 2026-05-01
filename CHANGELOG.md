@@ -36,6 +36,44 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 
 ## [Unreleased] — Phase 5（開源就緒，未開始）
 
+### 2026-05-01 Codex P1 #6 — full tsc 收斂 119→0（測試 fixture drift 全清）
+
+**根因**：`pnpm tsc --noEmit --incremental false` 之前 119 errors 全在 tests/，原因是 mock 型別推導過窄（`vi.fn()` 無泛型默認推為 `() => undefined` / `() => never[]`）+ Job/StepContext fixture 對不上 prod 型別。
+
+**Step 1**（quick win）— `tsconfig.app.json` + scripts:
+- 新增 `tsconfig.app.json`：extends base，excludes `tests/`
+- 新增 `pnpm typecheck:app`（production 0 errors，CI gate）
+- 新增 `pnpm typecheck:all`（包含 tests，可獨立追蹤測試債）
+- CI 該過 typecheck:app；typecheck:all 紅不阻 build
+
+**Step 2**（mock 簽名收斂）— LooseFn pattern 應用到 5 個高密度檔:
+- `tests/api/api-keys.test.ts`：11→0（mock declaration 加 `vi.fn<Sig>()` + `ApiKeyService` 類型）
+- `tests/api/dubbing-route.test.ts`：28→0（17 個 mock + `DubbingTranslationCredentialLike` union）
+- `tests/components/workbench-client.test.tsx`：11→0（`JobOverride` 型別 + `as unknown as Job['stepHistory']` cast）
+- `tests/components/dubbing-form.test.tsx`：10→0（onSubmit mock 類型化）
+- `tests/api/ingest-dubbing-readiness-smoke-route.test.ts`：8→0（11 個 mock）
+
+**Step 3**（推廣到剩餘 16 個零散檔）— 按類別批量修:
+- 5 個 auth-style tests（configs-auth / storage-admin-auth / job-logs-cost-auth）：`{valid: boolean; tokenId?: string}` union
+- minimax-tts-audit / dubbing-qa-backfill：mock 簽名 + 解 spread `unknown` 為 object
+- voice-cloner / translator-script：`Partial<NodeJS.ProcessEnv>`（@types/node 24+ NODE_ENV 變 required）
+- 7 個小檔（ingest-route / api-key-verification / status-badge / dubbing-workbench-prefill 等）：cast pattern (`as unknown as Job` / `as unknown as ClosedLoopReadiness`)
+- 3 個 artifact_manifest 引用：`@ts-expect-error` 註解（兩個 StepContext 定義漂移，#6 範圍外要 prod refactor 統一）
+- 2 個 ingest-workbench-readiness：`TranslationCredentialStatusForDisplay` 已收歛為 `{configured, runtime?}`，移除舊 fixture 欄位
+
+**新增** `tests/helpers/fixture-builders.ts` — `DeepPartial<T>` + `castPartial<T>()` helpers，給未來測試 fixture 共用 normal form。
+
+**驗證**:
+- pnpm typecheck:app: **0 errors**（production blocker 為 0）
+- pnpm typecheck:all: **0 errors**（從 119 降到 0，100% reduction）
+- pnpm exec biome check .: 0 errors / 1 acceptable warning
+- pnpm test:unit: 105 files / 768 tests pass / 17 skipped（runtime 行為不變）
+
+**設計決策**:
+- 不動 prod 型別重構（StepContext 兩個定義 / TranslationCredentialStatusForDisplay 收歛 / ClosedLoopReadiness 加欄位）— 這些都是 cross-file refactor，#6 範圍外
+- Tests cast 為 `as unknown as T` + 加註解說明「prod refactor 後可移除 cast」
+- mock typing 用泛型 `vi.fn<Sig>()` 不引入 fixture builder，因為主要 bug 是 mock 推導不是 fixture builder 缺失
+
 ### 2026-05-01 修 e2e reuse mode 環境匹配 + Codex #5 reuseExistingServer DX
 
 **Root cause**：之前 `pnpm test:e2e` 默認模式 12/12 全綠，但 reuse mode（`PLAYWRIGHT_REUSE_SERVER=true PLAYWRIGHT_PORT=8899`）下會 fixture 404。原因：
@@ -44,7 +82,7 @@ LaputaMediaCenter 的版本變更紀錄。語意化版本（major.minor.patch）
 - 但用戶的 `pnpm dev` 啟的 dev server 用默認 `data/db.sqlite`
 - 結果：seed 寫的 fixture job 在 e2e DB，dev server 從 data DB 讀，找不到 → 404
 
-**修法**（commit pending）:
+**修法**（commit `f6f0216`）:
 - 加 `pnpm dev:e2e` script：用 cross-env 把 DATABASE_URL/RUNTIME_DIR/TEMP_DIR/OUTPUT_DIR/AUTH_ENABLED/ALLOW_PAID_DYNAMIC_TESTS 等對應到 playwright 預期 paths，dev server 與 seed 走同一個 DB
 - 加 `pnpm test:e2e:reuse` script：直接設 `PLAYWRIGHT_REUSE_SERVER=true PLAYWRIGHT_PORT=8899`，不再要用戶手寫 env
 - 加 `cross-env` devDep（10KB pure-JS，跨 Win/Unix shell）

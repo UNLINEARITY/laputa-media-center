@@ -1,16 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Job } from '@/types'
 
+// Codex P1 #6: tests fixture drift — generateAndPersistDubbingQaSummary 默認返 null，
+// 但測試會 mockResolvedValue 完整 DubbingQaSummary，型別需是 union
+type LooseFn<R = unknown> = (...args: unknown[]) => R
 const mocks = vi.hoisted(() => ({
   state: null as Record<string, unknown> | null,
-  getJobArtifactsFingerprint: vi.fn(async () => ({ hash: 'artifact-hash', files: {} })),
-  buildDubbingQaInputFingerprint: vi.fn(() => ({
+  getJobArtifactsFingerprint: vi.fn<
+    LooseFn<Promise<{ hash: string; files: Record<string, unknown> }>>
+  >(async () => ({ hash: 'artifact-hash', files: {} })),
+  buildDubbingQaInputFingerprint: vi.fn<LooseFn<Record<string, string>>>(() => ({
     hash: 'current-input-hash',
     artifact_hash: 'artifact-hash',
     config_hash: 'config-hash',
     delivery_hash: 'delivery-hash',
   })),
-  generateAndPersistDubbingQaSummary: vi.fn(async () => null),
+  // 返 DubbingQaSummary | null 以容許 mockResolvedValue 兩種 case
+  generateAndPersistDubbingQaSummary: vi.fn<LooseFn<Promise<unknown>>>(async () => null),
 }))
 
 vi.mock('@/lib/db/managers/state-manager', () => ({
@@ -60,10 +66,14 @@ function dubbingJob(overrides: Partial<Job> = {}): Job {
 }
 
 function setQaSummaryHash(hash: string): void {
+  // Codex P1 #6: baseState 返 Record<string, unknown>，step_context 是 unknown 不能 spread
+  // cast 為 object 才能 spread
+  const base = baseState()
+  const baseStepContext = (base.step_context ?? {}) as Record<string, unknown>
   mocks.state = {
-    ...baseState(),
+    ...base,
     step_context: {
-      ...baseState().step_context,
+      ...baseStepContext,
       qa_summary: {
         schema_version: 1,
         qa_engine_version: 'dubbing-qa-summary:v2',

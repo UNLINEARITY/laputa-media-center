@@ -9,6 +9,7 @@ import type { DeliveryPackage } from '@/lib/jobs/delivery-package'
 import type { ProviderSmokeAudit } from '@/lib/workflow/provider-smoke-audit'
 import { TRANSLATION_DUBBING_JOB_TYPE } from '@/lib/workflow/workflow-ids'
 import type { DubbingQaSummary, Job } from '@/types'
+import type { DeepPartial } from '../helpers/fixture-builders'
 
 vi.mock('@/components/workbench/CostSummaryCard', () => ({
   CostSummaryCard: () => <div data-testid="cost-summary" />,
@@ -18,7 +19,17 @@ vi.mock('@/components/workbench/LogsPanel', () => ({
   LogsPanel: () => <div data-testid="logs-panel" />,
 }))
 
-function job(overrides: Partial<Job> = {}): Job {
+// 接受 DeepPartial<Job> + 顯式放寬 state/stepHistory 為 unknown，因為兩者的 prod 型別都有漂移
+// （state.step_context 對應的 StepContext 有兩個定義：types/workflow/context.ts 寬 vs lib/workflow/step-definitions.ts 嚴；
+//  stepHistory 對應的 StepRecord 用 camelCase 但 DB rows snake_case，schema 鏡像未統一）
+// 這在 #6 範圍外（要動 prod 型別重構），先用 builder 邊界 cast 吸收，避免測試假綠。
+type JobOverride = Omit<DeepPartial<Job>, 'state' | 'stepHistory'> & {
+  state?: unknown
+  stepHistory?: unknown[]
+}
+function job(overrides: JobOverride = {}): Job {
+  // overrides 含 state/stepHistory 為 unknown，無法走 castPartial<Job>(DeepPartial<Job>)
+  // 改用直接 as unknown as Job — 邊界處只此一個 cast，內容仍由 builder 控制
   return {
     id: 'job123',
     job_type: TRANSLATION_DUBBING_JOB_TYPE,
@@ -42,7 +53,7 @@ function job(overrides: Partial<Job> = {}): Job {
     source: 'web',
     api_token_id: null,
     ...overrides,
-  }
+  } as unknown as Job
 }
 
 function deliveryPackage(overrides: Partial<DeliveryPackage> = {}): DeliveryPackage {
@@ -130,7 +141,7 @@ function providerSmokeAudit(overrides: Partial<ProviderSmokeAudit> = {}): Provid
 
 function renderWorkbench(
   packageOverride?: DeliveryPackage | null,
-  jobOverride: Partial<Job> = {},
+  jobOverride: JobOverride = {},
   jobDetailOverride: Partial<
     Parameters<typeof WorkbenchClient>[0]['initialData']['jobDetail']
   > = {},
@@ -641,7 +652,7 @@ describe('WorkbenchClient delivery artifacts', () => {
             transcript_preview: 'shorter brief preview',
           }),
         },
-      ] as Job['stepHistory'],
+      ] as unknown as Job['stepHistory'],
     })
 
     const link = screen.getByRole('link', { name: /普通话成片/ })
@@ -702,7 +713,7 @@ describe('WorkbenchClient delivery artifacts', () => {
               artifact_urls: {},
             }),
           },
-        ] as Job['stepHistory'],
+        ] as unknown as Job['stepHistory'],
       },
       {
         ingestArtifactAvailability: {
@@ -774,7 +785,7 @@ describe('WorkbenchClient delivery artifacts', () => {
               },
             }),
           },
-        ] as Job['stepHistory'],
+        ] as unknown as Job['stepHistory'],
       },
       {
         ingestArtifactAvailability: {
@@ -847,7 +858,7 @@ describe('WorkbenchClient delivery artifacts', () => {
             artifact_urls: {},
           }),
         },
-      ] as Job['stepHistory'],
+      ] as unknown as Job['stepHistory'],
     })
 
     expect(screen.queryByText('下一步配音')).toBeNull()
