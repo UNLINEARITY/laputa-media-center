@@ -1,8 +1,8 @@
 # LaputaMediaCenter 開發計劃
 
-**最後更新**：2026-04-30（每次對話結束 AI 助手會更新這裡）
-**當前 Phase**：Phase 3.C 全 4 工具完成（包括粵語接入）+ 收尾修補
-**下次從哪裡繼續**：實機驗收 /podcast + /highlights 粵語（需 MiniMax key + 真視頻）OR 進 Phase 4（清理 + reset）OR Phase 5（開源準備）
+**最後更新**：2026-05-01（每次對話結束 AI 助手會更新這裡）
+**當前 Phase**：Phase 4 進行中 — Codex 報告 13 issue 全修（W0-W3 commits `831a876` + `60becb4` + `9bb63d0` + `570e9f0`）+ Mandarin prompt 分支補齊 + 4 工具 nav/dashboard/health/UX 全到位
+**下次從哪裡繼續**：用戶確認 W0-W3 滿意後啟動 Phase 4 剩餘（agent docs / docs 大瘦身 / migration 合一 / 版本號 1.0.0）OR 直接進 Phase 5（開源就緒：secrets 掃描 / README EN/ZH / install scripts / demo GIF）
 
 **📅 2026-05-14 自我提醒（remote schedule 暫不可用，手寫於此）**：
 - 跑 `git log --oneline -20` 看最近 2 週 Phase 3.C 實機驗收狀態
@@ -579,13 +579,17 @@
 - [x] **API 完成**：`app/api/podcast/route.ts` 創建 podcast job（schema 校驗 + voice_id 必填 + workflow 註冊）
 - [ ] **真實驗收**：留用戶手動跑（需要 Gemini key + MiniMax key + 已註冊聲線）
 
-### Phase 4：清理 + 重置
-- [ ] Agent docs 合併
-- [ ] docs/ 大瘦身
-- [ ] 構建緩存類文件刪除
-- [ ] migration 合併為 001_init.sql
-- [ ] 版本號重置 1.0.0
-- [ ] 寫 CHANGELOG
+### Phase 4：清理 + 重置 🟡 進行中（2026-05-01 W0-W3 完成）
+- [x] **W0**：TS production errors 全修 + biome lint 全綠（commit `831a876`）
+- [x] **W1**：Mandarin prompt 分支補齊 + /title-hooks cost 文案修正（commit `60becb4`）
+- [x] **W2**：4 工具 nav + 首頁 dashboard + AUTH-aware login + /api/health + MD/PDF 切換清空 + podcast 無聲線 CTA + UI 術語去工程化（commit `9bb63d0`）
+- [x] **W3**：9:16 ffmpeg scale+pad+setsar + preview aspect + settings 404 silent + mobile chip 32px + 品牌統一（site-logo / footer / license-error / README）+ CODEX_HANDOFF.md 受保護資產路徑修正 + CHANGELOG.md 起步（commit `570e9f0`）
+- [ ] Agent docs 合併（CLAUDE.md / WARP.md 還沒在 repo 內，目前只 AGENTS.md）
+- [ ] docs/ 大瘦身（待 Phase 5 前處理）
+- [ ] 構建緩存類文件刪除（.next、node_modules cache）
+- [ ] migration 合併為 001_init.sql（DB schema reset）
+- [ ] 版本號重置 1.0.0（package.json 從 16.0.0 → 1.0.0）
+- [x] 寫 CHANGELOG（CHANGELOG.md，W0-W3 + Phase 1-3.C 歷史摘要）
 
 ### Phase 5：開源就緒
 - [ ] secrets 全項目掃描
@@ -791,3 +795,4 @@ VERSION.md                        Phase 4 改寫或刪除
 - **2026-04-30**：實機 LLM 驗收 Phase 3.C 4 工具（OpenAI-compatible proxy x666.me + gemini-3-flash-preview）暴露 3 個 sleeping bug，commit `9acd3b2` 修：(1) `lib/db/tables/job-step-history.ts:insert` 硬編碼 12 個舊 step 漏 Phase 3.B/3.C 新加的 6 個（analyze/rewrite/tts/delivery/score/cut）→ 創任務即被 throw；(2) schema.sql `jobs.current_step` + `job_step_history.major_step` 兩條 CHECK 列表同樣漏新 step → SQLite 拒絕 INSERT；(3) `generate-platform-scripts.safeParseScript` 太鬆：LLM 返合法 JSON 但用了不同 key 名時所有 4 平台靜默變 null，manifest 是空的。**修法**：types/core/job.ts 抽 `JOB_STEPS as const` source of truth + 派生 JobStep type；`lib/db/tables/job-step-history.ts` import JOB_STEPS 替代硬編碼；schema.sql 移除兩條 CHECK + lib/db/index.ts dropCheckConstraint helper 應用到 3 處（jobs.job_type + jobs.current_step + job_step_history.major_step）；safeParseScript 加 anyMatch 守門 LLM 返的 JSON 至少要有一個 selected platform 的非空對象。**真 LLM 質量驗收**：/title-hooks ✅ 5 標題創意 + SEO 都好（「OpenAI 變 CloseAI」「上億美金研發卻免費送」）⚠️ 開頭 30s 優化 echo 原文（prompt bug 未修）；/script-rewrite ✅ 4 平台 .md 質量高（YT 1385 字 / 抖音 598 字 / 小紅書 593 字 / 公眾號 1218 字）⚠️ 小紅書 tags 重複 2 次（已修 prompt）；/podcast + /highlights 跳過真 LLM 測（缺 MiniMax key + 真視頻）。
 - **2026-04-30**：粵語（港式）輸出接通 — B 方案首批 /title-hooks + /script-rewrite（commit `6238589`）。**新建 `lib/i18n/cantonese-prompt.ts`**：抽 ChuangCut translator.py:549-556 嘅 Cantonese rules（用戶滿意嘅那條 prompt）為 source of truth，分 Layer A 硬規則 3 條（我哋/嘅/喺/嚟/係 等粵語助詞 + 避免「用繁體寫普通話」+ 不過度切碎保 TTS 節奏）+ Layer B 風格 5 種（localized_script/short_video/faithful/podcast/written，'written' 為小紅書/公眾號圖文新增）+ Layer C 中文通用數字朗讀。主入口 `getCantoneseRules({ targetLanguage, style, includeSpokenNumbers })` 非粵語返 [] 不影響原 prompt。33 個單元測試全 pass。**接入 /title-hooks**：optimizer.ts + types.ts 加 target_language 欄位；UI 加 3 段 radio（自動 / 普通話 / 粵語港式）+ 強化開頭 30s prompt（「optimized_first_30s 必須明顯不同」）。**接入 /script-rewrite**：build-multi-platform-brief + generate-platform-scripts 按平台映射粵語 style（YouTube=localized_script / 抖音=short_video / 小紅書/公眾號=written）；types/core/job.ts JobConfig 加 script_target_language；UI 加同款 radio；fix 小紅書 tags 重複 bug。**實機驗收**：/title-hooks 4 條粵語標題質量極佳（「OpenAI 變『摺』咗」「點解外國玩閉源」「燒咗幾億美金先發現唔可以開源」用點解/咗/嘅/同/唔/呢/先/晒 地道粵語）⚠️ 開頭 30s 優化 LLM 仍 echo 原文（強化 prompt 沒生效，需 server-side 強制重寫，本輪未修）；/script-rewrite 4 平台全粵語生成（抖音「AI 圈變天啦！」「點解 OpenAI 變咗 CloseAI」「同 Google 呢啲巨頭」、小紅書「真係風起雲湧」「乜都唔 Open 嘞」「鎖喺櫃桶入面」、公眾號副標題「當矽谷巨頭築起高牆，開源主義點樣喺夾縫中求存？」全部用 我哋/嘅/喺度/呢啲/佢哋/攞/畀/嚟）。test:unit 102 files / 718 pass / 17 skip / 0 fail。**剩 2 個工具（/podcast + /highlights）下一輪用同一個 helper 接通即可**（B 方案 v2）。
 - **2026-04-30**：粵語 B 方案 v2 + 修 /title-hooks 開頭 30s echo bug（commit `64d1b5a`）。**/podcast 接通**：build-podcast-brief.ts + generate-podcast-script.ts 注入 cantonese rules（podcast style + spoken_numbers），types/core/job.ts JobConfig 加 podcast_target_language；API schema + UI radio 同步。**/highlights 接通**：find-highlights.ts hook_text/summary 用粵語（short_video style + includeSpokenNumbers=false 因 hook_text 不會朗讀），types/core/job.ts JobConfig 加 highlights_target_language；API + UI radio 同步（提示「只影響 hook_text / summary 文案；視頻字幕仍來自原 transcript」）。**Bug #1 修**（/title-hooks 開頭 30s echo）：新建 `isOpeningRewriteEffective(orig, opt)`（歸一化空白標點後比對相似度，長度相近時要求 ≥15% 字符差異）；檢測到 LLM echo → 用更強 system_instruction（「YOU MUST REWRITE. Echoing or near-copying the original is a hard failure.」）+ mandate field retry 一次；兩次都失敗則 fallback 用原文 + warning 提示用戶。6 個單元測試覆蓋邊界（test:unit 103 files / 724 pass / 17 skip / 0 fail）。**至此 Phase 3.C 全 4 工具粵語接通**：/title-hooks ✅ /script-rewrite ✅ /podcast ✅ /highlights ✅。**待實機驗收**：/podcast（需 MiniMax key 才能跑 TTS） + /highlights（需真視頻才能跑 ffmpeg cut）。
+- **2026-05-01**：Codex 獨立測試報告處理 — Phase 4 起步 4 波（W0-W3）。**Codex（前一日 read-only 跑了 8 類檢查）發現 13 個 issue**（1 P0 / 8 P1 / 4 P2），用戶選 "C" 全做：W0 必修 + W1 自己引入 UX bug + W2 朋友體驗 + W3 polish。**W0**（commit `831a876`）：6 类 TS production error 修（md_draft union / dup ok / Fish Audio @deprecated / re-export / readdirSync / MajorStep）+ 51 文件 biome auto-fix（safe + unsafe）+ 9 個手動 lint（noImplicitAnyLet / a11y backdrop / exhaustiveDeps / noAssignInExpressions）。**W1**（commit `60becb4`）：之前 mandarin target 多處 prompt 只說「保持源語言」→ 英文素材直接吐英文。新增 i18n helpers `isMandarinTarget` / `MANDARIN_HARD_RULES` / `getMandarinRules` / `resolveLanguageInstruction` 3-way 分支選擇器。6 個 LLM step prompt + 5 個 SYSTEM_INSTRUCTION 加 mandarin 分支；translate-segments.ts 字幕翻譯也支援 mandarin（之前只粵語）。/title-hooks page 動態拉 active provider 顯示 tier badge（避免「默認 Gemini 免費」誤導但實際 OpenAI paid）。+35 mandarin 測試（759 pass）。**W2**（commit `9bb63d0`）：Header 加「工具」下拉（4 個 Phase 3.C 工具）+ AUTH-aware login（disabled 時顯「本地模式」badge 不顯登入/註冊）；Dashboard 4 工具從「下一步」改「可用」；/api/health 拆 service liveness（永遠 200）vs license status（4 種 mode）+ brand「创剪视频工作流」→「LaputaMediaCenter」；MD/PDF mode 切換清空 uploadedPath；podcast 無聲線給 3 個明確入口 CTA；UI 術語去工程化（hook_text / manifest / voice_id 改人話）。**W3**（commit `570e9f0`）：9:16 ffmpeg 加 scale=1080:1920+pad+setsar=1（之前只 crop 下游可能再拉伸）+ HighlightClipCard 接受 aspect prop；/api/configs/[key] 加 KNOWN_OPTIONAL_KEYS 白名單（4 個可選 key 不存在時 200+null 避免前端 console 404）；4 form chip mobile padding 32px / desktop 30px；品牌統一 site-logo「LE/Laputa Content Engine」→「LMC/LaputaMediaCenter」+ footer + license-error + README；CODEX_HANDOFF.md 修 3 個錯誤的受保護資產路徑（lib/creator-profile/* → lib/dubbing/creator-profile.ts 等）；新增 CHANGELOG.md。**13/13 issue 全部覆蓋 + bonus UI 術語去工程化**。每波 verify 都全綠：tsc 0 production errors / biome 0 issues / 759 tests pass。**未做**：Phase 4 剩餘 4 項（agent docs 合併 / docs/ 大瘦身 / migration 合一 / 版本號重置 1.0.0），等用戶確認再啟動 Phase 5（開源就緒）。
