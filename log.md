@@ -3,6 +3,42 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] 修正 whisper.cpp 安裝 429 體驗
+
+### 用戶提出的問題
+1. 在瀏覽器 console 看到 `POST http://localhost:8899/api/runtime/whisper-cpp/install 429 (Too Many Requests)`。
+2. 需要直接修正並實際跑起項目確認。
+
+### 問題原因/修改思路
+- 安裝 API 原本把 whisper.cpp 首次安裝限制為 1 分鐘 1 次 POST，但本地安裝按鈕容易因失敗重試、重複點擊或頁面刷新再次觸發。
+- 後端已經有 module-level single-flight 保護，真正需要的是「同一時間只跑一個下載」，不是把正常重試直接變成裸 429。
+- 修法保持最小切片：先判斷 single-flight，再套用較寬鬆的本地安裝限流；前端解析 429/409 JSON，給出可讀中文提示。
+
+### 實際修改記錄
+- **`app/api/runtime/whisper-cpp/install/route.ts`**:
+  - 將重複安裝請求優先回傳 `409 install_in_progress`，避免佔用額外限流名額。
+  - 將本地安裝限流從 `1/min` 調整為 `3/min`。
+  - 429 response 增加 `message`、`retry_after` 與 `Retry-After` header。
+- **`components/settings/whisper-cpp-installer.tsx`**:
+  - 新增 HTTP error body 解析，針對 `429` 顯示「請 X 秒後再試」。
+  - 針對 `409` 顯示「安裝已在進行中」，不再只暴露 `HTTP 429` / `HTTP 409`。
+  - 補充無 SSE body 時的安全 fallback 文案。
+- **`tests/api/whisper-cpp-install-route.test.ts`**:
+  - 覆蓋 duplicate install 先回 409、不再消耗第二次限流。
+  - 覆蓋 429 retry guidance 與外部 token 禁止安裝。
+- **`tests/components/whisper-cpp-installer.test.tsx`**:
+  - 模擬安裝 API 回 429，驗證 UI 顯示中文重試提示而不是裸 `HTTP 429`。
+- **`PROJECT_PLAN.md`**:
+  - 更新當前進度與下次繼續方向。
+
+### 驗證
+- ✅ `corepack pnpm exec biome check app\api\runtime\whisper-cpp\install\route.ts components\settings\whisper-cpp-installer.tsx tests\api\whisper-cpp-install-route.test.ts tests\components\whisper-cpp-installer.test.tsx` 通過。
+- ✅ `corepack pnpm exec vitest run tests/api/whisper-cpp-install-route.test.ts tests/components/whisper-cpp-installer.test.tsx` 通過：2 files / 4 pass。
+- ✅ `corepack pnpm test:unit` 通過：110 files / 816 pass / 17 skip。
+- ✅ `corepack pnpm build` 通過，`/api/runtime/whisper-cpp/install` 出現在 Next route table。
+- ✅ production 服務已重啟：`http://localhost:8899/api/health` 返回 200，`http://localhost:8899/api/runtime/whisper-cpp/status` 返回 200。
+- ✅ 使用系統 Edge 打開 `http://localhost:8899/settings`，切到維護兼容頁可看到 `安裝 whisper.cpp` 按鈕，console 未出現 429；截圖保存在 `tmp/whisper-installer-smoke.png`。
+
 ## [2026-05-04] 落地工具前置条件检查面板
 
 ### 用户提出的问题

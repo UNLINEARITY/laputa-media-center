@@ -23,6 +23,38 @@ interface WhisperCppRuntimeStatus {
 
 type InstallPhase = 'binary' | 'model'
 
+interface InstallErrorBody {
+  message?: unknown
+  retry_after?: unknown
+}
+
+function getPositiveSeconds(value: unknown): number | null {
+  const seconds = Number(value)
+  if (!Number.isFinite(seconds) || seconds <= 0) return null
+  return Math.ceil(seconds)
+}
+
+async function getInstallHttpErrorMessage(res: Response): Promise<string> {
+  let body: InstallErrorBody | null = null
+  try {
+    body = (await res.json()) as InstallErrorBody
+  } catch {
+    body = null
+  }
+
+  const retryAfter =
+    getPositiveSeconds(body?.retry_after) ?? getPositiveSeconds(res.headers.get('Retry-After'))
+  const serverMessage = typeof body?.message === 'string' ? body.message : null
+
+  if (res.status === 409) return serverMessage ?? '安装已在进行中，请稍候'
+  if (res.status === 429) {
+    if (retryAfter) return `安装请求太频繁，请 ${retryAfter} 秒后再试。`
+    return serverMessage ?? '安装请求太频繁，请稍后再试。'
+  }
+
+  return serverMessage ?? `HTTP ${res.status}`
+}
+
 export function WhisperCppInstaller() {
   const [status, setStatus] = useState<WhisperCppRuntimeStatus | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
@@ -66,8 +98,11 @@ export function WhisperCppInstaller() {
         signal: abortRef.current.signal,
         headers: { Accept: 'text/event-stream' },
       })
-      if (!res.ok || !res.body) {
-        throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        throw new Error(await getInstallHttpErrorMessage(res))
+      }
+      if (!res.body) {
+        throw new Error('安装响应没有进度流，请刷新后重试')
       }
 
       const reader = res.body.getReader()

@@ -17,6 +17,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 
 // 全局 single-flight：避免并发触发两次下载
 let installInFlight: Promise<unknown> | null = null
+const WHISPER_INSTALL_RATE_LIMIT = { windowMs: 60_000, maxRequests: 3 } as const
 
 function resolveModelSize(): WhisperModelSize {
   const v = process.env.WHISPER_CPP_MODEL?.trim()
@@ -36,22 +37,27 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const identifier = `whisper-install:${authResult.auth.userId ?? 'session'}`
-  const rate = checkRateLimit(identifier, { windowMs: 60_000, maxRequests: 1 })
-  if (!rate.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limited', retry_after: Math.ceil(rate.resetIn / 1000) },
-      {
-        status: 429,
-        headers: { 'Retry-After': String(Math.ceil(rate.resetIn / 1000)) },
-      },
-    )
-  }
-
   if (installInFlight) {
     return NextResponse.json(
       { error: 'install_in_progress', message: '安装已在进行中，请稍候' },
       { status: 409 },
+    )
+  }
+
+  const identifier = `whisper-install:${authResult.auth.userId ?? 'session'}`
+  const rate = checkRateLimit(identifier, WHISPER_INSTALL_RATE_LIMIT)
+  if (!rate.allowed) {
+    const retryAfter = Math.ceil(rate.resetIn / 1000)
+    return NextResponse.json(
+      {
+        error: 'Rate limited',
+        message: `安装请求太频繁，请 ${retryAfter} 秒后再试`,
+        retry_after: retryAfter,
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfter) },
+      },
     )
   }
 
