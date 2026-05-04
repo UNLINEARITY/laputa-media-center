@@ -3,6 +3,36 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] 修正桌面安裝版無法開啟窗口
+
+### 用戶提出的問題
+1. 安裝後桌面出現圖標，但雙擊沒有出現桌面窗口。
+2. 需要確認安裝成功後應該是「真正的桌面窗口」，不是只有背景圖標或瀏覽器服務。
+
+### 問題原因/修改思路
+- 實際日誌顯示 Tauri 外殼已啟動 sidecar，但 Next server 立即退出：`Error: Cannot find module 'next'`。
+- 根因是 Next standalone 在 pnpm 下保留了指向本機 repo 的 `node_modules` 符號連結；NSIS 安裝到普通用戶機器後，這些連結不能成為可分發依賴，導致 sidecar 啟動失敗，WebView 等不到 `/api/health`，所以沒有窗口。
+- 修正方向是讓 Lite/desktop 包在打包階段把 pnpm 虛擬依賴展平成真實目錄，並移除 `.pnpm` 深層路徑，避免再次觸發 Windows 長路徑與缺依賴問題。
+
+### 實際修改記錄
+- **`scripts/package-lite-win.mjs`**:
+  - 複製 Next standalone 時啟用 dereference，把 `next`、`react`、`react-dom`、`better-sqlite3` 等頂層 runtime dependency 從符號連結轉成實體目錄。
+  - 新增 pnpm store hoist 流程，將 `.pnpm/*/node_modules/*` 中的 runtime package 展平到 `node_modules`。
+  - 打包後刪除 `.pnpm`，縮短安裝包內路徑，避免 NSIS 寫入深層 pnpm 路徑時失敗。
+  - 新增 runtime dependency 驗證，至少保證 `next`、`react`、`react-dom`、`better-sqlite3`、`@swc/helpers` 都是實體依賴並帶有 `package.json`。
+
+### 驗證
+- ✅ `corepack pnpm package:lite:win` 通過，並輸出 `hoisted 13 pnpm runtime packages`。
+- ✅ `dist/laputa-lite-win/node_modules` 無 `.pnpm`，無 reparse point；`next` 與 `@swc/helpers` 均為實體目錄。
+- ✅ 使用包內 `resources/node/node.exe server.js` 啟動 Lite server，`GET /api/health` 返回 200。
+- ✅ `node scripts/prepare-desktop-win.mjs` 通過，`src-tauri/r/l/node_modules` 無 `.pnpm`，無 reparse point。
+- ✅ 重新生成 `src-tauri/target/release/bundle/nsis/LaputaMediaCenter_1.0.0_x64-setup.exe`，大小約 315 MB。
+- ✅ 新安裝包靜默安裝到 `dist/desktop-smoke-install-v2` 後，安裝目錄含 `laputa-desktop/node_modules/next` 與 `@swc/helpers`，不含 `.pnpm`。
+- ✅ 啟動安裝後 exe，主窗口存在，sidecar `/api/health` 成功，smoke 結果為 `main_window=True health_ok=True`。
+- ✅ `corepack pnpm typecheck:app` 通過。
+- ✅ `cargo check --manifest-path src-tauri\Cargo.toml` 通過。
+- ✅ `corepack pnpm test:unit` 通過，116 files / 827 pass / 17 skip。
+
 ## [2026-05-04] 打包 Windows 桌面安裝版
 
 ### 用戶提出的問題

@@ -86,7 +86,7 @@ async function exists(target) {
   }
 }
 
-async function copyDir(source, target, label, { optional = false } = {}) {
+async function copyDir(source, target, label, { optional = false, dereference = false } = {}) {
   if (!(await exists(source))) {
     const message = `${label} not found: ${path.relative(repoRoot, source)}`
     if (optional) {
@@ -96,9 +96,88 @@ async function copyDir(source, target, label, { optional = false } = {}) {
     throw new Error(message)
   }
 
-  await fs.cp(source, target, { recursive: true, force: true })
+  await fs.cp(source, target, { recursive: true, force: true, dereference })
   console.log(`[package-lite-win] copied ${label}`)
   return true
+}
+
+async function assertRealPath(target, label) {
+  if (!(await exists(target))) {
+    throw new Error(`${label} missing after packaging: ${path.relative(repoRoot, target)}`)
+  }
+
+  const stat = await fs.lstat(target)
+  if (stat.isSymbolicLink()) {
+    throw new Error(`${label} is still a symlink: ${path.relative(repoRoot, target)}`)
+  }
+}
+
+async function copyPackageIfMissing(source, target) {
+  if (await exists(target)) {
+    const stat = await fs.lstat(target)
+    if (!stat.isSymbolicLink()) return false
+    await fs.rm(target, { recursive: true, force: true })
+  }
+
+  await fs.mkdir(path.dirname(target), { recursive: true })
+  await fs.cp(source, target, { recursive: true, force: true, dereference: true })
+  return true
+}
+
+async function hoistScopedPackages(sourceScopeDir, targetScopeDir) {
+  let copied = 0
+  const scopedEntries = await fs.readdir(sourceScopeDir, { withFileTypes: true })
+  for (const scopedEntry of scopedEntries) {
+    if (!scopedEntry.isDirectory()) continue
+    const source = path.join(sourceScopeDir, scopedEntry.name)
+    const target = path.join(targetScopeDir, scopedEntry.name)
+    if (await copyPackageIfMissing(source, target)) copied += 1
+  }
+  return copied
+}
+
+async function hoistPnpmStorePackages() {
+  const storeDir = path.join(packageDir, 'node_modules', '.pnpm')
+  if (!(await exists(storeDir))) return
+
+  let copied = 0
+  const storeEntries = await fs.readdir(storeDir, { withFileTypes: true })
+  for (const storeEntry of storeEntries) {
+    if (!storeEntry.isDirectory()) continue
+
+    const virtualNodeModules = path.join(storeDir, storeEntry.name, 'node_modules')
+    if (!(await exists(virtualNodeModules))) continue
+
+    const packageEntries = await fs.readdir(virtualNodeModules, { withFileTypes: true })
+    for (const packageEntry of packageEntries) {
+      if (!packageEntry.isDirectory() || packageEntry.name === '.bin') continue
+
+      const source = path.join(virtualNodeModules, packageEntry.name)
+      const target = path.join(packageDir, 'node_modules', packageEntry.name)
+      if (packageEntry.name.startsWith('@')) {
+        copied += await hoistScopedPackages(source, target)
+      } else if (await copyPackageIfMissing(source, target)) {
+        copied += 1
+      }
+    }
+  }
+
+  await fs.rm(storeDir, { recursive: true, force: true })
+  console.log(`[package-lite-win] hoisted ${copied} pnpm runtime packages`)
+}
+
+async function verifyStandaloneRuntimeDeps() {
+  const requiredDeps = ['next', 'react', 'react-dom', 'better-sqlite3', '@swc/helpers']
+  for (const dep of requiredDeps) {
+    const depPath = path.join(packageDir, 'node_modules', ...dep.split('/'))
+    await assertRealPath(depPath, `runtime dependency ${dep}`)
+    await assertRealPath(
+      path.join(depPath, 'package.json'),
+      `runtime dependency ${dep} package.json`,
+    )
+  }
+
+  console.log('[package-lite-win] verified standalone runtime dependencies')
 }
 
 async function findStandaloneAppDir() {
@@ -142,7 +221,7 @@ async function copyStandaloneServer() {
     return false
   }
 
-  await fs.cp(appDir, packageDir, { recursive: true, force: true })
+  await fs.cp(appDir, packageDir, { recursive: true, force: true, dereference: true })
   if (appDir !== standaloneDir) {
     await copyDir(
       path.join(standaloneDir, 'node_modules'),
@@ -150,6 +229,7 @@ async function copyStandaloneServer() {
       'standalone shared node_modules',
       {
         optional: true,
+        dereference: true,
       },
     )
   }
@@ -278,6 +358,8 @@ async function main() {
   await fs.writeFile(path.join(resourcesDir, 'README.md'), resourcesReadme, 'utf8')
   await copyBundledNode()
   await copyPythonScripts()
+  await hoistPnpmStorePackages()
+  await verifyStandaloneRuntimeDeps()
 
   await copyOptionalExecutable('ffmpeg', path.join('bin', 'ffmpeg', 'ffmpeg.exe'))
   await copyOptionalExecutable('ffprobe', path.join('bin', 'ffmpeg', 'ffprobe.exe'))

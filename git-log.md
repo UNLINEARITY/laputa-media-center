@@ -3,6 +3,26 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] fix(desktop): 修正安裝版無法開啟窗口
+
+**commit summary**
+fix(desktop): 修正安裝版無法開啟窗口
+
+**description**
+Fix the Windows desktop installer so the packaged Next sidecar can start outside the development checkout. The Lite packaging step now dereferences pnpm symlinks, hoists runtime packages from the virtual store into real `node_modules` directories, removes the deep `.pnpm` tree from the distributable bundle, and verifies required runtime dependencies before producing the desktop resources. This prevents installed apps from failing with `Cannot find module 'next'` or missing nested Next dependencies, allowing Tauri to wait for `/api/health` and open the desktop WebView normally.
+
+修正 Windows 桌面安裝版在開發 checkout 之外無法啟動隨包 Next sidecar 的問題。Lite 打包流程現在會展開 pnpm 符號連結，將虛擬 store 中的 runtime package hoist 成真實 `node_modules` 目錄，從可分發包移除深層 `.pnpm` 樹，並在產出桌面 resources 前驗證必要 runtime dependency。這避免安裝後出現 `Cannot find module 'next'` 或 Next 巢狀依賴缺失，讓 Tauri 可以等到 `/api/health` 成功並正常打開桌面 WebView。
+
+**verification**
+- `corepack pnpm package:lite:win`
+- Lite package smoke: bundled `resources/node/node.exe server.js` served `GET /api/health` with HTTP 200
+- `node scripts/prepare-desktop-win.mjs`
+- NSIS installer rebuild produced `src-tauri/target/release/bundle/nsis/LaputaMediaCenter_1.0.0_x64-setup.exe`
+- NSIS installer smoke: silent install to `dist/desktop-smoke-install-v2`, installed app had `next` and `@swc/helpers` as real dependencies, no `.pnpm`, main window opened, and `/api/health` returned OK
+- `corepack pnpm typecheck:app`
+- `cargo check --manifest-path src-tauri\Cargo.toml`
+- `corepack pnpm test:unit` (116 files / 827 pass / 17 skip)
+
 ## [2026-05-04] feat(desktop): 打包 Windows 桌面安裝版
 
 **commit summary**
