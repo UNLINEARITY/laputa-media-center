@@ -170,13 +170,13 @@ export function AsrProviderSwitcher({ onActiveTabChange }: AsrProviderSwitcherPr
               return (
                 <div key={p.id} className="space-y-2">
                   <div
-                    className={`flex flex-wrap items-center justify-between gap-3 rounded-md border px-4 py-3 transition-all ${
+                    className={`flex flex-col gap-3 rounded-md border px-4 py-3 transition-all sm:flex-row sm:items-center sm:justify-between ${
                       isActive
                         ? 'border-claude-orange-300 bg-claude-orange-50/40 ring-2 ring-claude-orange-500/20'
                         : 'border-claude-cream-200 bg-white'
                     }`}
                   >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:flex-1">
                       <TierBadge tier={p.tier} />
                       <span className="truncate text-sm font-medium text-claude-dark-700">
                         {p.displayName}
@@ -188,10 +188,11 @@ export function AsrProviderSwitcher({ onActiveTabChange }: AsrProviderSwitcherPr
                         </span>
                       )}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="flex-1 sm:flex-none"
                         disabled={!p.available || testing === p.id}
                         onClick={() => handleTest(p.id)}
                       >
@@ -204,13 +205,13 @@ export function AsrProviderSwitcher({ onActiveTabChange }: AsrProviderSwitcherPr
                       </Button>
                       <Button
                         size="sm"
-                        disabled={isActive || !p.available || switching === p.id}
-                        onClick={() => handleSwitch(p.id)}
-                        className={
+                        className={`flex-1 sm:flex-none ${
                           isActive
                             ? 'bg-claude-cream-100 text-claude-dark-400 hover:bg-claude-cream-100'
                             : 'bg-claude-orange-500 text-white hover:bg-claude-orange-600'
-                        }
+                        }`}
+                        disabled={isActive || !p.available || switching === p.id}
+                        onClick={() => handleSwitch(p.id)}
                       >
                         {switching === p.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />

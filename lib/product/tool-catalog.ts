@@ -20,6 +20,8 @@
  * - /dubbing 表單
  */
 
+import type { SetupRequirementId } from './setup-requirements'
+
 export type ToolId =
   | 'ingest'
   | 'dubbing'
@@ -32,27 +34,6 @@ export type ToolId =
 
 /** 工具發布狀態。`mainline` 表示這條是當前主推流程；`planned` 表示尚未上線。 */
 export type ToolStatus = 'available' | 'mainline' | 'planned'
-
-/**
- * 設置依賴的抽象 ID。第二個 PR 會引入 Requirement primitive 把這些字串
- * 對應到實際的 provider / runtime 檢查；目前只是文檔級標記。
- *
- * - `llm`: 任一 LLM provider（Gemini / OpenAI / Mistral 三選一即可）
- * - `minimax-tts`: MiniMax TTS 已配置 API key + 至少一個 voice_id
- * - `asr`: 任一 ASR 引擎（whisper.cpp 本地 / Gemini Audio）
- * - `ffmpeg`: ffmpeg 在 PATH
- * - `yt-dlp`: yt-dlp 在 PATH（僅 YouTube 來源需要）
- * - `voice-registry`: 至少一條登記過的聲線（用於選默認主聲線）
- * - `wav2lip`: Wav2Lip 環境（口型同步可選功能）
- */
-export type SetupRequirementId =
-  | 'llm'
-  | 'minimax-tts'
-  | 'asr'
-  | 'ffmpeg'
-  | 'yt-dlp'
-  | 'voice-registry'
-  | 'wav2lip'
 
 export interface ToolEntry {
   /** 穩定 ID — 不會變；未來 i18n / analytics / Requirement primitive 都用這個 key */

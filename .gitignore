@@ -18,12 +18,12 @@ build/
 config/customer-mapping.json
 
 # runtime data
-data/
-logs/
-temp/
-tmp/
-output/
-uploads/
+/data/
+/logs/
+/temp/
+/tmp/
+/output/
+/uploads/
 docs/test-reports/
 
 # caches

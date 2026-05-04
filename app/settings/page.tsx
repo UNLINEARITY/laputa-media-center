@@ -12,6 +12,7 @@ import { MiniMaxConfig } from '@/components/settings/minimax-config'
 import { StatusBadge, StatusChip } from '@/components/settings/status-badge'
 import { StorageCleanup } from '@/components/settings/storage-cleanup'
 import { SystemConfig } from '@/components/settings/system-config'
+import { ToolRequirementsOverview } from '@/components/settings/tool-requirements-overview'
 import { TTSConfig } from '@/components/settings/tts-config'
 import type { ApiKeyStatus, ServiceMessage } from '@/components/settings/types'
 import { WhisperCppInstaller } from '@/components/settings/whisper-cpp-installer'
@@ -393,7 +394,7 @@ export default function SettingsPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="creator-assets" className="space-y-6">
+          <TabsContent id="creator_assets" value="creator-assets" className="space-y-6">
             <CreatorAssetsConfig />
           </TabsContent>
 
@@ -453,11 +454,17 @@ export default function SettingsPage() {
 
             <SystemConfig onConfigChange={handleSystemConfigSave} />
 
+            <ToolRequirementsOverview onActiveTabChange={setActiveTab} />
+
             {/* Phase 3.A：运行 Provider 切换器（ASR + LLM） */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-claude-dark-400">运行 Provider</h3>
-              <AsrProviderSwitcher onActiveTabChange={setActiveTab} />
-              <LlmProviderSwitcher onActiveTabChange={setActiveTab} />
+              <div id="asr-provider" className="scroll-mt-24">
+                <AsrProviderSwitcher onActiveTabChange={setActiveTab} />
+              </div>
+              <div id="llm-provider" className="scroll-mt-24">
+                <LlmProviderSwitcher onActiveTabChange={setActiveTab} />
+              </div>
             </div>
 
             <div id="minimax_tts" className="scroll-mt-24">
@@ -530,7 +537,7 @@ export default function SettingsPage() {
             />
           </TabsContent>
 
-          <TabsContent value="maintenance" className="space-y-6">
+          <TabsContent id="maintenance" value="maintenance" className="space-y-6">
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
               这里放本机转录引擎、旧剪辑兼容和维护工具；翻译配音主线请优先使用「系统设置」里的
               MiniMax 配音、Gemini 模型和创作者资产。
