@@ -2,7 +2,7 @@
  * 文本翻译步骤
  *
  * 调用 Python translator.py 将 ASR 分段翻译为目标语言
- * 支持 API 模式（Anthropic/OpenAI）
+ * 支持 Gemini / OpenAI / Mistral provider
  */
 
 import { execFile } from 'node:child_process'

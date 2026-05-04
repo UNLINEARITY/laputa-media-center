@@ -62,6 +62,16 @@ describe('setup-requirements', () => {
     expect(podcast.missingOptional.map((item) => item.id)).toEqual(['minimax-tts'])
   })
 
+  it('ingest 缺 ASR 时不阻塞文本 / Markdown / PDF 导入', () => {
+    const ingest = toolReadiness('ingest', {
+      asr: { state: 'missing', detail: 'ASR missing' },
+    })
+
+    expect(ingest.readiness).toBe('degraded')
+    expect(ingest.missingRequired).toEqual([])
+    expect(ingest.missingOptional.map((item) => item.id)).toEqual(['asr'])
+  })
+
   it('dubbing 缺 MiniMax 与 ffmpeg 时阻塞', () => {
     const dubbing = toolReadiness('dubbing', {
       'minimax-tts': { state: 'missing', detail: 'MiniMax missing' },

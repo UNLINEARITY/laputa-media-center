@@ -237,20 +237,19 @@ Write-Host "================================================" -ForegroundColor G
 Write-Host " 安裝完成！" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "翻譯方式（三選一）:" -ForegroundColor White
-Write-Host "  方式 A: MiniMax API 自動翻譯（默認，只需 MiniMax Key）" -ForegroundColor Cyan
-Write-Host "  方式 B: Claude Code / VS Code Codex session 內免費翻譯" -ForegroundColor Cyan
-Write-Host "  方式 C: Anthropic / OpenAI API 翻譯" -ForegroundColor Cyan
+Write-Host "翻譯方式:" -ForegroundColor White
+Write-Host "  方式 A: 已配置的 LLM Provider 自動翻譯（Gemini / OpenAI / Mistral）" -ForegroundColor Cyan
+Write-Host "  方式 B: 本地 smoke passthrough（僅測試，需顯式開啟）" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "用法:" -ForegroundColor White
 Write-Host ""
-Write-Host "  # 方式 A: 一鍵配音（默認用 MiniMax 翻譯，只需一個 Key）" -ForegroundColor Gray
+Write-Host "  # 方式 A: 一鍵配音（翻譯走已配置 LLM Provider，TTS 走 MiniMax 聲線）" -ForegroundColor Gray
 Write-Host "  cd $SCRIPTS_DIR" -ForegroundColor Gray
 Write-Host '  venv-dub\Scripts\python.exe dub_pipeline.py -i video.mp4 --voice-id YOUR_VOICE_ID' -ForegroundColor Gray
 Write-Host ""
-Write-Host "  # 方式 B: 用 Claude Code 或 VS Code Codex 免費翻譯" -ForegroundColor Gray
-Write-Host '  venv-dub\Scripts\python.exe dub_pipeline.py -i video.mp4 --translate-mode session --voice-id YOUR_VOICE_ID' -ForegroundColor Gray
-Write-Host "  # → 腳本會暫停，在 Claude Code / Codex 中完成翻譯後繼續" -ForegroundColor DarkGray
+Write-Host "  # 方式 B: 本地 smoke 測試（不做正式翻譯）" -ForegroundColor Gray
+Write-Host '  $env:DUBBING_ALLOW_PASSTHROUGH_TRANSLATION="true"' -ForegroundColor Gray
+Write-Host '  venv-dub\Scripts\python.exe dub_pipeline.py -i video.mp4 --voice-id YOUR_VOICE_ID' -ForegroundColor Gray
 Write-Host ""
 Write-Host "  # 多人配音" -ForegroundColor Gray
 Write-Host '  venv-dub\Scripts\python.exe dub_pipeline.py -i interview.mp4 --diarize --hf-token YOUR_TOKEN --voice-map "SPEAKER_00=minimax:Cantonese_PlayfulMan,SPEAKER_01=minimax:Cantonese_GentleLady"' -ForegroundColor Gray

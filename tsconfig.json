@@ -29,5 +29,17 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "archived", "demo", "tmp"]
+  "exclude": [
+    "node_modules",
+    "archived",
+    "demo",
+    "tmp",
+    "dist",
+    "build",
+    "src-tauri/target",
+    "src-tauri/r",
+    "src-tauri/resources",
+    "src-tauri/icons",
+    "src-tauri/gen"
+  ]
 }

@@ -3,9 +3,8 @@
  * 提供统一入口，使用默认选择的 Provider
  *
  * LaputaMediaCenter Phase 1.B：移除 Fish Audio Provider。
- * TTS 鏈：Edge TTS（🟢 默認免費備援）+ MiniMax（🔴 付費主力，獨立鏈，
- * 由 lib/ai/minimax-* 接管，不走此 Manager）。
- * legacy-policy 開關保留，控制 Edge TTS 兼容層的啟用。
+ * 当前主线 TTS 是 MiniMax（独立链）；免费播客路径是 script_only。
+ * Edge TTS 仅作为 legacy 兼容层保留，默认关闭。
  */
 
 import { logger } from '@/lib/utils/logger'

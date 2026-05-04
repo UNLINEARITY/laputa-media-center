@@ -283,11 +283,13 @@ export function proxy(request: NextRequest) {
   // 注意：/api/upload/video 已从 matcher 中排除，不会进入此函数
   // 原因：Next.js Bug - proxy 消费 body stream 导致 API Route 无法读取
   // 参考：https://github.com/vercel/next.js/issues/83453
-  // LaputaMediaCenter Phase 0：本地 dev / 用户显式跳过时不强制 license，
+  // LaputaMediaCenter Phase 0：本地 / dev / 用户显式跳过时不强制 license，
   // 符合「免费优先」原则（V3 校验机制保留，仅放宽门禁）。
   const licenseKey = process.env.LICENSE_KEY || ''
   const bypassLicense =
-    process.env.NODE_ENV === 'development' || process.env.LMC_BYPASS_LICENSE === 'true'
+    !licenseKey ||
+    process.env.NODE_ENV === 'development' ||
+    process.env.LMC_BYPASS_LICENSE === 'true'
   const licenseResult = bypassLicense
     ? { valid: true as const }
     : validateLicenseKeyWithCache(licenseKey)

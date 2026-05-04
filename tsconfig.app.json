@@ -1,5 +1,18 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "archived", "demo", "tmp", "tests"],
+  "exclude": [
+    "node_modules",
+    "archived",
+    "demo",
+    "tmp",
+    "tests",
+    "dist",
+    "build",
+    "src-tauri/target",
+    "src-tauri/r",
+    "src-tauri/resources",
+    "src-tauri/icons",
+    "src-tauri/gen"
+  ],
   "//comment": "Production code 型別檢查 — 排除 tests/。CI / 實際 build 都該過 typecheck:app。tests/ 走 typecheck:all（容許暫時的 fixture drift）。Codex 第二輪 P1 #6 修：把 'full tsc 紅' 從 build blocker 變成可獨立追蹤的測試債。"
 }

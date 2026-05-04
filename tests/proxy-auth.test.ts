@@ -57,6 +57,29 @@ describe('proxy API auth boundary', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })
 
+  it('treats missing LICENSE_KEY as local mode instead of blocking production requests', () => {
+    process.env.AUTH_ENABLED = 'false'
+    delete process.env.LICENSE_KEY
+
+    const response = proxy(request('/settings'))
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('x-middleware-next')).toBe('1')
+  })
+
+  it('still rejects an invalid configured LICENSE_KEY', async () => {
+    process.env.AUTH_ENABLED = 'false'
+    process.env.LICENSE_KEY = 'invalid-license'
+
+    const response = proxy(request('/api/health'))
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toMatchObject({
+      code: 'LICENSE_INVALID',
+    })
+  })
+
   it('still requires a session cookie for API requests without bearer auth', async () => {
     const response = proxy(request('/api/jobs?limit=1&offset=0'))
     const body = await response.json()

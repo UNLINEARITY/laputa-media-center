@@ -80,8 +80,8 @@ const TOOLS: readonly ToolEntry[] = [
     href: '/ingest',
     cta: '开始导入',
     status: 'available',
-    requiredSetup: ['asr'],
-    optionalSetup: ['ffmpeg', 'yt-dlp', 'llm'],
+    requiredSetup: [],
+    optionalSetup: ['asr', 'ffmpeg', 'yt-dlp', 'llm'],
     recommendedFirstRun: false,
   },
   {
