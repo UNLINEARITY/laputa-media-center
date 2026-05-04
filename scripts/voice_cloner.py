@@ -62,6 +62,25 @@ def find_minimax_key() -> str | None:
     return None
 
 
+def normalize_minimax_api_base_url(value: str | None) -> str:
+    cleaned = (value or "").strip().rstrip("/")
+    if not cleaned:
+        return "https://api.minimaxi.com/v1"
+    if cleaned.endswith("/t2a_v2"):
+        return cleaned[: -len("/t2a_v2")]
+    return cleaned
+
+
+def find_minimax_api_base_url() -> str:
+    return normalize_minimax_api_base_url(
+        os.environ.get("LMC_TTS_API_BASE_URL") or os.environ.get("MINIMAX_API_BASE_URL")
+    )
+
+
+def minimax_t2a_url() -> str:
+    return f"{find_minimax_api_base_url()}/t2a_v2"
+
+
 def parse_gate_ids(raw: str | None) -> set[str]:
     if not raw:
         return set()
@@ -222,7 +241,7 @@ def synthesize_minimax(
         payload["language_boost"] = language_boost
 
     req = request.Request(
-        "https://api.minimaxi.com/v1/t2a_v2",
+        minimax_t2a_url(),
         data=json.dumps(payload).encode("utf-8"),
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",

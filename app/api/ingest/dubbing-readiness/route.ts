@@ -1242,8 +1242,8 @@ async function runLiveProviderGate(
       return buildNonProviderLiveResult({
         ...gate,
         run_mode: 'blocked',
-        detail: 'Gemini 翻译凭证缺失，不能执行真实 provider smoke。',
-        blockers: ['Gemini 翻译凭证'],
+        detail: 'LLM 翻译凭证缺失，不能执行真实 provider smoke。',
+        blockers: ['LLM 翻译凭证'],
       })
     }
 

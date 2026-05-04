@@ -233,4 +233,45 @@ describe('TranslateTextStep translation credentials', () => {
       'https://gemini-compatible.example/v1beta',
     )
   })
+
+  it('passes Anthropic credentials and env aliases to translator.py', async () => {
+    const { TranslateTextStep } = await loadTranslateTextStep()
+    const jobId = 'job-anthropic-provider'
+    writeSegments(jobId)
+    getDubbingTranslationCredentialMock.mockReturnValue({
+      provider: 'anthropic',
+      apiKey: 'anthropic-key',
+      modelId: 'claude-3-5-haiku-latest',
+      apiBaseUrl: 'https://api.anthropic.com/v1',
+      source: 'env',
+    })
+    execFileMock.mockImplementation((_file, args: string[], _options, callback) => {
+      const outputDir = args[args.indexOf('--output-dir') + 1]
+      mkdirSync(outputDir, { recursive: true })
+      writeFileSync(
+        path.join(outputDir, 'translations.json'),
+        JSON.stringify({
+          used_provider: true,
+          segments: [{ id: 0, original_text: 'Hello world', translated_text: '你好，世界' }],
+        }),
+      )
+      callback(null, 'ok', '')
+    })
+
+    await new TranslateTextStep().execute(
+      workflowContext(jobId, { confirmed_gate_ids: ['translation_provider'] }),
+    )
+    const args = execFileMock.mock.calls[0]?.[1] as string[] | undefined
+    const options = execFileMock.mock.calls[0]?.[2] as { env?: NodeJS.ProcessEnv } | undefined
+
+    expect(args).toContain('--api-provider')
+    expect(args?.[Number(args?.indexOf('--api-provider')) + 1]).toBe('anthropic')
+    expect(args).toContain('--api-base-url')
+    expect(args?.[Number(args?.indexOf('--api-base-url')) + 1]).toBe('https://api.anthropic.com/v1')
+    expect(options?.env?.CHUANGCUT_TRANSLATE_API_KEY).toBe('anthropic-key')
+    expect(options?.env?.LMC_LLM_REQUEST_FORMAT).toBe('anthropic')
+    expect(options?.env?.ANTHROPIC_API_KEY).toBe('anthropic-key')
+    expect(options?.env?.ANTHROPIC_MODEL).toBe('claude-3-5-haiku-latest')
+    expect(options?.env?.ANTHROPIC_API_BASE_URL).toBe('https://api.anthropic.com/v1')
+  })
 })

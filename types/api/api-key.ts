@@ -32,6 +32,8 @@ export interface GeminiAIStudioCredentials {
 // MiniMax TTS 凭据
 export interface MiniMaxCredentials {
   api_key: string
+  /** 可选：MiniMax-compatible TTS API Base URL；留空使用官方默认端点。 */
+  api_base_url?: string
   /** 验证 MiniMax API Key 时使用的测试 voice_id；正式配音声线由任务或创作者资产决定。 */
   voice_id?: string
 }

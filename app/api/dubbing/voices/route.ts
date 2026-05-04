@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { getMiniMaxLanguageBoost } from '@/lib/config/languages'
-import { getMiniMaxCredential } from '@/lib/dubbing/minimax-credentials'
+import { buildMiniMaxT2aUrl, getMiniMaxCredential } from '@/lib/dubbing/minimax-credentials'
 import {
   findMiniMaxVoiceRegistryFile,
   getWritableMiniMaxVoiceRegistryFile,
@@ -284,7 +284,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 用 TTS 试调用检查声线是否存在
-    const res = await fetch('https://api.minimaxi.com/v1/t2a_v2', {
+    const res = await fetch(buildMiniMaxT2aUrl(credential.apiBaseUrl), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${credential.apiKey}`,

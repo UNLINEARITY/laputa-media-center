@@ -14,6 +14,16 @@ let pythonAvailable = true
 function isolatedEnv(overrides: Partial<NodeJS.ProcessEnv> = {}): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, PYTHONIOENCODING: 'utf-8', ...overrides }
   delete env.CHUANGCUT_TRANSLATE_API_KEY
+  delete env.LMC_LLM_API_KEY
+  delete env.LMC_LLM_MODEL
+  delete env.LMC_LLM_API_BASE_URL
+  delete env.LMC_LLM_REQUEST_FORMAT
+  delete env.OPENAI_API_KEY
+  delete env.OPENAI_MODEL
+  delete env.OPENAI_API_BASE_URL
+  delete env.ANTHROPIC_API_KEY
+  delete env.ANTHROPIC_MODEL
+  delete env.ANTHROPIC_API_BASE_URL
   delete env.GEMINI_API_KEY
   delete env.GOOGLE_AI_STUDIO_API_KEY
   delete env.DUBBING_ALLOW_PASSTHROUGH_TRANSLATION
@@ -57,6 +67,11 @@ describe('translator.py passthrough guard', () => {
 
     expect(source).toContain('GEMINI_MODEL_ID')
     expect(source).toContain('GOOGLE_AI_STUDIO_API_BASE_URL')
+    expect(source).toContain('ANTHROPIC_API_KEY')
+    expect(source).toContain('anthropic-version')
+    expect(source).toContain('/messages')
+    expect(source).toContain('LMC_LLM_API_BASE_URL')
+    expect(source).toContain('--api-provider')
     expect(source).toContain('normalize_model_id')
     expect(source).toContain('removeprefix("models/")')
   })

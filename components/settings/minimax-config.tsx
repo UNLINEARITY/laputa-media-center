@@ -17,6 +17,8 @@ import type { ServiceMessage } from './types'
 interface MiniMaxConfigProps {
   apiKey: string
   setApiKey: (key: string) => void
+  apiBaseUrl: string
+  setApiBaseUrl: (value: string) => void
   voiceId: string
   setVoiceId: (voiceId: string) => void
   confirmPaidVerification: boolean
@@ -31,6 +33,8 @@ interface MiniMaxConfigProps {
 export function MiniMaxConfig({
   apiKey,
   setApiKey,
+  apiBaseUrl,
+  setApiBaseUrl,
   voiceId,
   setVoiceId,
   confirmPaidVerification,
@@ -71,6 +75,23 @@ export function MiniMaxConfig({
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="minimax-api-base-url">API Base URL（可选）</Label>
+            <Input
+              id="minimax-api-base-url"
+              type="url"
+              placeholder="https://api.minimaxi.com/v1"
+              value={apiBaseUrl}
+              onChange={(event) => setApiBaseUrl(event.target.value)}
+              className="h-11"
+            />
+            <p className="text-xs text-claude-dark-300">
+              留空使用 MiniMax 官方端点；如使用兼容代理，可填 base URL 或完整 /t2a_v2 端点。
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="minimax-voice-id">验证用 voice_id（可选）</Label>
             <Input

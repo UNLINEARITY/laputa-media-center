@@ -12,7 +12,7 @@ import { authenticateOrReject } from '@/lib/auth/unified-auth'
 import { listLlmProviders } from '@/lib/providers/registry'
 
 const schema = z.object({
-  id: z.enum(['gemini', 'openai', 'mistral'] as const),
+  id: z.enum(['gemini', 'openai', 'mistral', 'custom'] as const),
 })
 
 export async function POST(req: NextRequest) {

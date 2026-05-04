@@ -11,6 +11,7 @@ import {
   type ServiceAccountCredentials,
 } from '@/lib/ai/gemini-utils'
 import { CONFIG_DEFAULTS } from '@/lib/config'
+import { buildMiniMaxT2aUrl } from '@/lib/dubbing/minimax-credentials'
 import type { ApiKeyService } from '@/types'
 
 // ============================================================
@@ -26,6 +27,7 @@ interface MiniMaxVerifyCredentials {
   api_key: string
   verification_voice_id?: string
   voice_id?: string
+  api_base_url?: string
 }
 
 interface GeminiVertexVerifyCredentials {
@@ -167,7 +169,7 @@ export async function verifyMiniMax(credentials: MiniMaxVerifyCredentials): Prom
       return { valid: false, message: 'MiniMax API Key 不能为空' }
     }
 
-    const response = await fetch('https://api.minimaxi.com/v1/t2a_v2', {
+    const response = await fetch(buildMiniMaxT2aUrl(credentials.api_base_url), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,

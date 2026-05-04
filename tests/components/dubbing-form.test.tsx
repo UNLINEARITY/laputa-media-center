@@ -1009,7 +1009,7 @@ describe('DubbingForm creator assets', () => {
             },
           ],
           translationCredentialDetail:
-            'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。',
+            'LLM 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。',
         }}
       />,
     )

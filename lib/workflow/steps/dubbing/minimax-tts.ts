@@ -16,7 +16,7 @@ import {
   type VoiceDisclosureStatus,
   type VoiceUsageDisplay,
 } from '@/lib/dubbing/applied-asset-summary'
-import { getMiniMaxApiKey } from '@/lib/dubbing/minimax-credentials'
+import { getMiniMaxApiBaseUrl, getMiniMaxApiKey } from '@/lib/dubbing/minimax-credentials'
 import { findDubbingScript, getDubbingPythonExe } from '@/lib/dubbing/runtime'
 import { getEffectiveDubbingVideoSource } from '@/lib/dubbing/sample-media'
 import { appendScriptOption } from '@/lib/dubbing/script-args'
@@ -301,6 +301,7 @@ export class MinimaxTtsStep extends BaseStep<MinimaxTtsOutput> {
     }
     const secondaryVoiceAudit = buildVoiceAudit(ctx.input.config, 'secondary')
     const minimaxApiKey = getMiniMaxApiKey()
+    const minimaxApiBaseUrl = getMiniMaxApiBaseUrl()
     const requireRealMiniMaxProvider = shouldRequireRealMiniMaxProvider(
       ctx.input.config,
       minimaxApiKey,
@@ -410,6 +411,8 @@ export class MinimaxTtsStep extends BaseStep<MinimaxTtsOutput> {
 
       const { stdout, stderr } = await execPython(scriptPath, args, 30 * 60 * 1000, {
         MINIMAX_API_KEY: minimaxApiKey || undefined,
+        MINIMAX_API_BASE_URL: minimaxApiKey ? minimaxApiBaseUrl : undefined,
+        LMC_TTS_API_BASE_URL: minimaxApiKey ? minimaxApiBaseUrl : undefined,
         DUBBING_CONFIRMED_GATE_IDS: requireRealMiniMaxProvider ? 'minimax_tts' : undefined,
         DUBBING_REQUIRE_REAL_MINIMAX_TTS: requireRealMiniMaxProvider ? 'true' : undefined,
         DUBBING_TTS_MODE: requireRealMiniMaxProvider ? 'provider' : undefined,

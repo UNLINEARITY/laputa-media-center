@@ -2,12 +2,13 @@
 
 **最後更新**：2026-05-04（每次對話結束 AI 助手會更新這裡）
 **當前 Phase**：✅ **Phase 5 主線完成**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓ / tool-catalog normal form ✓ / GitHub push ✓）
-**下次從哪裡繼續**：本輪已收斂本地免 `LICENSE_KEY` 門禁、Tauri/生成物排除、Vitest DB 隔離、ingest 前置條件與舊 AI 工具文案；下一步優先做桌面首啟配置嚮導與小白文檔，把「無 API key 可先跑免費/占位體驗、有 key 再升級」講清楚。
+**下次從哪裡繼續**：本輪已把 LLM 翻譯改成可配置通用 Base URL + API Key，支持 OpenAI-compatible 與 Claude / Anthropic request format；TTS 端保留 MiniMax 主線與合規聲線系統，但 MiniMax-compatible endpoint 可配置 Base URL。下一步優先做桌面首啟配置嚮導與小白文檔，把「無 API key 可先跑免費/占位體驗、有 key 再升級」講清楚。
 
 **Phase 5 防洩漏狀態**:
 - ✅ Git history rewrite 已完成（commit `a8eb924`）：舊工作流帳號 slug / 對應 Gmail / Zeabur IDs 已從 blob、commit message、refs 清乾淨；credential / dynamic 測試紀錄路徑已從 history 抹除；**保留** `hkdadinsz@gmail.com`、`hkdadinsz`、`laputa`。
 
 **開源後 / v1.1 跟進清單**（不阻塞 v1.0 公開）:
+- 2026-05-04 通用 LLM / TTS endpoint 收斂：新增 `custom` LLM provider，可在 Settings 以 Base URL + API Key + 模型 ID 配置 OpenAI-compatible `/chat/completions` 或 Claude / Anthropic `/messages` request format；翻譯配音 runtime 會把通用 / OpenAI / Mistral / Anthropic 憑證傳入 `scripts/translator.py`，且只改底層 HTTP adapter，兩階段 `build_context_brief` + `translate` 流程不動。MiniMax TTS 增加 `api_base_url` / `LMC_TTS_API_BASE_URL` / `MINIMAX_API_BASE_URL`，支持 MiniMax-compatible endpoint；voice registry、公眾人物披露、provider gate 與 Edge TTS 兜底策略保留。驗證：`python -m py_compile scripts\translator.py scripts\voice_cloner.py`、`corepack pnpm lint`、`corepack pnpm typecheck:app`、`corepack pnpm test:unit`（116 files / 835 pass / 17 skip）、`corepack pnpm build` 通過；build 仍有既有 5 處 Turbopack dynamic path broad pattern warning。
 - 2026-05-04 本地授權與開發檢查收斂：production proxy 在缺少 `LICENSE_KEY` 時改為本地模式，不再阻塞免 key 試用；配置了 `src-tauri` 生成物與打包輸出排除，避免 Biome/tsc 掃到 Tauri target 與資源目錄；Vitest 默認落到 `tmp/vitest/<pid>/db.sqlite`，避免單元測試污染本地 `data/db.sqlite`；ingest 不再把 ASR 視為必需前置，文本 / Markdown / PDF 入口缺 ASR 時只降級不阻塞；同步清掉舊 Claude/Anthropic 翻譯文案。驗證：`corepack pnpm lint`、`corepack pnpm typecheck:app`、`corepack pnpm test:unit`（116 files / 830 pass / 17 skip）、`corepack pnpm build` 通過；production local smoke（`AUTH_ENABLED=false`、無 `LICENSE_KEY`、無 `LMC_BYPASS_LICENSE`、port 8911）確認 `/settings` 與 `/api/health` 返回 200。剩餘非阻塞：Next/Turbopack 仍提示 5 處 dynamic path broad pattern warning，後續可獨立收斂。
 - 2026-05-04 Windows 桌面安裝版：新增 Tauri v2 + NSIS 打包鏈路，`pnpm desktop:prepare:win` 會生成 Next standalone + Lite 包並下載/隨包攜帶 FFmpeg、yt-dlp、whisper.cpp、`ggml-base.bin`、嵌入式 Python；`pnpm desktop:build:win` 會輸出 `src-tauri/target/release/bundle/nsis/LaputaMediaCenter_1.0.0_x64-setup.exe`。桌面 app 會在本機隨機端口隱藏啟動隨包 Node/Next sidecar，WebView 載入 `127.0.0.1`，用戶資料落到 `%LOCALAPPDATA%\LaputaMediaCenter`，sidecar 日誌落到 `%LOCALAPPDATA%\LaputaMediaCenter\logs\desktop-server.log`。已修正 pnpm standalone 依賴分發問題：Lite/desktop 包會把 pnpm 符號連結與虛擬 store 展平成真實 `node_modules`，移除 `.pnpm` 深層路徑，避免安裝後 `Cannot find module 'next'` 導致無窗口。最新安裝包級 smoke：靜默安裝到 `dist/desktop-smoke-install-v2`，安裝後 exe 主窗口存在，`/api/health` 返回 OK，`node_modules` 無 `.pnpm` / reparse point；`corepack pnpm typecheck:app`、`cargo check --manifest-path src-tauri\Cargo.toml`、`corepack pnpm test:unit`（116 files / 827 pass / 17 skip）通過。
 - 2026-05-04 Lite 啟動端口清理：`scripts/start-lite-win.ps1` 啟動前會檢查目標端口（默認 8899，可用 `PORT` 覆蓋），自動停止可確認為 Laputa / Next / `server.js` 的舊 `node.exe` 進程；未知程序占用時不誤殺，輸出 PID 並提示換端口。`LMC_APP_DATA_DIR` 可覆蓋 AppData 位置，`LMC_SKIP_BROWSER=true` 可跳過自動開瀏覽器。已重新 `pnpm package:lite:win`，並用 8905 受控 smoke 驗證：舊 Lite PID 被停止，新 PID 接管同端口，`/api/health` 返回 200。
@@ -139,9 +140,9 @@
 | LLM 後端 | 用途 | 備註 |
 |---|---|---|
 | **Gemini Flash（默認）** | 兩階段深度翻譯 | 免費額度大，質量很好 |
-| OpenAI GPT | 替代 LLM 後端 | 用戶提供 key |
+| OpenAI-compatible | 替代 LLM 後端 | 用戶提供 Base URL + API Key |
+| Claude / Anthropic | 替代 LLM 後端 | 用戶提供 Base URL + API Key，不作硬依賴 |
 | Mistral / Together AI | 替代 LLM 後端 | 開源模型備選 |
-| ❌ Anthropic Claude | **不採用** | 朋友負擔不起 |
 
 **保留的業務邏輯**：
 - creator_context 注入
@@ -563,9 +564,9 @@
 - [x] 設計 lib/providers/asr/ 和 llm/ 接口（types.ts + IASRProvider/ILLMProvider）
 - [x] ASR：whisper-cpp（🟢，包 WhisperCppRunner）+ gemini-audio（🟢，Hybrid: whisper 時間戳 + Gemini 文本對齊）
       （openai-whisper **砍**：朋友用 whisper.cpp 已夠，避免維護面 + 體積）
-- [x] LLM：gemini（🟢，包 lib/ai/gemini）+ openai（🟡，SDK）+ mistral（🟢，SDK）
-- [x] 改 translator.py L719：擴展 provider 分支接受 gemini/openai/mistral，
-      OpenAI/Mistral 走 OpenAI-compatible 路徑（call_gemini_json 已內建判斷）；**兩階段 prompt 0 動**
+- [x] LLM：gemini（🟢，包 lib/ai/gemini）+ openai（🟡，SDK）+ mistral（🟢，SDK）+ custom（🟡，Base URL + API Key，OpenAI-compatible / Claude-Anthropic request format）
+- [x] 改 translator.py L719：擴展 provider 分支接受 gemini/openai/mistral/anthropic，
+      OpenAI/Mistral 走 OpenAI-compatible 路徑，Anthropic 走 `/messages` 路徑；**兩階段 prompt 0 動**
 - [x] 改 lib/ingest/runner.ts:runWhisper() + lib/workflow/steps/dubbing/whisper-asr.ts 走 registry
 - [x] 改 lib/workflow/steps/dubbing/translate-text.ts 走 registry.getActiveLlmProviderId()
 - [x] 4 個 API routes：GET/POST `/api/providers/{asr,llm}` + POST `/api/providers/{asr,llm}/test`
@@ -674,7 +675,7 @@
 |---|---|---|---|
 | 1 | 開源 License | MIT / AGPL / 暫不開源 | Phase 5 之前 |
 | 2 | 默認 ASR Provider | **whisper.cpp（建議）** / Gemini Audio | Phase 3.A |
-| 3 | 默認 LLM 後端 | **Gemini（建議）** / OpenAI / Mistral | Phase 3.A |
+| 3 | 默認 LLM 後端 | **Gemini（建議）** / OpenAI-compatible / Claude-Anthropic / Mistral | Phase 3.A |
 | 4 | 是否做安裝 .exe | 是 / 否（v1.1 再做） | Phase 5 |
 | 5 | 是否保留 Auth 系統 | 完全砍 / 默認關但保留代碼 | Phase 1 |
 | 6 | 開發 port | 保留 8899 / 改 3000 | Phase 0 |
@@ -763,7 +764,7 @@ VERSION.md                        Phase 4 改寫或刪除
 | whisper.cpp 在 Windows 編譯 / 下載失敗 | Phase 2 卡住 | 留 Python Whisper 為後備 |
 | Provider 接口設計不好導致重寫 | Phase 3.A 工期翻倍 | 先實現 1 家完整、再抽象、再加第 2 家 |
 | Edge TTS endpoint 被微軟限制 | 🟢 默認 TTS 失效 | 預留 Azure Speech 免費額度作備援 |
-| Gemini 免費額度政策變化 | 🟢 默認 LLM 失效 | 預留 Mistral / Together AI 作備援 |
+| Gemini 免費額度政策變化 | 🟢 默認 LLM 失效 | 預留 OpenAI-compatible / Claude-Anthropic / Mistral / Together AI 作備援 |
 | 用戶決策延遲 | Phase 阻塞 | 對話結束就拋出問題清單，給用戶慢慢想 |
 | 對話太長導致 AI 失憶 | 進度丟失 | 每次對話結束 commit + 更新本文檔 |
 | 用戶 API 額度耗盡 | 真實調用失敗 | 開發期用 dummy / mock，重要里程碑才真調 |
@@ -780,7 +781,7 @@ VERSION.md                        Phase 4 改寫或刪除
 - **價值**：兩階段深度翻譯（build_context_brief + translate）
 - **獨特性**：注入 creator_context + user_glossary + 風格映射 + 粵語特化
 - **替代方案**：無。這是用戶 + Codex 多月磨出的精品，市面 OSS 沒有等價物
-- **可動部分**：底層 LLM 調用層（為了支持切換 Gemini / OpenAI / Mistral）
+- **可動部分**：底層 LLM 調用層（為了支持切換 Gemini / OpenAI-compatible / Claude-Anthropic / Mistral）
 - **不可動部分**：兩階段流程結構、prompt 設計、規則列表、JSON schema
 
 #### 2. `lib/dubbing/voice-registry.ts`

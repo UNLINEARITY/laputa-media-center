@@ -15,6 +15,8 @@ vi.mock('@/lib/auth/unified-auth', () => ({
 }))
 
 vi.mock('@/lib/dubbing/minimax-credentials', () => ({
+  buildMiniMaxT2aUrl: (apiBaseUrl?: string | null) =>
+    `${(apiBaseUrl || 'https://api.minimaxi.com/v1').replace(/\/t2a_v2$/, '').replace(/\/+$/, '')}/t2a_v2`,
   getMiniMaxCredential: getMiniMaxCredentialMock,
 }))
 

@@ -350,7 +350,7 @@ export async function POST(req: NextRequest) {
           error: 'Translation provider not configured',
           code: 'DUBBING_TRANSLATION_NOT_CONFIGURED',
           message:
-            '正式本地化需要先配置 Gemini 翻译凭证。若只是做本地 smoke，可显式设置 DUBBING_ALLOW_PASSTHROUGH_TRANSLATION=true 使用原文占位。',
+            '正式本地化需要先配置 LLM 翻译凭证。若只是做本地 smoke，可显式设置 DUBBING_ALLOW_PASSTHROUGH_TRANSLATION=true 使用原文占位。',
         },
         { status: 400 },
       )

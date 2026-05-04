@@ -16,15 +16,13 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { getMiniMaxApiKey } from '@/lib/dubbing/minimax-credentials'
+import { buildMiniMaxT2aUrl, getMiniMaxCredential } from '@/lib/dubbing/minimax-credentials'
 import { isVoiceUsageBoundaryAcknowledged } from '@/lib/dubbing/voice-usage-boundary'
 import { hasConfirmedProviderGate } from '@/lib/workflow/provider-gate-confirmation'
 import type { WorkflowContext } from '../../types'
 import { BaseStep } from '../base'
 import { getPodcastArtifactOutputPath, getPodcastSegmentsDir } from './artifact-paths'
 import type { PodcastScript, PodcastScriptSegment } from './generate-podcast-script'
-
-const MINIMAX_T2A_ENDPOINT = 'https://api.minimax.chat/v1/t2a_v2'
 
 interface PodcastTtsOutput {
   audioDir: string
@@ -50,6 +48,7 @@ const PACING_SPEED_MAP: Record<string, number> = {
 
 async function synthesizeSegment(opt: {
   apiKey: string
+  apiBaseUrl?: string
   voiceId: string
   text: string
   pacing: 'slow' | 'normal' | 'fast'
@@ -71,7 +70,7 @@ async function synthesizeSegment(opt: {
     },
   }
 
-  const res = await fetch(MINIMAX_T2A_ENDPOINT, {
+  const res = await fetch(buildMiniMaxT2aUrl(opt.apiBaseUrl), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${opt.apiKey}`,
@@ -156,8 +155,8 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
       )
     }
 
-    const apiKey = getMiniMaxApiKey()
-    if (!apiKey) {
+    const credential = getMiniMaxCredential()
+    if (!credential?.apiKey) {
       throw new Error('PODCAST_MINIMAX_NOT_CONFIGURED：MiniMax API Key 未配置')
     }
 
@@ -198,7 +197,8 @@ export class PodcastTtsStep extends BaseStep<PodcastTtsOutput> {
 
       try {
         await synthesizeSegment({
-          apiKey,
+          apiKey: credential.apiKey,
+          apiBaseUrl: credential.apiBaseUrl,
           voiceId: voiceForSeg,
           text: seg.text,
           pacing: seg.pacing_hint || 'normal',

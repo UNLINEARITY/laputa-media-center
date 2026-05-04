@@ -30,7 +30,8 @@ import {
   Label,
 } from '@/components/ui'
 
-type LLMProviderId = 'gemini' | 'openai' | 'mistral'
+type LLMProviderId = 'gemini' | 'openai' | 'mistral' | 'custom'
+type LLMRequestFormat = 'openai' | 'anthropic'
 type Tier = 'free' | 'paid' | 'premium'
 
 interface LlmProviderRow {
@@ -87,6 +88,7 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
   const [testResults, setTestResults] = useState<Record<string, TestResult | null>>({})
 
   const [openaiPaidConfirmed, setOpenaiPaidConfirmed] = useState(false)
+  const [customPaidConfirmed, setCustomPaidConfirmed] = useState(false)
 
   const [openaiKey, setOpenaiKey] = useState('')
   const [openaiModel, setOpenaiModel] = useState('')
@@ -99,6 +101,13 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
   const [mistralBaseUrl, setMistralBaseUrl] = useState('')
   const [mistralShow, setMistralShow] = useState(false)
   const [mistralSaving, setMistralSaving] = useState(false)
+
+  const [customKey, setCustomKey] = useState('')
+  const [customModel, setCustomModel] = useState('')
+  const [customBaseUrl, setCustomBaseUrl] = useState('')
+  const [customRequestFormat, setCustomRequestFormat] = useState<LLMRequestFormat>('openai')
+  const [customShow, setCustomShow] = useState(false)
+  const [customSaving, setCustomSaving] = useState(false)
 
   const fetchProviders = useCallback(async () => {
     setLoading(true)
@@ -125,6 +134,10 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
         toast.error('请先勾选 OpenAI 付费确认')
         return
       }
+      if (id === 'custom' && !customPaidConfirmed) {
+        toast.error('请先勾选通用 LLM 外部调用确认')
+        return
+      }
       setSwitching(id)
       try {
         const res = await fetch('/api/providers/llm', {
@@ -144,7 +157,7 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
         setSwitching(null)
       }
     },
-    [fetchProviders, openaiPaidConfirmed],
+    [customPaidConfirmed, fetchProviders, openaiPaidConfirmed],
   )
 
   const handleTest = useCallback(async (id: LLMProviderId) => {
@@ -178,19 +191,41 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
   }, [])
 
   const saveProviderConfig = useCallback(
-    async (kind: 'openai' | 'mistral', key: string, model: string, baseUrl: string) => {
+    async (
+      kind: 'openai' | 'mistral' | 'custom',
+      key: string,
+      model: string,
+      baseUrl: string,
+      requestFormat?: LLMRequestFormat,
+    ) => {
       const trimmedKey = key.trim()
       if (!trimmedKey) {
         toast.error('请输入 API Key')
         return false
       }
-      const payloadKey = kind === 'openai' ? 'openai_api_key' : 'mistral_api_key'
-      const modelKey = kind === 'openai' ? 'openai_model' : 'mistral_model'
-      const baseUrlKey = kind === 'openai' ? 'openai_api_base_url' : 'mistral_api_base_url'
+      const payloadKey =
+        kind === 'openai'
+          ? 'openai_api_key'
+          : kind === 'mistral'
+            ? 'mistral_api_key'
+            : 'custom_llm_api_key'
+      const modelKey =
+        kind === 'openai'
+          ? 'openai_model'
+          : kind === 'mistral'
+            ? 'mistral_model'
+            : 'custom_llm_model'
+      const baseUrlKey =
+        kind === 'openai'
+          ? 'openai_api_base_url'
+          : kind === 'mistral'
+            ? 'mistral_api_base_url'
+            : 'custom_llm_api_base_url'
       try {
         const configs: Record<string, string> = { [payloadKey]: trimmedKey }
         if (model.trim()) configs[modelKey] = model.trim()
         if (baseUrl.trim()) configs[baseUrlKey] = baseUrl.trim()
+        if (kind === 'custom') configs.custom_llm_request_format = requestFormat || 'openai'
         const res = await fetch('/api/configs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -200,7 +235,9 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
           const data = await res.json().catch(() => ({}))
           throw new Error(data.error || `HTTP ${res.status}`)
         }
-        toast.success(`${kind === 'openai' ? 'OpenAI' : 'Mistral'} 配置已保存`)
+        toast.success(
+          `${kind === 'openai' ? 'OpenAI' : kind === 'mistral' ? 'Mistral' : '通用 LLM'} 配置已保存`,
+        )
         await fetchProviders()
         return true
       } catch (e) {
@@ -219,7 +256,8 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
           LLM 翻译引擎
         </CardTitle>
         <CardDescription className="text-sm text-claude-dark-400">
-          驱动两阶段翻译、脚本改写、旁白生成。默认 Google Gemini。
+          驱动两阶段翻译、脚本改写、旁白生成。可使用 Gemini、OpenAI-compatible 或 Claude / Anthropic
+          格式。
         </CardDescription>
       </CardHeader>
 
@@ -237,7 +275,8 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
                 isActive ||
                 !p.available ||
                 switching === p.id ||
-                (p.id === 'openai' && !openaiPaidConfirmed)
+                (p.id === 'openai' && !openaiPaidConfirmed) ||
+                (p.id === 'custom' && !customPaidConfirmed)
 
               return (
                 <div key={p.id} className="space-y-2">
@@ -315,6 +354,26 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
                           translation_provider
                         </code>
                         ）并接受费用。
+                      </span>
+                    </label>
+                  )}
+
+                  {p.id === 'custom' && (
+                    <label className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <input
+                        type="checkbox"
+                        checked={customPaidConfirmed}
+                        onChange={(e) => setCustomPaidConfirmed(e.target.checked)}
+                        className="mt-0.5 h-3.5 w-3.5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>
+                        通用 LLM 会按你配置的 Base URL 发起外部请求，可能消耗 Claude / OpenAI /
+                        中转站额度。我已确认本次允许调用翻译 provider（gate id：
+                        <code className="rounded bg-white px-1 text-[11px]">
+                          translation_provider
+                        </code>
+                        ）。
                       </span>
                     </label>
                   )}
@@ -439,6 +498,49 @@ export function LlmProviderSwitcher({ onActiveTabChange }: LlmProviderSwitcherPr
             baseUrlPlaceholder="https://api.mistral.ai（默认）"
             baseUrlHint="一般留空。仅当用 OpenAI 兼容代理或自托管 vLLM 时填入。"
           />
+
+          <GenericCredentialEditor
+            requestFormat={customRequestFormat}
+            setRequestFormat={setCustomRequestFormat}
+            keyValue={customKey}
+            setKeyValue={setCustomKey}
+            modelValue={customModel}
+            setModelValue={setCustomModel}
+            baseUrlValue={customBaseUrl}
+            setBaseUrlValue={setCustomBaseUrl}
+            showKey={customShow}
+            setShowKey={setCustomShow}
+            saving={customSaving}
+            testing={testing === 'custom'}
+            testResult={testResults.custom || null}
+            onSave={async () => {
+              setCustomSaving(true)
+              const ok = await saveProviderConfig(
+                'custom',
+                customKey,
+                customModel,
+                customBaseUrl,
+                customRequestFormat,
+              )
+              if (ok) setCustomKey('')
+              setCustomSaving(false)
+            }}
+            onSaveAndTest={async () => {
+              setCustomSaving(true)
+              const ok = await saveProviderConfig(
+                'custom',
+                customKey,
+                customModel,
+                customBaseUrl,
+                customRequestFormat,
+              )
+              setCustomSaving(false)
+              if (ok) {
+                setCustomKey('')
+                await handleTest('custom')
+              }
+            }}
+          />
         </div>
       </CardContent>
     </Card>
@@ -557,6 +659,166 @@ function CredentialEditor(props: CredentialEditorProps) {
           size="sm"
           onClick={() => void props.onSaveAndTest()}
           disabled={props.saving || props.testing || !props.keyValue.trim()}
+          className="bg-claude-orange-500 text-white hover:bg-claude-orange-600"
+        >
+          {props.saving || props.testing ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {props.saving ? '保存中' : '测试连接中'}
+            </span>
+          ) : (
+            '保存并测试连接'
+          )}
+        </Button>
+        {props.testResult && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+              props.testResult.ok
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-red-200 bg-red-50 text-red-700'
+            }`}
+            title={props.testResult.message}
+          >
+            {props.testResult.ok
+              ? `✓ 通过 ${props.testResult.latencyMs ?? '-'}ms`
+              : `✗ ${props.testResult.message?.slice(0, 40) || '失败'}`}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface GenericCredentialEditorProps {
+  requestFormat: LLMRequestFormat
+  setRequestFormat: (v: LLMRequestFormat) => void
+  keyValue: string
+  setKeyValue: (v: string) => void
+  modelValue: string
+  setModelValue: (v: string) => void
+  baseUrlValue: string
+  setBaseUrlValue: (v: string) => void
+  showKey: boolean
+  setShowKey: (v: boolean) => void
+  saving: boolean
+  testing: boolean
+  testResult: TestResult | null
+  onSave: () => void | Promise<void>
+  onSaveAndTest: () => void | Promise<void>
+}
+
+function GenericCredentialEditor(props: GenericCredentialEditorProps) {
+  const isAnthropic = props.requestFormat === 'anthropic'
+  return (
+    <div className="space-y-3 rounded-md border border-claude-cream-200 bg-white p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <strong className="text-sm text-claude-dark-700">通用 LLM 配置</strong>
+        <span className="inline-flex h-5 items-center rounded-full border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold text-amber-700">
+          Base URL + API Key
+        </span>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="custom-llm-format" className="text-xs">
+            请求格式
+          </Label>
+          <select
+            id="custom-llm-format"
+            value={props.requestFormat}
+            onChange={(event) => props.setRequestFormat(event.target.value as LLMRequestFormat)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="openai">OpenAI-compatible /v1/chat/completions</option>
+            <option value="anthropic">Claude / Anthropic /v1/messages</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="custom-llm-model" className="text-xs">
+            模型 ID
+          </Label>
+          <Input
+            id="custom-llm-model"
+            placeholder={isAnthropic ? 'claude-...' : 'gpt-4o-mini / qwen...'}
+            value={props.modelValue}
+            onChange={(e) => props.setModelValue(e.target.value)}
+            className="h-10"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="custom-llm-key" className="text-xs">
+              API Key
+            </Label>
+            <button
+              type="button"
+              className="text-[11px] text-claude-dark-400 hover:text-claude-dark-600"
+              onClick={() => props.setShowKey(!props.showKey)}
+            >
+              {props.showKey ? (
+                <span className="inline-flex items-center gap-0.5">
+                  <EyeOff className="h-3 w-3" /> 隐藏
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5">
+                  <Eye className="h-3 w-3" /> 显示
+                </span>
+              )}
+            </button>
+          </div>
+          <Input
+            id="custom-llm-key"
+            type={props.showKey ? 'text' : 'password'}
+            placeholder={isAnthropic ? 'sk-ant-...' : 'sk-...'}
+            value={props.keyValue}
+            onChange={(e) => props.setKeyValue(e.target.value)}
+            className="h-10"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="custom-llm-base-url" className="text-xs">
+            API Base URL
+          </Label>
+          <Input
+            id="custom-llm-base-url"
+            type="url"
+            placeholder={isAnthropic ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1'}
+            value={props.baseUrlValue}
+            onChange={(e) => props.setBaseUrlValue(e.target.value)}
+            className="h-10"
+          />
+          <p className="text-[11px] text-claude-dark-400">
+            OpenAI 格式会请求 /chat/completions；Claude 格式会请求 /messages。
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void props.onSave()}
+          disabled={
+            props.saving || props.testing || !props.keyValue.trim() || !props.modelValue.trim()
+          }
+        >
+          {props.saving ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> 保存中
+            </span>
+          ) : (
+            '仅保存'
+          )}
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => void props.onSaveAndTest()}
+          disabled={
+            props.saving || props.testing || !props.keyValue.trim() || !props.modelValue.trim()
+          }
           className="bg-claude-orange-500 text-white hover:bg-claude-orange-600"
         >
           {props.saving || props.testing ? (

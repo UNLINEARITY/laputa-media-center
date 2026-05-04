@@ -17,10 +17,14 @@ from urllib import parse, request
 from urllib.error import HTTPError
 
 GEMINI_DEFAULT_MODEL = "gemini-2.5-flash-lite"
+OPENAI_DEFAULT_MODEL = "gpt-4o-mini"
+MISTRAL_DEFAULT_MODEL = "mistral-small-latest"
+ANTHROPIC_DEFAULT_MODEL = "claude-3-5-haiku-latest"
 GEMINI_BATCH_SIZE = 4
 GEMINI_RETRY_BATCH_SIZE = 3
 TRANSLATION_STYLES = {"faithful", "conversational", "localized_script", "short_video"}
 API_USER_AGENT = "LaputaMediaCenter/0.1 (+https://localhost)"
+ANTHROPIC_VERSION = "2023-06-01"
 
 
 def is_truthy_env(value: str | None) -> bool:
@@ -329,6 +333,40 @@ def normalize_openai_base_url(value: str) -> str:
     ).rstrip("/")
 
 
+def normalize_anthropic_base_url(value: str | None) -> str:
+    cleaned = (value or "").strip().rstrip("/")
+    if not cleaned:
+        return "https://api.anthropic.com/v1"
+    parsed = parse.urlparse(cleaned)
+    path = parsed.path.rstrip("/")
+    if path.endswith("/messages"):
+        path = path[: -len("/messages")] or "/"
+    if not path or path == "/":
+        path = "/v1"
+    return parse.urlunparse(
+        (parsed.scheme, parsed.netloc, path.rstrip("/"), "", "", "")
+    ).rstrip("/")
+
+
+def normalize_provider(value: str | None) -> str:
+    normalized = (value or "").strip().lower()
+    if normalized in {"anthropic", "claude"}:
+        return "anthropic"
+    if normalized in {"gemini", "openai", "mistral"}:
+        return normalized
+    return ""
+
+
+def default_model_for_provider(provider: str) -> str:
+    if provider == "openai":
+        return OPENAI_DEFAULT_MODEL
+    if provider == "mistral":
+        return MISTRAL_DEFAULT_MODEL
+    if provider == "anthropic":
+        return ANTHROPIC_DEFAULT_MODEL
+    return GEMINI_DEFAULT_MODEL
+
+
 def extract_openai_chat_text(data: dict[str, Any]) -> str:
     choices = data.get("choices")
     if not isinstance(choices, list) or not choices:
@@ -337,6 +375,19 @@ def extract_openai_chat_text(data: dict[str, Any]) -> str:
     if not isinstance(message, dict):
         return ""
     return str(message.get("content") or "")
+
+
+def extract_anthropic_message_text(data: dict[str, Any]) -> str:
+    content = data.get("content")
+    if not isinstance(content, list):
+        return ""
+    parts: list[str] = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "text" and isinstance(item.get("text"), str):
+            parts.append(item["text"])
+    return "".join(parts)
 
 
 def read_json_response(req: request.Request) -> dict[str, Any]:
@@ -362,10 +413,32 @@ def call_gemini_json(
     model: str,
     prompt: dict[str, Any],
     temperature: float,
+    provider: str = "gemini",
     max_tokens: int = 8192,
 ) -> dict[str, Any]:
-    model_id = normalize_model_id(model) or GEMINI_DEFAULT_MODEL
-    if is_openai_compatible_base_url(api_base_url):
+    provider_id = normalize_provider(provider) or "gemini"
+    model_id = normalize_model_id(model) or default_model_for_provider(provider_id)
+    if provider_id == "anthropic":
+        anthropic_payload = {
+            "model": model_id,
+            "system": "Return only valid JSON. Do not add markdown fences or commentary.",
+            "messages": [{"role": "user", "content": json.dumps(prompt, ensure_ascii=False)}],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        req = request.Request(
+            f"{normalize_anthropic_base_url(api_base_url)}/messages",
+            data=json.dumps(anthropic_payload).encode("utf-8"),
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": ANTHROPIC_VERSION,
+                "User-Agent": API_USER_AGENT,
+            },
+            method="POST",
+        )
+    elif provider_id in {"openai", "mistral"} or is_openai_compatible_base_url(api_base_url):
         openai_payload = {
             "model": model_id,
             "messages": [
@@ -417,7 +490,9 @@ def call_gemini_json(
         )
 
     data = read_json_response(req)
-    if is_openai_compatible_base_url(api_base_url):
+    if provider_id == "anthropic":
+        text = extract_anthropic_message_text(data)
+    elif provider_id in {"openai", "mistral"} or is_openai_compatible_base_url(api_base_url):
         text = extract_openai_chat_text(data)
     else:
         text = (
@@ -427,11 +502,11 @@ def call_gemini_json(
             .get("text", "")
         )
     if not text:
-        raise RuntimeError(f"Gemini returned no text: {json.dumps(data, ensure_ascii=False)[:1000]}")
+        raise RuntimeError(f"LLM returned no text: {json.dumps(data, ensure_ascii=False)[:1000]}")
 
     parsed = extract_json(text)
     if not isinstance(parsed, dict):
-        raise RuntimeError("Gemini JSON response must be an object")
+        raise RuntimeError("LLM JSON response must be an object")
     return parsed
 
 
@@ -439,6 +514,7 @@ def build_context_brief_with_gemini(
     api_key: str,
     api_base_url: str,
     model: str,
+    provider: str,
     segments: list[dict[str, Any]],
     source_language: str,
     target_language: str,
@@ -492,6 +568,7 @@ def build_context_brief_with_gemini(
         model,
         prompt,
         generation_temperature(translation_style),
+        provider=provider,
         max_tokens=4096,
     )
 
@@ -500,6 +577,7 @@ def translate_with_gemini(
     api_key: str,
     api_base_url: str,
     model: str,
+    provider: str,
     segments: list[dict[str, Any]],
     source_language: str,
     target_language: str,
@@ -574,10 +652,11 @@ def translate_with_gemini(
         model,
         prompt,
         generation_temperature(translation_style),
+        provider=provider,
     )
     translations = parsed.get("translations") if isinstance(parsed, dict) else None
     if not isinstance(translations, list):
-        raise RuntimeError("Gemini translation response missing translations list")
+        raise RuntimeError("LLM translation response missing translations list")
 
     result: dict[Any, str] = {}
     for item in translations:
@@ -597,6 +676,7 @@ def translate_all_with_gemini(
     api_key: str,
     api_base_url: str,
     model: str,
+    provider: str,
     segments: list[dict[str, Any]],
     source_language: str,
     target_language: str,
@@ -613,6 +693,7 @@ def translate_all_with_gemini(
                 api_key,
                 api_base_url,
                 model,
+                provider,
                 batch,
                 source_language,
                 target_language,
@@ -638,6 +719,7 @@ def translate_all_with_gemini(
                     api_key,
                     api_base_url,
                     model,
+                    provider,
                     batch,
                     source_language,
                     target_language,
@@ -687,21 +769,62 @@ def main() -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     segments = read_segments(Path(args.segments_file))
-    api_key = (
+    requested_provider = normalize_provider(
+        args.api_provider or os.environ.get("LMC_LLM_REQUEST_FORMAT") or ""
+    )
+    generic_key = (
         args.api_key
         or os.environ.get("CHUANGCUT_TRANSLATE_API_KEY")
-        or os.environ.get("GEMINI_API_KEY")
-        or os.environ.get("GOOGLE_AI_STUDIO_API_KEY")
+        or os.environ.get("LMC_LLM_API_KEY")
         or ""
     )
-    api_base_url = (
-        args.api_base_url
-        or os.environ.get("GEMINI_API_BASE_URL")
-        or os.environ.get("GOOGLE_AI_STUDIO_API_BASE_URL")
-        or ""
-    )
-    model = normalize_model_id(args.model or os.environ.get("GEMINI_MODEL_ID") or "")
-    provider = args.api_provider or ("gemini" if api_key else "passthrough")
+    inferred_provider = ""
+    api_key = generic_key
+    if os.environ.get("LMC_LLM_API_KEY") and not requested_provider:
+        inferred_provider = "openai"
+    if not api_key and (requested_provider == "anthropic" or os.environ.get("ANTHROPIC_API_KEY")):
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or ""
+        inferred_provider = "anthropic"
+    if not api_key and (requested_provider == "openai" or os.environ.get("OPENAI_API_KEY")):
+        api_key = os.environ.get("OPENAI_API_KEY") or ""
+        inferred_provider = "openai"
+    if not api_key and (requested_provider == "mistral" or os.environ.get("MISTRAL_API_KEY")):
+        api_key = os.environ.get("MISTRAL_API_KEY") or ""
+        inferred_provider = "mistral"
+    if not api_key:
+        api_key = (
+            os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_AI_STUDIO_API_KEY")
+            or ""
+        )
+        if api_key:
+            inferred_provider = "gemini"
+
+    provider = requested_provider or inferred_provider or ("gemini" if api_key else "passthrough")
+    api_base_url = args.api_base_url or os.environ.get("LMC_LLM_API_BASE_URL") or ""
+    if not api_base_url:
+        if provider == "anthropic":
+            api_base_url = os.environ.get("ANTHROPIC_API_BASE_URL") or ""
+        elif provider == "openai":
+            api_base_url = os.environ.get("OPENAI_API_BASE_URL") or ""
+        elif provider == "mistral":
+            api_base_url = os.environ.get("MISTRAL_API_BASE_URL") or ""
+        else:
+            api_base_url = (
+                os.environ.get("GEMINI_API_BASE_URL")
+                or os.environ.get("GOOGLE_AI_STUDIO_API_BASE_URL")
+                or ""
+            )
+    model = normalize_model_id(args.model or os.environ.get("LMC_LLM_MODEL") or "")
+    if not model:
+        if provider == "anthropic":
+            model = normalize_model_id(os.environ.get("ANTHROPIC_MODEL") or "")
+        elif provider == "openai":
+            model = normalize_model_id(os.environ.get("OPENAI_MODEL") or "")
+        elif provider == "mistral":
+            model = normalize_model_id(os.environ.get("MISTRAL_MODEL") or "")
+        else:
+            model = normalize_model_id(os.environ.get("GEMINI_MODEL_ID") or "")
     passthrough_allowed = args.allow_passthrough or is_truthy_env(
         os.environ.get("DUBBING_ALLOW_PASSTHROUGH_TRANSLATION")
     )
@@ -709,7 +832,7 @@ def main() -> int:
     if not api_key and not passthrough_allowed:
         raise ValueError(
             "DUBBING_TRANSLATION_NOT_CONFIGURED: no translation provider key configured. "
-            "Set GEMINI_API_KEY / GOOGLE_AI_STUDIO_API_KEY, or explicitly enable "
+            "Set LMC_LLM_API_KEY, provider-specific API keys, or explicitly enable "
             "DUBBING_ALLOW_PASSTHROUGH_TRANSLATION=true for smoke tests."
         )
 
@@ -717,18 +840,20 @@ def main() -> int:
     context_brief: dict[str, Any] | None = None
     if api_key:
         # LaputaMediaCenter Phase 3.A：扩展 provider 支持。两阶段 prompt 文本完全不动；
-        # OpenAI / Mistral 走 OpenAI-compatible 路径（call_gemini_json 已内建该分支，
-        # 通过 is_openai_compatible_base_url 自动判断），由调用方传入正确的 api_base_url。
+        # OpenAI / Mistral 走 OpenAI-compatible；Anthropic / Claude 走 Messages API。
         # - openai: 默认 https://api.openai.com/v1
         # - mistral: 默认 https://api.mistral.ai/v1
-        if provider not in ("gemini", "openai", "mistral"):
+        # - anthropic: 默认 https://api.anthropic.com/v1
+        if provider not in ("gemini", "openai", "mistral", "anthropic"):
             raise ValueError(f"Unsupported translation provider: {provider}")
 
-        # 为 openai/mistral 提供默认 base URL（如果 TS 层没传）
+        # 为非 Gemini provider 提供默认 base URL（如果 TS 层没传）
         if provider == "openai" and not api_base_url:
             api_base_url = "https://api.openai.com/v1"
         elif provider == "mistral" and not api_base_url:
             api_base_url = "https://api.mistral.ai/v1"
+        elif provider == "anthropic" and not api_base_url:
+            api_base_url = "https://api.anthropic.com/v1"
 
         # 两阶段邏輯共用，不分 provider（call_gemini_json 内部按 base URL 自动分发）
         if is_script_rewrite_style(translation_style):
@@ -737,6 +862,7 @@ def main() -> int:
                     api_key,
                     api_base_url,
                     model,
+                    provider,
                     segments,
                     source_language,
                     target_language,
@@ -750,6 +876,7 @@ def main() -> int:
             api_key,
             api_base_url,
             model,
+            provider,
             segments,
             source_language,
             target_language,

@@ -3,6 +3,54 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] 支援通用 LLM 與 TTS Base URL
+
+### 用戶提出的問題
+1. TTS 和 LLM 不希望限定在固定 vendor。
+2. 希望改成通用 Base URL + API Key 的配置形式。
+3. LLM 需要支持 Claude / Anthropic 和 OpenAI-compatible 兩種常見 request format。
+4. 需要在不破壞既有兩階段翻譯資產的前提下，修正 provider 邏輯混亂與過度綁定文案。
+5. 用戶追問本輪為什麼沒有寫入雙 log，要求補齊 `log.md` 和 `git-log.md`。
+
+### 問題原因/修改思路
+- 原 LLM provider 主線仍偏向 Gemini / OpenAI / Mistral，翻譯憑證、readiness、設定 UI 和測試 fixture 裡有不少「Gemini 翻譯憑證」的限定說法。
+- `scripts/translator.py` 是受保護核心資產，不能把兩階段 `build_context_brief + translate` 簡化成普通 `translate(text)`，所以只允許改底層 HTTP adapter 和 provider/env 解析。
+- TTS 主線仍以 MiniMax 為核心，但官方 endpoint 寫得較固定；需要允許 MiniMax-compatible proxy / gateway 的 Base URL，同時保留 voice registry、公眾人物披露、provider gate 和 Edge TTS 兜底。
+- 雙 log 漏寫的直接原因：本倉庫 `AGENTS.md` 明文要求結束時 commit + 更新 `PROJECT_PLAN.md`，而 `log.md` 自身又寫明沒有用戶明確指示不應主動修改；本次在用戶追問後補齊。
+
+### 實際修改記錄
+- **`lib/providers/llm/custom.ts` / `lib/providers/registry.ts` / `lib/providers/llm/types.ts`**:
+  - 新增 `custom` LLM provider，支持 OpenAI-compatible `/chat/completions` 與 Claude / Anthropic `/messages`。
+  - 支援 `LMC_LLM_REQUEST_FORMAT`、`LMC_LLM_API_BASE_URL`、`LMC_LLM_API_KEY`、`LMC_LLM_MODEL`。
+  - 同時兼容 `OPENAI_*` 與 `ANTHROPIC_*` provider-specific env alias。
+- **`components/settings/llm-provider-switcher.tsx` / `app/api/providers/llm/*`**:
+  - Settings 新增通用 LLM 配置 UI：request format、API Key、模型 ID、Base URL、保存、測試連接。
+  - 保留外部調用 / 可能付費確認 gate，不在用戶不知情時發起真實 provider 調用。
+- **`lib/dubbing/translation-credentials.ts` / `lib/workflow/steps/dubbing/translate-text.ts`**:
+  - 翻譯憑證解析擴展為 `gemini | openai | mistral | anthropic`。
+  - 翻譯 runtime 會把通用、OpenAI、Mistral、Anthropic 憑證與 Base URL 傳入 Python 子進程。
+  - readiness / runtime summary 改成通用 LLM 翻譯憑證，不再把翻譯能力綁死在 Gemini。
+- **`scripts/translator.py`**:
+  - 僅新增 Anthropic `/messages` 與 OpenAI-compatible `/chat/completions` adapter、env alias、Base URL/model/provider 解析。
+  - 保留兩階段 context brief + segment translate 的 prompt 結構與業務規則。
+- **`lib/dubbing/minimax-credentials.ts` / `scripts/voice_cloner.py` / MiniMax 調用點**:
+  - 增加 `api_base_url`、`LMC_TTS_API_BASE_URL`、`MINIMAX_API_BASE_URL`。
+  - MiniMax T2A URL 由配置構建，支持填 Base URL 或完整 `/t2a_v2` endpoint。
+- **`components/settings/minimax-config.tsx` / `app/settings/page.tsx` / `.env.example` / `PROJECT_PLAN.md` / `AGENTS.md`**:
+  - 設定頁與環境變數文檔補充通用 LLM 和 TTS Base URL。
+  - 將 Claude / Anthropic 從「不採用」修正為「非硬依賴，只能作為用戶自填 Base URL + API Key 的通用格式」。
+- **測試**:
+  - 補齊 translation credentials、translator script、translate step、MiniMax credentials、API key verification、readiness、設定 UI 等測試。
+  - 清理測試 fixture 中「Gemini 翻譯憑證」的舊限定文案。
+
+### 驗證
+- ✅ `python -m py_compile scripts\translator.py scripts\voice_cloner.py` 通過。
+- ✅ `corepack pnpm lint` 通過。
+- ✅ `corepack pnpm typecheck:app` 通過。
+- ✅ `corepack pnpm test:unit` 通過：116 files / 835 pass / 17 skip。
+- ✅ `corepack pnpm build` 通過；仍有既有 5 處 Turbopack dynamic path broad pattern warning，與本次 provider 改動無關。
+- ✅ `http://127.0.0.1:8899/api/health` 返回 200，dev server 已可用。
+
 ## [2026-05-04] 修正桌面安裝版無法開啟窗口
 
 ### 用戶提出的問題

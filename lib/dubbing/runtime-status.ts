@@ -93,23 +93,23 @@ function buildGuidance(
 ): string {
   if (!translationCredentialStatus.configured && !allowPassthroughTranslation) {
     return available
-      ? '配音脚本和 MiniMax 已就绪；正式本地化仍需配置 Gemini 翻译凭证。'
-      : '请补齐配音脚本运行时，并配置 Gemini 翻译凭证；无凭证时不会创建正式本地化翻译。'
+      ? '配音脚本和 MiniMax 已就绪；正式本地化仍需配置 LLM 翻译凭证。'
+      : '请补齐配音脚本运行时，并配置 LLM 翻译凭证；无凭证时不会创建正式本地化翻译。'
   }
 
   if (!translationCredentialStatus.configured && allowPassthroughTranslation) {
     return available
-      ? '可做原文占位 smoke；正式本地化仍需配置 Gemini 翻译凭证。'
-      : '请补齐配音脚本运行时；当前只允许原文占位 smoke，正式本地化仍需 Gemini 翻译凭证。'
+      ? '可做原文占位 smoke；正式本地化仍需配置 LLM 翻译凭证。'
+      : '请补齐配音脚本运行时；当前只允许原文占位 smoke，正式本地化仍需 LLM 翻译凭证。'
   }
 
   const translationPrefix =
     translationCredentialStatus.verification_state === 'verified'
-      ? 'Gemini 翻译凭证已验证。'
+      ? 'LLM 翻译凭证已验证。'
       : translationCredentialStatus.verification_state === 'saved_unverified'
-        ? 'Gemini 翻译凭证已保存但未真实 provider 验证。'
+        ? 'LLM 翻译凭证已保存但未真实 provider 验证。'
         : translationCredentialStatus.verification_state === 'not_tracked'
-          ? 'Gemini 翻译凭证来自环境变量，设置页未记录真实 provider 验证。'
+          ? 'LLM 翻译凭证来自环境变量，设置页未记录真实 provider 验证。'
           : ''
 
   if (available) {

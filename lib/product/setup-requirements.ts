@@ -56,7 +56,7 @@ export const SETUP_REQUIREMENTS = {
     category: 'provider',
     description: '两阶段翻译、脚本改写、标题钩子和高亮判断使用的文本理解后端。',
     setupHref: '/settings#llm-provider',
-    missingHint: '配置并切换到一个可用的 Gemini / OpenAI / Mistral provider。',
+    missingHint: '配置并切换到一个可用的 Gemini / OpenAI-compatible / Claude provider。',
   },
   'minimax-tts': {
     id: 'minimax-tts',

@@ -338,7 +338,7 @@ const fallbackTranslationCredential = (
         verified: false,
         source: null,
         verification_state: 'not_tracked',
-        detail: 'Gemini 翻译凭证已配置，但当前 readiness 输入没有真实 provider 验证记录。',
+        detail: 'LLM 翻译凭证已配置，但当前 readiness 输入没有真实 provider 验证记录。',
         runtime: { ...emptyTranslationRuntime(), api_key_source: 'env:GEMINI_API_KEY' },
       }
     : {
@@ -346,7 +346,7 @@ const fallbackTranslationCredential = (
         verified: false,
         source: null,
         verification_state: 'missing',
-        detail: '未配置 Gemini 翻译凭证。',
+        detail: '未配置 LLM 翻译凭证。',
         runtime: emptyTranslationRuntime(),
       }
 
@@ -361,13 +361,13 @@ function buildStageDetail(opt: {
   const dict = {
     translation: {
       envMissing: '翻译配音脚本环境未完整。',
-      missingBypass: '未配置 Gemini 翻译凭证；已允许原文占位，可做 smoke 但不能算正式本地化。',
-      missingNoBypass: '未配置 Gemini 翻译凭证；当前不会创建原文占位任务，需先配置翻译 provider。',
-      verified: 'Gemini 翻译凭证已配置并已通过设置页真实 provider 验证，可做口语化翻译。',
-      saved: 'Gemini 翻译凭证已保存但未真实 provider 验证；可在任务级费用确认后尝试口语化翻译。',
+      missingBypass: '未配置 LLM 翻译凭证；已允许原文占位，可做 smoke 但不能算正式本地化。',
+      missingNoBypass: '未配置 LLM 翻译凭证；当前不会创建原文占位任务，需先配置翻译 provider。',
+      verified: 'LLM 翻译凭证已配置并已通过设置页真实 provider 验证，可做口语化翻译。',
+      saved: 'LLM 翻译凭证已保存但未真实 provider 验证；可在任务级费用确认后尝试口语化翻译。',
       notTracked:
-        'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，可在任务级费用确认后尝试口语化翻译。',
-      fallback: 'Gemini 翻译凭证已配置，可在任务级费用确认后尝试口语化翻译。',
+        'LLM 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，可在任务级费用确认后尝试口语化翻译。',
+      fallback: 'LLM 翻译凭证已配置，可在任务级费用确认后尝试口语化翻译。',
     },
     tts: {
       envMissing: '配音脚本环境未完整。',
@@ -397,11 +397,11 @@ function buildPaidProviderGateDetail(
   const dict = {
     translation: {
       verified:
-        'Gemini 翻译凭证已配置并已通过设置页真实 provider 验证；真实 smoke 会调用外部翻译服务，可能产生费用。',
+        'LLM 翻译凭证已配置并已通过设置页真实 provider 验证；真实 smoke 会调用外部翻译服务，可能产生费用。',
       saved:
-        'Gemini 翻译凭证已保存但未真实 provider 验证；真实 smoke 仍会调用外部翻译服务，可能产生费用。',
+        'LLM 翻译凭证已保存但未真实 provider 验证；真实 smoke 仍会调用外部翻译服务，可能产生费用。',
       notTracked:
-        'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，真实 smoke 会调用外部翻译服务并可能产生费用。',
+        'LLM 翻译凭证来自环境变量；设置页没有真实 provider 验证记录，真实 smoke 会调用外部翻译服务并可能产生费用。',
       fallback: '翻译 provider 已配置；真实 smoke 会调用外部翻译服务。',
     },
     tts: {
@@ -452,9 +452,9 @@ export function buildClosedLoopReadiness(
   const youtubeCookiesMissing = !input.ingest.youtube_cookies_configured
   const ingestMissing = input.ingest.missing_required
   const dubbingMissing = input.dubbing.missing_required.filter((n) => n !== 'MiniMax TTS 凭证')
-  const translationMissing = translationConfigured ? [] : ['Gemini 翻译凭证']
+  const translationMissing = translationConfigured ? [] : ['LLM 翻译凭证']
   const translationBlockingMissing =
-    translationConfigured || passthroughTranslationAllowed ? [] : ['Gemini 翻译凭证']
+    translationConfigured || passthroughTranslationAllowed ? [] : ['LLM 翻译凭证']
   const ttsMissing = input.ttsConfigured ? [] : ['MiniMax TTS 凭证']
   const ttsBlockingMissing =
     input.ttsConfigured || placeholderTtsAllowed ? [] : ['MiniMax TTS 凭证']
@@ -684,7 +684,7 @@ export function buildClosedLoopReadiness(
       ? deliveryAudit.guidance
       : smokeReady
         ? passthroughTranslationAllowed && !translationConfigured
-          ? '本地链路可以 smoke test；当前会使用原文占位，正式本地化还需要补齐 Gemini 翻译凭证。'
+          ? '本地链路可以 smoke test；当前会使用原文占位，正式本地化还需要补齐 LLM 翻译凭证。'
           : placeholderTtsAllowed && !input.ttsConfigured
             ? '本地链路可以 smoke test；当前会使用静音占位，正式成片还需要补齐 MiniMax TTS。'
             : '本地链路可以 smoke test；正式成片还需要补齐翻译或 TTS provider。'

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { clearGeminiRuntimeCache, registerGeminiRuntimeCacheClearer } from '@/lib/ai/gemini/cache'
-import { verifyGeminiAIStudio } from '@/lib/api-keys/verify'
+import { verifyGeminiAIStudio, verifyMiniMax } from '@/lib/api-keys/verify'
 
 describe('Gemini AI Studio key verification', () => {
   afterEach(() => {
@@ -59,5 +59,32 @@ describe('Gemini runtime cache helper', () => {
     unregister()
 
     expect(clearer).toHaveBeenCalledWith('vertex')
+  })
+})
+
+describe('MiniMax key verification', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('uses the configured MiniMax-compatible API Base URL', async () => {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () =>
+        new Response(JSON.stringify({ base_resp: { status_code: 0 } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await verifyMiniMax({
+      api_key: 'minimax-key',
+      voice_id: 'voice-test',
+      api_base_url: 'https://minimax-proxy.example/v1/t2a_v2',
+    })
+
+    expect(result.valid).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('https://minimax-proxy.example/v1/t2a_v2')
   })
 })

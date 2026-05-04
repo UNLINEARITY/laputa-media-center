@@ -40,7 +40,7 @@ describe('IngestWorkbench readiness badges', () => {
           verified: true,
           source: 'settings',
           verification_state: 'verified',
-          detail: '设置页 Gemini 翻译凭证已通过一次真实 provider 验证。',
+          detail: '设置页 LLM 翻译凭证已通过一次真实 provider 验证。',
         },
       }),
     ).toEqual({ tone: 'ready', label: '已验证' })
@@ -54,7 +54,7 @@ describe('IngestWorkbench readiness badges', () => {
           verified: false,
           source: 'settings',
           verification_state: 'saved_unverified',
-          detail: '设置页 Gemini 翻译凭证已加密保存，但尚未执行真实 provider 验证。',
+          detail: '设置页 LLM 翻译凭证已加密保存，但尚未执行真实 provider 验证。',
         },
       }),
     ).toEqual({ tone: 'warning', label: '待验证' })
@@ -68,7 +68,7 @@ describe('IngestWorkbench readiness badges', () => {
           verified: false,
           source: 'env',
           verification_state: 'not_tracked',
-          detail: 'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。',
+          detail: 'LLM 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。',
         },
       }),
     ).toEqual({ tone: 'warning', label: '未记录验证' })
@@ -191,7 +191,7 @@ describe('IngestWorkbench readiness badges', () => {
     expect(getProviderGateBlockerLabel({ run_mode: 'blocked' })).toBe('阻断')
   })
 
-  it('summarizes Gemini runtime key, model, and base-url sources without secrets', () => {
+  it('summarizes LLM runtime provider, key, model, and base-url sources without secrets', () => {
     expect(
       // Codex P1 #6: TranslationCredentialStatusForDisplay 已收歛為 { configured, runtime? }
       // verified/source/verification_state/detail 是舊版 status 欄位，prod consumer 已不讀取，移除
@@ -207,6 +207,7 @@ describe('IngestWorkbench readiness badges', () => {
         },
       }),
     ).toEqual([
+      { label: 'Provider', value: 'Gemini' },
       { label: 'Key 来源', value: '环境变量 GOOGLE_AI_STUDIO_API_KEY' },
       { label: '模型', value: 'gemini-env-model（环境变量 GEMINI_MODEL_ID）' },
       { label: 'Base URL', value: '已配置（环境变量 GOOGLE_AI_STUDIO_API_BASE_URL）' },

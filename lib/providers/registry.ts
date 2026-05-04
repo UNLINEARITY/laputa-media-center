@@ -11,6 +11,7 @@ import { configsRepo } from '@/lib/db/core/configs'
 import { GeminiAudioProvider } from './asr/gemini-audio'
 import { ASR_PROVIDER_DISPLAY, type ASRProviderId, type IASRProvider } from './asr/types'
 import { WhisperCppProvider } from './asr/whisper-cpp'
+import { CustomLLMProvider } from './llm/custom'
 import { GeminiLLMProvider } from './llm/gemini'
 import { MistralLLMProvider } from './llm/mistral'
 import { OpenAILLMProvider } from './llm/openai'
@@ -60,6 +61,7 @@ const LLM_FACTORIES: Record<LLMProviderId, () => ILLMProvider> = {
   gemini: () => new GeminiLLMProvider(),
   openai: () => new OpenAILLMProvider(),
   mistral: () => new MistralLLMProvider(),
+  custom: () => new CustomLLMProvider(),
 }
 const _llmInstances = new Map<LLMProviderId, ILLMProvider>()
 

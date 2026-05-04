@@ -214,7 +214,7 @@ describe('provider gate confirmation normal form', () => {
         detail: '翻译 provider 未配置。',
         status: 'blocked',
         run_mode: 'blocked',
-        blockers: ['Gemini 翻译凭证'],
+        blockers: ['LLM 翻译凭证'],
         confirmation: { required: false },
       },
       {
@@ -232,7 +232,7 @@ describe('provider gate confirmation normal form', () => {
         id: 'translation_provider',
         label: '翻译 provider',
         detail: '翻译 provider 未配置。',
-        blockers: ['Gemini 翻译凭证'],
+        blockers: ['LLM 翻译凭证'],
       },
     ])
   })

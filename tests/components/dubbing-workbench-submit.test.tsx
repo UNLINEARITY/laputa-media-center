@@ -37,7 +37,7 @@ const translationCredentialStatus = {
   verified: false,
   source: 'env',
   verification_state: 'not_tracked',
-  detail: 'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。',
+  detail: 'LLM 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。',
   runtime: {
     provider: 'gemini',
     api_key_source: 'env:GOOGLE_AI_STUDIO_API_KEY',
@@ -232,7 +232,7 @@ describe('DubbingWorkbench submit issues', () => {
               detail: '翻译 provider 未配置。',
               status: 'blocked',
               run_mode: 'blocked',
-              blockers: ['Gemini 翻译凭证'],
+              blockers: ['LLM 翻译凭证'],
               confirmation: { required: false },
               risk: { external_call: false, may_spend_money: false },
             },
@@ -276,7 +276,7 @@ describe('DubbingWorkbench submit issues', () => {
     expect(await screen.findByDisplayValue('voice-main')).toBeTruthy()
     expect(screen.getByText('无法确认真实 provider 调用')).toBeTruthy()
     expect(
-      screen.getAllByText((content) => content.includes('Gemini 翻译凭证')).length,
+      screen.getAllByText((content) => content.includes('LLM 翻译凭证')).length,
     ).toBeGreaterThan(0)
     fireEvent.change(screen.getByPlaceholderText(/YouTube/), {
       target: { value: 'C:\\tmp\\source.mp4' },

@@ -11,6 +11,9 @@ type LooseFn<R = unknown> = (...args: unknown[]) => R
 // biome-ignore lint/suspicious/noExplicitAny: spawn mock impl 簽名多樣（cmd, args, options? 等），LooseFn 太嚴
 const spawnMock = vi.hoisted(() => vi.fn<(...args: any[]) => any>())
 const getMiniMaxApiKeyMock = vi.hoisted(() => vi.fn<LooseFn<string | null>>(() => null))
+const getMiniMaxApiBaseUrlMock = vi.hoisted(() =>
+  vi.fn<LooseFn<string>>(() => 'https://api.minimaxi.com/v1'),
+)
 
 vi.mock('node:child_process', () => ({
   spawn: spawnMock,
@@ -21,6 +24,7 @@ vi.mock('@/lib/db/managers/state-manager', () => ({
 }))
 
 vi.mock('@/lib/dubbing/minimax-credentials', () => ({
+  getMiniMaxApiBaseUrl: getMiniMaxApiBaseUrlMock,
   getMiniMaxApiKey: getMiniMaxApiKeyMock,
 }))
 
@@ -44,6 +48,8 @@ async function loadStep() {
   spawnMock.mockReset()
   getMiniMaxApiKeyMock.mockReset()
   getMiniMaxApiKeyMock.mockReturnValue(null)
+  getMiniMaxApiBaseUrlMock.mockReset()
+  getMiniMaxApiBaseUrlMock.mockReturnValue('https://api.minimaxi.com/v1')
 
   return import('@/lib/workflow/steps/dubbing/minimax-tts')
 }

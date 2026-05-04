@@ -5,6 +5,7 @@ import { findDubbingCredential } from './runtime'
 export interface MiniMaxCredential {
   apiKey: string
   voiceId?: string
+  apiBaseUrl?: string
   source: 'env' | 'settings' | 'file'
   path: string
 }
@@ -24,7 +25,30 @@ export interface MiniMaxCredentialStatus {
   detail: string
 }
 
-function readMiniMaxFile(filePath: string): Pick<MiniMaxCredential, 'apiKey' | 'voiceId'> | null {
+const DEFAULT_MINIMAX_API_BASE_URL = 'https://api.minimaxi.com/v1'
+
+function normalizeMiniMaxApiBaseUrl(value?: string | null): string {
+  const trimmed = (value || '').trim().replace(/\/+$/, '')
+  if (!trimmed) return DEFAULT_MINIMAX_API_BASE_URL
+  if (trimmed.endsWith('/t2a_v2')) return trimmed.slice(0, -'/t2a_v2'.length)
+  return trimmed
+}
+
+export function buildMiniMaxT2aUrl(apiBaseUrl?: string | null): string {
+  return `${normalizeMiniMaxApiBaseUrl(apiBaseUrl)}/t2a_v2`
+}
+
+function getEnvMiniMaxApiBaseUrl(): string | undefined {
+  return (
+    process.env.LMC_TTS_API_BASE_URL?.trim() ||
+    process.env.MINIMAX_API_BASE_URL?.trim() ||
+    undefined
+  )
+}
+
+function readMiniMaxFile(
+  filePath: string,
+): Pick<MiniMaxCredential, 'apiKey' | 'voiceId' | 'apiBaseUrl'> | null {
   if (!existsSync(filePath)) return null
 
   try {
@@ -32,6 +56,7 @@ function readMiniMaxFile(filePath: string): Pick<MiniMaxCredential, 'apiKey' | '
     const auth = data.auth as Record<string, unknown> | undefined
     const token = auth?.token || data.api_key || data.token
     const voiceId = data.verification_voice_id || data.voice_id || data.default_voice_id
+    const apiBaseUrl = data.api_base_url || data.api_base || data.base_url
 
     if (typeof token !== 'string' || !token.trim() || token.startsWith('<')) {
       return null
@@ -40,6 +65,10 @@ function readMiniMaxFile(filePath: string): Pick<MiniMaxCredential, 'apiKey' | '
     return {
       apiKey: token.trim(),
       voiceId: typeof voiceId === 'string' && voiceId.trim() ? voiceId.trim() : undefined,
+      apiBaseUrl:
+        typeof apiBaseUrl === 'string' && apiBaseUrl.trim()
+          ? normalizeMiniMaxApiBaseUrl(apiBaseUrl)
+          : undefined,
     }
   } catch {
     return null
@@ -48,6 +77,7 @@ function readMiniMaxFile(filePath: string): Pick<MiniMaxCredential, 'apiKey' | '
 
 export function getMiniMaxCredential(): MiniMaxCredential | null {
   const envKey = process.env.MINIMAX_API_KEY?.trim()
+  const envApiBaseUrl = getEnvMiniMaxApiBaseUrl()
   if (envKey) {
     return {
       apiKey: envKey,
@@ -55,6 +85,7 @@ export function getMiniMaxCredential(): MiniMaxCredential | null {
         process.env.MINIMAX_VERIFICATION_VOICE_ID?.trim() ||
         process.env.MINIMAX_DEFAULT_VOICE_ID?.trim() ||
         undefined,
+      apiBaseUrl: envApiBaseUrl ? normalizeMiniMaxApiBaseUrl(envApiBaseUrl) : undefined,
       source: 'env',
       path: 'env:MINIMAX_API_KEY',
     }
@@ -66,6 +97,9 @@ export function getMiniMaxCredential(): MiniMaxCredential | null {
     return {
       apiKey: savedKey,
       voiceId: saved?.verification_voice_id?.trim() || saved?.voice_id?.trim() || undefined,
+      apiBaseUrl: saved?.api_base_url?.trim()
+        ? normalizeMiniMaxApiBaseUrl(saved.api_base_url)
+        : undefined,
       source: 'settings',
       path: 'settings:minimax_tts',
     }
@@ -88,6 +122,10 @@ export function getMiniMaxCredential(): MiniMaxCredential | null {
 
 export function getMiniMaxApiKey(): string | null {
   return getMiniMaxCredential()?.apiKey || null
+}
+
+export function getMiniMaxApiBaseUrl(): string {
+  return normalizeMiniMaxApiBaseUrl(getMiniMaxCredential()?.apiBaseUrl || getEnvMiniMaxApiBaseUrl())
 }
 
 export function getMiniMaxCredentialStatus(): MiniMaxCredentialStatus {

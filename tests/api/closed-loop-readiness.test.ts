@@ -108,12 +108,12 @@ function translationCredentialStatus(
     verification_state: verificationState,
     detail:
       verificationState === 'verified'
-        ? '设置页 Gemini 翻译凭证已通过一次真实 provider 验证。'
+        ? '设置页 LLM 翻译凭证已通过一次真实 provider 验证。'
         : verificationState === 'saved_unverified'
-          ? '设置页 Gemini 翻译凭证已加密保存，但尚未执行真实 provider 验证。'
+          ? '设置页 LLM 翻译凭证已加密保存，但尚未执行真实 provider 验证。'
           : verificationState === 'not_tracked'
-            ? 'Gemini 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。'
-            : '未配置 Gemini 翻译凭证。',
+            ? 'LLM 翻译凭证来自环境变量；设置页没有真实 provider 验证记录。'
+            : '未配置 LLM 翻译凭证。',
     runtime: {
       provider: 'gemini' as const,
       api_key_source: configured
@@ -563,7 +563,7 @@ describe('buildClosedLoopReadiness', () => {
     expect(readiness.runtime_readiness_level).toBe('blocked')
     expect(readiness.delivery_audit_ready).toBe(false)
     expect(readiness.summary_label).toBe('未就绪')
-    expect(readiness.missing_required).toContain('Gemini 翻译凭证')
+    expect(readiness.missing_required).toContain('LLM 翻译凭证')
     expect(readiness.stages.find((stage) => stage.id === 'translation')?.status).toBe('blocked')
     expect(providerGate(readiness, 'translation')).toMatchObject({
       run_mode: 'blocked',

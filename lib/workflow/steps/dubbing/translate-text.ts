@@ -2,7 +2,7 @@
  * 文本翻译步骤
  *
  * 调用 Python translator.py 将 ASR 分段翻译为目标语言
- * 支持 Gemini / OpenAI / Mistral provider
+ * 支持可切换 LLM provider，保留两阶段上下文翻译流程
  */
 
 import { execFile } from 'node:child_process'
@@ -25,6 +25,74 @@ import { BaseStep } from '../base'
 import { getDubbingFileArtifactOutputPath, resolveDubbingFileArtifactPath } from './artifact-paths'
 
 const execFileAsync = promisify(execFile)
+
+type TranslatorProvider = 'gemini' | 'openai' | 'mistral' | 'anthropic'
+
+function normalizeConcreteTranslatorProvider(
+  value: string | null | undefined,
+): TranslatorProvider | null {
+  const normalized = (value || '').trim().toLowerCase()
+  if (normalized === 'gemini') return 'gemini'
+  if (normalized === 'openai') return 'openai'
+  if (normalized === 'mistral') return 'mistral'
+  if (normalized === 'anthropic' || normalized === 'claude') return 'anthropic'
+  return null
+}
+
+function resolveTranslatorProvider(
+  requestedProvider: string | null | undefined,
+  credentialProvider: string | null | undefined,
+  activeProvider: string | null | undefined,
+): TranslatorProvider {
+  return (
+    normalizeConcreteTranslatorProvider(requestedProvider) ||
+    normalizeConcreteTranslatorProvider(credentialProvider) ||
+    normalizeConcreteTranslatorProvider(activeProvider) ||
+    'openai'
+  )
+}
+
+function applyTranslationProviderEnv(
+  env: NodeJS.ProcessEnv,
+  provider: TranslatorProvider,
+  apiKey: string,
+  model: string,
+  apiBaseUrl: string,
+) {
+  env.CHUANGCUT_TRANSLATE_API_KEY = apiKey
+
+  if (provider !== 'gemini') {
+    env.LMC_LLM_API_KEY = apiKey
+    env.LMC_LLM_REQUEST_FORMAT = provider === 'anthropic' ? 'anthropic' : 'openai'
+    if (model) env.LMC_LLM_MODEL = model
+    if (apiBaseUrl) env.LMC_LLM_API_BASE_URL = apiBaseUrl
+  }
+
+  if (provider === 'gemini') {
+    env.GEMINI_API_KEY = apiKey
+    if (model) env.GEMINI_MODEL_ID = model
+    if (apiBaseUrl) env.GEMINI_API_BASE_URL = apiBaseUrl
+    return
+  }
+
+  if (provider === 'anthropic') {
+    env.ANTHROPIC_API_KEY = apiKey
+    if (model) env.ANTHROPIC_MODEL = model
+    if (apiBaseUrl) env.ANTHROPIC_API_BASE_URL = apiBaseUrl
+    return
+  }
+
+  if (provider === 'mistral') {
+    env.MISTRAL_API_KEY = apiKey
+    if (model) env.MISTRAL_MODEL = model
+    if (apiBaseUrl) env.MISTRAL_API_BASE_URL = apiBaseUrl
+    return
+  }
+
+  env.OPENAI_API_KEY = apiKey
+  if (model) env.OPENAI_MODEL = model
+  if (apiBaseUrl) env.OPENAI_API_BASE_URL = apiBaseUrl
+}
 
 /** 翻译步骤输出 */
 export interface TranslateTextOutput {
@@ -62,13 +130,13 @@ export class TranslateTextStep extends BaseStep<TranslateTextOutput> {
     const translationCredential = getDubbingTranslationCredential()
     const translateApiKey =
       (config.translate_api_key as string) || translationCredential?.apiKey || ''
-    // Phase 3.A：从 registry 读 active LLM provider（fallback 链：job config > credential > registry > 'gemini'）
+    // Phase 3.A：从 registry 读 active LLM provider（fallback 链：job config > credential > registry）
     const { getActiveLlmProviderId } = await import('@/lib/providers/registry')
-    const translateProvider =
-      (config.translate_api_provider as string) ||
-      translationCredential?.provider ||
-      getActiveLlmProviderId() ||
-      'gemini'
+    const translateProvider = resolveTranslatorProvider(
+      config.translate_api_provider as string,
+      translationCredential?.provider,
+      getActiveLlmProviderId(),
+    )
     const translateModel = normalizeDubbingTranslationModelId(
       (config.translate_model as string) || translationCredential?.modelId || '',
     )
@@ -78,7 +146,7 @@ export class TranslateTextStep extends BaseStep<TranslateTextOutput> {
 
     if (!translateApiKey && !passthroughTranslationAllowed) {
       throw new Error(
-        'DUBBING_TRANSLATION_NOT_CONFIGURED: 正式本地化需要先配置 Gemini 翻译凭证。若只是做本地 smoke，可显式设置 DUBBING_ALLOW_PASSTHROUGH_TRANSLATION=true 使用原文占位。',
+        'DUBBING_TRANSLATION_NOT_CONFIGURED: 正式本地化需要先配置 LLM 翻译凭证。若只是做本地 smoke，可显式设置 DUBBING_ALLOW_PASSTHROUGH_TRANSLATION=true 使用原文占位。',
       )
     }
     if (
@@ -185,13 +253,13 @@ export class TranslateTextStep extends BaseStep<TranslateTextOutput> {
     try {
       const childEnv: NodeJS.ProcessEnv = { ...process.env, PYTHONIOENCODING: 'utf-8' }
       if (translateApiKey) {
-        childEnv.CHUANGCUT_TRANSLATE_API_KEY = translateApiKey
-        if (translateProvider === 'gemini') {
-          childEnv.GEMINI_API_KEY = translateApiKey
-          if (translateApiBaseUrl) {
-            childEnv.GEMINI_API_BASE_URL = translateApiBaseUrl
-          }
-        }
+        applyTranslationProviderEnv(
+          childEnv,
+          translateProvider,
+          translateApiKey,
+          translateModel,
+          translateApiBaseUrl,
+        )
       }
 
       const { stdout, stderr } = await execFileAsync(pythonExe, args, {

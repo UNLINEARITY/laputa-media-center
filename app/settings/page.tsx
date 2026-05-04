@@ -55,6 +55,7 @@ export default function SettingsPage() {
 
   // MiniMax TTS
   const [miniMaxKey, setMiniMaxKey] = useState('')
+  const [miniMaxApiBaseUrl, setMiniMaxApiBaseUrl] = useState('')
   const [miniMaxVoiceId, setMiniMaxVoiceId] = useState('')
   const [miniMaxPaidVerificationConfirmed, setMiniMaxPaidVerificationConfirmed] = useState(false)
   const [miniMaxSavingOperation, setMiniMaxSavingOperation] = useState<
@@ -110,7 +111,7 @@ export default function SettingsPage() {
 
   const loadSystemConfigStatus = async () => {
     try {
-      // 检查 Gemini 模型配置
+      // 检查默认 LLM 模型配置
       const configsRes = await fetch('/api/configs')
       const configsData = await configsRes.json()
       const configs = configsData.configs || {}
@@ -281,6 +282,7 @@ export default function SettingsPage() {
 
   const handleSaveMiniMax = async (operation: 'save_only' | 'verify_and_save') => {
     const trimmedKey = miniMaxKey.trim()
+    const trimmedApiBaseUrl = miniMaxApiBaseUrl.trim()
     const trimmedVoiceId = miniMaxVoiceId.trim()
 
     if (!trimmedKey) {
@@ -309,6 +311,7 @@ export default function SettingsPage() {
           operation,
           credentials: {
             api_key: trimmedKey,
+            api_base_url: trimmedApiBaseUrl,
             verification_voice_id: trimmedVoiceId,
             voice_id: trimmedVoiceId,
           },
@@ -356,7 +359,7 @@ export default function SettingsPage() {
     <div className="flex flex-col bg-linear-to-br from-claude-cream-50/30 via-white to-claude-cream-100/50 min-h-screen">
       <PageHeader
         title="密钥与服务设置"
-        description="配置 Gemini 翻译、MiniMax 配音、存储和历史兼容服务。正式本地化需要 Gemini 翻译凭证、MiniMax 与已确认用途和披露要求的 voice_id。"
+        description="配置 LLM 翻译、MiniMax 配音、存储和历史兼容服务。正式本地化需要 LLM 翻译凭证、MiniMax 与已确认用途和披露要求的 voice_id。"
       />
 
       <section className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
@@ -404,7 +407,9 @@ export default function SettingsPage() {
               <h3 className="mb-3 text-sm font-semibold text-claude-dark-400">系统配置状态</h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex items-center justify-between rounded-lg border border-claude-dark-300/20 bg-white px-4 py-3">
-                  <span className="text-sm font-medium text-claude-dark-700">Gemini 模型配置</span>
+                  <span className="text-sm font-medium text-claude-dark-700">
+                    默认 LLM 模型配置
+                  </span>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-medium ${
                       systemConfigStatus.gemini_model_configured
@@ -471,6 +476,8 @@ export default function SettingsPage() {
               <MiniMaxConfig
                 apiKey={miniMaxKey}
                 setApiKey={setMiniMaxKey}
+                apiBaseUrl={miniMaxApiBaseUrl}
+                setApiBaseUrl={setMiniMaxApiBaseUrl}
                 voiceId={miniMaxVoiceId}
                 setVoiceId={setMiniMaxVoiceId}
                 confirmPaidVerification={miniMaxPaidVerificationConfirmed}
@@ -540,7 +547,7 @@ export default function SettingsPage() {
           <TabsContent id="maintenance" value="maintenance" className="space-y-6">
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
               这里放本机转录引擎、旧剪辑兼容和维护工具；翻译配音主线请优先使用「系统设置」里的
-              MiniMax 配音、Gemini 模型和创作者资产。
+              MiniMax 配音、通用 LLM 翻译和创作者资产。
             </div>
             <WhisperCppInstaller />
             <TTSConfig onConfigChange={handleSystemConfigSave} />

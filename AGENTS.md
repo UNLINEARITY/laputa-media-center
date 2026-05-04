@@ -52,7 +52,7 @@
 1. **第一階段 build_context_brief**：LLM 讀整篇 transcript 產出 summary / speaker_notes / ASR 修正建議 / glossary / 改寫策略
 2. **第二階段 translate**：基於 brief 注入 creator_context + user_glossary 後逐段翻
 
-**抽象只應用到「LLM 後端切換」（Gemini / OpenAI / Mistral 等可插拔），不能簡化成 `translate(text)` 函數**。簡化即災難。
+**抽象只應用到「LLM 後端切換」（Gemini / OpenAI-compatible / Mistral / Claude-Anthropic 等可插拔），不能簡化成 `translate(text)` 函數**。簡化即災難。
 
 ### 2. 「免費優先」
 
@@ -134,7 +134,7 @@
 - ❌ 不亂改 `.env.local`（含真實 secrets）
 - ❌ **不簡化兩階段翻譯為單階段**
 - ❌ 不引入特定 AI 公司硬依賴（MiniMax 例外）
-- ❌ 不引入 Anthropic / Claude API 作為產品內依賴
+- ❌ 不引入 Anthropic / Claude API 作為產品內硬依賴；只能作為用戶自填 Base URL + API Key 的通用 LLM 格式
 
 ## 技術棧
 

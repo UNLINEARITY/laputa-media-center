@@ -1039,7 +1039,7 @@ describe('dubbing route', () => {
 
     expect(response.status).toBe(400)
     expect(body.code).toBe('DUBBING_TRANSLATION_NOT_CONFIGURED')
-    expect(body.message).toContain('Gemini 翻译凭证')
+    expect(body.message).toContain('LLM 翻译凭证')
     expect(jobsCreateMock).not.toHaveBeenCalled()
     expect(enqueueMock).not.toHaveBeenCalled()
   })

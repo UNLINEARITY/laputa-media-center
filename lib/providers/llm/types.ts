@@ -7,7 +7,8 @@
 
 import type { ProviderTier } from '../asr/types'
 
-export type LLMProviderId = 'gemini' | 'openai' | 'mistral'
+export type LLMProviderId = 'gemini' | 'openai' | 'mistral' | 'custom'
+export type LLMRequestFormat = 'openai' | 'anthropic'
 
 export interface LLMGenerateOptions {
   /** 模型 ID，不设则用 provider 默认 */
@@ -52,4 +53,5 @@ export const LLM_PROVIDER_DISPLAY: Record<LLMProviderId, { name: string; tier: P
   gemini: { name: 'Google Gemini', tier: 'free' },
   openai: { name: 'OpenAI', tier: 'paid' },
   mistral: { name: 'Mistral AI', tier: 'free' },
+  custom: { name: '通用 LLM', tier: 'paid' },
 }

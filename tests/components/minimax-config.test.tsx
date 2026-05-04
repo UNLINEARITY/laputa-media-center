@@ -20,6 +20,8 @@ function renderConfig(props: Partial<ComponentProps<typeof MiniMaxConfig>> = {})
     <MiniMaxConfig
       apiKey="test-key"
       setApiKey={vi.fn()}
+      apiBaseUrl=""
+      setApiBaseUrl={vi.fn()}
       voiceId="voice-main"
       setVoiceId={vi.fn()}
       confirmPaidVerification={false}

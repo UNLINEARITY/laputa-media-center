@@ -23,7 +23,7 @@ vi.mock('@/lib/dubbing/translation-credentials', () => ({
 }))
 
 describe('dubbing runtime status guidance', () => {
-  it('does not describe formal localization as ready when Gemini translation is missing', async () => {
+  it('does not describe formal localization as ready when LLM translation is missing', async () => {
     getMiniMaxCredentialStatusMock.mockReturnValue({
       configured: true,
       verified: false,
@@ -37,7 +37,7 @@ describe('dubbing runtime status guidance', () => {
       verified: false,
       source: null,
       verification_state: 'missing',
-      detail: '未配置 Gemini 翻译凭证。',
+      detail: '未配置 LLM 翻译凭证。',
       runtime: {
         provider: 'gemini',
         api_key_source: null,
@@ -53,7 +53,7 @@ describe('dubbing runtime status guidance', () => {
     const status = getDubbingRuntimeStatus()
 
     expect(status.allow_passthrough_translation).toBe(false)
-    expect(status.guidance).toContain('Gemini 翻译凭证')
+    expect(status.guidance).toContain('LLM 翻译凭证')
     expect(status.guidance).not.toContain('翻译配音运行时已就绪')
   })
 })

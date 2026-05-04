@@ -992,7 +992,7 @@ export function DubbingWorkbench() {
                     className="mt-2 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
                   >
                     <Settings className="h-3.5 w-3.5" />
-                    保存 Gemini 翻译凭证
+                    保存 LLM 翻译凭证
                   </a>
                 </div>
               </div>

@@ -238,7 +238,7 @@ Write-Host " 安裝完成！" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "翻譯方式:" -ForegroundColor White
-Write-Host "  方式 A: 已配置的 LLM Provider 自動翻譯（Gemini / OpenAI / Mistral）" -ForegroundColor Cyan
+Write-Host "  方式 A: 已配置的 LLM Provider 自動翻譯（Gemini / OpenAI-compatible / Claude）" -ForegroundColor Cyan
 Write-Host "  方式 B: 本地 smoke passthrough（僅測試，需顯式開啟）" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "用法:" -ForegroundColor White

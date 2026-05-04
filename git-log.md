@@ -3,6 +3,24 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] feat(provider): 支援通用 LLM 與 TTS Base URL
+
+**commit summary**
+feat(provider): 支援通用 LLM 與 TTS Base URL
+
+**description**
+Add a generic LLM provider that can be configured with Base URL, API Key, model ID, and request format. The generic provider supports OpenAI-compatible `/chat/completions` and Claude / Anthropic `/messages`, and the dubbing translation runtime now passes generic, OpenAI, Mistral, or Anthropic credentials through to `scripts/translator.py` without changing the protected two-stage translation flow. Also make MiniMax TTS use a configurable Base URL for MiniMax-compatible endpoints while preserving the voice registry, disclosure model, provider gates, and Edge TTS fallback.
+
+新增可用 Base URL、API Key、模型 ID 與 request format 配置的通用 LLM provider。通用 provider 支援 OpenAI-compatible `/chat/completions` 與 Claude / Anthropic `/messages`，翻譯配音 runtime 會把通用、OpenAI、Mistral 或 Anthropic 憑證傳入 `scripts/translator.py`，但不改受保護的兩階段翻譯流程。同時讓 MiniMax TTS 支援可配置 Base URL，以兼容 MiniMax-compatible endpoint，並保留聲線註冊、公眾人物披露、provider gate 與 Edge TTS 兜底。
+
+**verification**
+- `python -m py_compile scripts\translator.py scripts\voice_cloner.py`
+- `corepack pnpm lint`
+- `corepack pnpm typecheck:app`
+- `corepack pnpm test:unit` (116 files / 835 pass / 17 skip)
+- `corepack pnpm build`
+- `GET http://127.0.0.1:8899/api/health` returned HTTP 200
+
 ## [2026-05-04] fix(desktop): 修正安裝版無法開啟窗口
 
 **commit summary**

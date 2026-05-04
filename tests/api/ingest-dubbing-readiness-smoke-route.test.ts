@@ -1741,7 +1741,7 @@ describe('ingest dubbing readiness provider smoke route', () => {
               gate.id === 'translation'
                 ? '未配置翻译 provider；可用原文占位 dry-run 验证流程结构。'
                 : '未配置 MiniMax；可用静音占位 dry-run 验证字幕、合成与交付结构。',
-            blockers: gate.id === 'translation' ? ['Gemini 翻译凭证'] : ['MiniMax TTS 凭证'],
+            blockers: gate.id === 'translation' ? ['LLM 翻译凭证'] : ['MiniMax TTS 凭证'],
             risk: {
               external_call: false,
               may_spend_money: false,

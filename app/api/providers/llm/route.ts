@@ -18,7 +18,7 @@ import {
 } from '@/lib/providers/registry'
 
 const switchSchema = z.object({
-  id: z.enum(['gemini', 'openai', 'mistral'] as const),
+  id: z.enum(['gemini', 'openai', 'mistral', 'custom'] as const),
 })
 
 export async function GET(req: NextRequest) {

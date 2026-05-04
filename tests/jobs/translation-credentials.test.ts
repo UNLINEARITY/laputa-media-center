@@ -8,6 +8,19 @@ const originalGoogleAIStudioApiKey = process.env.GOOGLE_AI_STUDIO_API_KEY
 const originalGeminiModelId = process.env.GEMINI_MODEL_ID
 const originalGeminiApiBaseUrl = process.env.GEMINI_API_BASE_URL
 const originalGoogleAIStudioApiBaseUrl = process.env.GOOGLE_AI_STUDIO_API_BASE_URL
+const originalLmcLlmApiKey = process.env.LMC_LLM_API_KEY
+const originalLmcLlmModel = process.env.LMC_LLM_MODEL
+const originalLmcLlmApiBaseUrl = process.env.LMC_LLM_API_BASE_URL
+const originalLmcLlmRequestFormat = process.env.LMC_LLM_REQUEST_FORMAT
+const originalAnthropicApiKey = process.env.ANTHROPIC_API_KEY
+const originalAnthropicModel = process.env.ANTHROPIC_MODEL
+const originalAnthropicApiBaseUrl = process.env.ANTHROPIC_API_BASE_URL
+const originalOpenAIApiKey = process.env.OPENAI_API_KEY
+const originalOpenAIModel = process.env.OPENAI_MODEL
+const originalOpenAIApiBaseUrl = process.env.OPENAI_API_BASE_URL
+const originalMistralApiKey = process.env.MISTRAL_API_KEY
+const originalMistralModel = process.env.MISTRAL_MODEL
+const originalMistralApiBaseUrl = process.env.MISTRAL_API_BASE_URL
 
 vi.mock('@/lib/db/core/api-keys', () => ({
   apiKeysRepo: {
@@ -27,7 +40,7 @@ import {
   getDubbingTranslationCredentialStatus,
 } from '@/lib/dubbing/translation-credentials'
 
-describe('Gemini translation credential status', () => {
+describe('Dubbing translation credential status', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     delete process.env.GEMINI_API_KEY
@@ -35,6 +48,19 @@ describe('Gemini translation credential status', () => {
     delete process.env.GEMINI_MODEL_ID
     delete process.env.GEMINI_API_BASE_URL
     delete process.env.GOOGLE_AI_STUDIO_API_BASE_URL
+    delete process.env.LMC_LLM_API_KEY
+    delete process.env.LMC_LLM_MODEL
+    delete process.env.LMC_LLM_API_BASE_URL
+    delete process.env.LMC_LLM_REQUEST_FORMAT
+    delete process.env.ANTHROPIC_API_KEY
+    delete process.env.ANTHROPIC_MODEL
+    delete process.env.ANTHROPIC_API_BASE_URL
+    delete process.env.OPENAI_API_KEY
+    delete process.env.OPENAI_MODEL
+    delete process.env.OPENAI_API_BASE_URL
+    delete process.env.MISTRAL_API_KEY
+    delete process.env.MISTRAL_MODEL
+    delete process.env.MISTRAL_API_BASE_URL
     getApiKeyMock.mockReturnValue(null)
     getAllStatusMock.mockReturnValue([])
     getConfigMock.mockReturnValue(null)
@@ -66,6 +92,32 @@ describe('Gemini translation credential status', () => {
     } else {
       process.env.GOOGLE_AI_STUDIO_API_BASE_URL = originalGoogleAIStudioApiBaseUrl
     }
+    if (originalLmcLlmApiKey === undefined) delete process.env.LMC_LLM_API_KEY
+    else process.env.LMC_LLM_API_KEY = originalLmcLlmApiKey
+    if (originalLmcLlmModel === undefined) delete process.env.LMC_LLM_MODEL
+    else process.env.LMC_LLM_MODEL = originalLmcLlmModel
+    if (originalLmcLlmApiBaseUrl === undefined) delete process.env.LMC_LLM_API_BASE_URL
+    else process.env.LMC_LLM_API_BASE_URL = originalLmcLlmApiBaseUrl
+    if (originalLmcLlmRequestFormat === undefined) delete process.env.LMC_LLM_REQUEST_FORMAT
+    else process.env.LMC_LLM_REQUEST_FORMAT = originalLmcLlmRequestFormat
+    if (originalAnthropicApiKey === undefined) delete process.env.ANTHROPIC_API_KEY
+    else process.env.ANTHROPIC_API_KEY = originalAnthropicApiKey
+    if (originalAnthropicModel === undefined) delete process.env.ANTHROPIC_MODEL
+    else process.env.ANTHROPIC_MODEL = originalAnthropicModel
+    if (originalAnthropicApiBaseUrl === undefined) delete process.env.ANTHROPIC_API_BASE_URL
+    else process.env.ANTHROPIC_API_BASE_URL = originalAnthropicApiBaseUrl
+    if (originalOpenAIApiKey === undefined) delete process.env.OPENAI_API_KEY
+    else process.env.OPENAI_API_KEY = originalOpenAIApiKey
+    if (originalOpenAIModel === undefined) delete process.env.OPENAI_MODEL
+    else process.env.OPENAI_MODEL = originalOpenAIModel
+    if (originalOpenAIApiBaseUrl === undefined) delete process.env.OPENAI_API_BASE_URL
+    else process.env.OPENAI_API_BASE_URL = originalOpenAIApiBaseUrl
+    if (originalMistralApiKey === undefined) delete process.env.MISTRAL_API_KEY
+    else process.env.MISTRAL_API_KEY = originalMistralApiKey
+    if (originalMistralModel === undefined) delete process.env.MISTRAL_MODEL
+    else process.env.MISTRAL_MODEL = originalMistralModel
+    if (originalMistralApiBaseUrl === undefined) delete process.env.MISTRAL_API_BASE_URL
+    else process.env.MISTRAL_API_BASE_URL = originalMistralApiBaseUrl
   })
 
   it('marks settings save-only credentials as saved but unverified', () => {
@@ -157,6 +209,54 @@ describe('Gemini translation credential status', () => {
       apiBaseUrl: 'https://gemini-primary.example/v1beta',
       apiBaseUrlSource: 'env:GEMINI_API_BASE_URL',
       source: 'env',
+    })
+    expect(getApiKeyMock).not.toHaveBeenCalled()
+  })
+
+  it('prefers generic LMC LLM env values for Anthropic request format', () => {
+    process.env.LMC_LLM_API_KEY = 'lmc-llm-key'
+    process.env.LMC_LLM_MODEL = 'claude-3-5-haiku-latest'
+    process.env.LMC_LLM_API_BASE_URL = 'https://claude-compatible.example/v1'
+    process.env.LMC_LLM_REQUEST_FORMAT = 'anthropic'
+    process.env.GEMINI_API_KEY = 'gemini-fallback'
+
+    expect(getDubbingTranslationCredential()).toMatchObject({
+      provider: 'anthropic',
+      apiKey: 'lmc-llm-key',
+      apiKeySource: 'env:LMC_LLM_API_KEY',
+      modelId: 'claude-3-5-haiku-latest',
+      modelSource: 'env:LMC_LLM_MODEL',
+      apiBaseUrl: 'https://claude-compatible.example/v1',
+      apiBaseUrlSource: 'env:LMC_LLM_API_BASE_URL',
+      source: 'env',
+    })
+  })
+
+  it('uses active custom LLM settings as saved-unverified translation credentials', () => {
+    getConfigMock.mockImplementation((key: string) => {
+      const configs: Record<string, string> = {
+        active_llm_provider: 'custom',
+        custom_llm_api_key: 'custom-key',
+        custom_llm_model: 'claude-sonnet-custom',
+        custom_llm_api_base_url: 'https://custom-claude.example/v1',
+        custom_llm_request_format: 'anthropic',
+      }
+      return configs[key] || null
+    })
+
+    expect(getDubbingTranslationCredentialStatus()).toMatchObject({
+      configured: true,
+      verified: false,
+      source: 'settings',
+      verification_state: 'saved_unverified',
+      runtime: {
+        provider: 'anthropic',
+        api_key_source: 'settings:custom_llm',
+        model_id: 'claude-sonnet-custom',
+        model_source: 'settings:custom_llm.model',
+        api_base_url_configured: true,
+        api_base_url_source: 'settings:custom_llm.api_base_url',
+      },
     })
     expect(getApiKeyMock).not.toHaveBeenCalled()
   })
