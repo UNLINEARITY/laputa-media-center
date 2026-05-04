@@ -3,6 +3,49 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] 打包 Windows 桌面安裝版
+
+### 用戶提出的問題
+1. 用戶明確要求不是瀏覽器服務或便攜腳本，而是可雙擊、可安裝、給小白直接使用的桌面應用。
+2. 需要把 Node、FFmpeg、yt-dlp、whisper.cpp、模型、Python helper、資料庫 schema 等前置鏈路一起打包，避免使用者手動安裝。
+3. API key / secrets 不能隨包，首啟仍需走空配置 + 引導。
+
+### 問題原因/修改思路
+- 既有 Lite 包已能把 Next standalone server 和部分 resources 放到一起，但仍是 PowerShell 腳本 + 瀏覽器體驗，不是桌面應用。
+- 採用 Tauri v2 + NSIS：桌面外殼負責啟動隱藏本地 sidecar，WebView 載入 `127.0.0.1:<free-port>`；完整運行資源由準備腳本下載後塞進 Tauri resources。
+- 為了避免 NSIS 長路徑與過度打包問題，Lite 包會剪掉 Next standalone trace 帶入的源碼/文檔/開發目錄，只保留運行必需項。
+
+### 實際修改記錄
+- **`src-tauri/`**:
+  - 新增 Tauri v2 Rust 桌面外殼、NSIS 配置、capability 與 Cargo lock。
+  - 啟動時定位 `laputa-desktop` resource，挑選空閒本地端口，隱藏啟動隨包 `resources/node/node.exe server.js`。
+  - 注入 `LMC_LITE_MODE`、`LMC_LITE_RESOURCES_DIR`、`LMC_APP_DATA_DIR`、runtime/temp/output/database、FFmpeg、yt-dlp、whisper.cpp、Python 等環境變數。
+  - WebView 在 `/api/health` 成功後才打開，並只綁定 `127.0.0.1`。
+  - sidecar stdout/stderr 寫到 `%LOCALAPPDATA%\LaputaMediaCenter\logs\desktop-server.log`。
+  - 修正 Windows `\\?\` resource 路徑被 Node 誤解析的問題，並在窗口關閉/退出事件中顯式清理 sidecar。
+- **`scripts/prepare-desktop-win.mjs`**:
+  - 新增桌面資源準備腳本，從 Lite 包 staging 到 `src-tauri/r/l`。
+  - 自動下載並隨包攜帶 FFmpeg、yt-dlp、whisper.cpp、`ggml-base.bin`、Python embeddable。
+  - 使用 `tar.exe` 解壓 zip，兼容 whisper.cpp 官方 zip 中 `main.exe` / `whisper-cli.exe` 命名差異，並複製 DLL。
+  - 生成 Tauri icon 與 `desktop-manifest.json`。
+- **`scripts/package-lite-win.mjs`**:
+  - 明確複製字幕字體 `resource/fonts`。
+  - 剪除 source/docs/dev/test/`src-tauri` 等不需要進 Lite/desktop runtime 的 traced 文件，避免安裝包過大和 NSIS 長路徑失敗。
+- **`package.json` / `.gitignore`**:
+  - 新增 `desktop:prepare:win` 和 `desktop:build:win`。
+  - 新增 `@tauri-apps/cli`。
+  - 忽略 Tauri target、staging resources、generated icons。
+
+### 驗證
+- ✅ `corepack pnpm desktop:prepare:win` 通過，生成 `src-tauri/r/l` 完整桌面資源。
+- ✅ `corepack pnpm exec tauri build` 通過，生成 `src-tauri/target/release/bundle/nsis/LaputaMediaCenter_1.0.0_x64-setup.exe`。
+- ✅ 安裝包級 smoke：靜默安裝到 `dist/desktop-smoke-install`，啟動桌面 exe 後隨包 Node sidecar 自動啟動，`GET /api/health` 返回 `ok`，正常關閉窗口後 sidecar 清理成功。
+- ✅ `corepack pnpm exec biome check package.json scripts/package-lite-win.mjs scripts/prepare-desktop-win.mjs src-tauri\tauri.conf.json` 通過。
+- ✅ `cargo fmt --manifest-path src-tauri\Cargo.toml --check` 通過。
+- ✅ `cargo check --manifest-path src-tauri\Cargo.toml` 通過。
+- ✅ `corepack pnpm typecheck:app` 通過。
+- ✅ `corepack pnpm test:unit` 通過：116 files / 827 pass / 17 skip。
+
 ## [2026-05-04] Lite 啟動腳本自動清理端口占用
 
 ### 用戶提出的問題

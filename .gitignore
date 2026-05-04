@@ -10,6 +10,11 @@ next-env.d.ts
 # production
 dist/
 build/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/resources/
+src-tauri/r/
+src-tauri/icons/
 
 # local env and secrets
 .env

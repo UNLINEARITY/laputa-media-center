@@ -3,6 +3,26 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] feat(desktop): 打包 Windows 桌面安裝版
+
+**commit summary**
+feat(desktop): 打包 Windows 桌面安裝版
+
+**description**
+Add a real Tauri v2 desktop shell and NSIS Windows installer for LaputaMediaCenter. The desktop app bundles the Lite standalone server plus Node, FFmpeg, yt-dlp, whisper.cpp, the base ggml model, embeddable Python, helper scripts, schema, fonts, and runtime resource wiring, while keeping API keys out of the package. It starts the bundled Next sidecar on a free localhost port, waits for `/api/health`, opens the WebView only after readiness, writes user data to AppData, logs sidecar output, and cleans the sidecar on normal app exit. Also tighten the Lite package contents so desktop bundling avoids traced source noise and NSIS long-path failures.
+
+新增真正的 Tauri v2 桌面外殼與 NSIS Windows 安裝包。桌面版會隨包攜帶 Lite standalone server，以及 Node、FFmpeg、yt-dlp、whisper.cpp、base ggml 模型、嵌入式 Python、helper scripts、schema、字體與 runtime resource wiring，同時不把 API key 放進包內。應用會在空閒 localhost 端口啟動隨包 Next sidecar，等待 `/api/health` 成功後再打開 WebView，將用戶資料寫入 AppData，記錄 sidecar 日誌，並在正常退出時清理 sidecar。也收窄 Lite 包內容，避免 traced source noise 和 NSIS 長路徑打包失敗。
+
+**verification**
+- `corepack pnpm desktop:prepare:win`
+- `corepack pnpm exec tauri build`
+- NSIS installer smoke: silent install to `dist/desktop-smoke-install`, desktop exe starts bundled node sidecar, `/api/health` returns `ok`, and normal window close cleans the sidecar
+- `corepack pnpm exec biome check package.json scripts/package-lite-win.mjs scripts/prepare-desktop-win.mjs src-tauri\tauri.conf.json`
+- `cargo fmt --manifest-path src-tauri\Cargo.toml --check`
+- `cargo check --manifest-path src-tauri\Cargo.toml`
+- `corepack pnpm typecheck:app`
+- `corepack pnpm test:unit` (116 files / 827 pass / 17 skip)
+
 ## [2026-05-04] fix(packaging): 自動清理 Lite 啟動端口
 
 **commit summary**

@@ -2,12 +2,13 @@
 
 **最後更新**：2026-05-04（每次對話結束 AI 助手會更新這裡）
 **當前 Phase**：✅ **Phase 5 主線完成**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓ / tool-catalog normal form ✓ / GitHub push ✓）
-**下次從哪裡繼續**：Lite 小白版便攜運行時基礎已落地，啟動腳本已能自動清理舊 Laputa 端口占用；下一步補齊 ffmpeg / yt-dlp / whisper.cpp 模型的自動下載或隨包策略，並評估是否包成 Tauri / NSIS Windows 安裝器。
+**下次從哪裡繼續**：Windows 桌面安裝版已落地並完成 NSIS 安裝包 smoke；下一步優先做桌面首啟配置嚮導與小白文檔，把「無 API key 可先跑免費/占位體驗、有 key 再升級」講清楚。
 
 **Phase 5 防洩漏狀態**:
 - ✅ Git history rewrite 已完成（commit `a8eb924`）：舊工作流帳號 slug / 對應 Gmail / Zeabur IDs 已從 blob、commit message、refs 清乾淨；credential / dynamic 測試紀錄路徑已從 history 抹除；**保留** `hkdadinsz@gmail.com`、`hkdadinsz`、`laputa`。
 
 **開源後 / v1.1 跟進清單**（不阻塞 v1.0 公開）:
+- 2026-05-04 Windows 桌面安裝版：新增 Tauri v2 + NSIS 打包鏈路，`pnpm desktop:prepare:win` 會生成 Next standalone + Lite 包並下載/隨包攜帶 FFmpeg、yt-dlp、whisper.cpp、`ggml-base.bin`、嵌入式 Python；`pnpm desktop:build:win` 會輸出 `src-tauri/target/release/bundle/nsis/LaputaMediaCenter_1.0.0_x64-setup.exe`。桌面 app 會在本機隨機端口隱藏啟動隨包 Node/Next sidecar，WebView 載入 `127.0.0.1`，用戶資料落到 `%LOCALAPPDATA%\LaputaMediaCenter`，sidecar 日誌落到 `%LOCALAPPDATA%\LaputaMediaCenter\logs\desktop-server.log`。已做安裝包級 smoke：靜默安裝到 `dist/desktop-smoke-install`，啟動後 `/api/health` 返回 `ok`，正常關閉窗口後隨包 Node sidecar 被清理；`pnpm test:unit` 116 files / 827 pass / 17 skip / 0 fail。
 - 2026-05-04 Lite 啟動端口清理：`scripts/start-lite-win.ps1` 啟動前會檢查目標端口（默認 8899，可用 `PORT` 覆蓋），自動停止可確認為 Laputa / Next / `server.js` 的舊 `node.exe` 進程；未知程序占用時不誤殺，輸出 PID 並提示換端口。`LMC_APP_DATA_DIR` 可覆蓋 AppData 位置，`LMC_SKIP_BROWSER=true` 可跳過自動開瀏覽器。已重新 `pnpm package:lite:win`，並用 8905 受控 smoke 驗證：舊 Lite PID 被停止，新 PID 接管同端口，`/api/health` 返回 200。
 - 2026-05-04 Lite 小白版便攜運行時基礎：新增 `lib/packaging/lite-runtime.ts`，讓 ingest / ASR / dubbing / runtime paths 優先讀 `LMC_LITE_RESOURCES_DIR` 與 `LMC_APP_DATA_DIR`；新增 `scripts/package-lite-win.mjs` + `scripts/start-lite-win.ps1`，可生成 `dist/laputa-lite-win`，內含 standalone server、隨包 Node、Python helper scripts、schema、resources layout，並把用戶資料放到 `%LOCALAPPDATA%\LaputaMediaCenter`。`pnpm test:unit` 116 files / 827 pass / 17 skip / 0 fail；`NEXT_OUTPUT_STANDALONE=true pnpm build` 通過且 Next workspace-root 警告已由 `turbopack.root` 收斂；`pnpm package:lite:win` 通過；生成包用隨包 Node 在 `http://127.0.0.1:8903/api/health` smoke 返回 200。當前包裝器會複製 PATH / cache 中已存在的 ffmpeg、yt-dlp、whisper.cpp binary / ggml-base，未存在時先保留 resources 占位。
 - 2026-05-04 whisper.cpp 安裝 429 修正：`POST /api/runtime/whisper-cpp/install` 先判斷 single-flight，再套用較寬鬆的本地安裝限流（3 次/分鐘），429 回傳 `Retry-After` 與中文重試提示；Settings 安裝器會解析 429/409 JSON，不再只顯示裸 `HTTP 429`。`pnpm test:unit` 110 files / 816 pass / 17 skip / 0 fail；`pnpm build` 通過；production 服務已重啟到 `http://localhost:8899/settings`，Edge smoke 截圖在 `tmp/whisper-installer-smoke.png`。

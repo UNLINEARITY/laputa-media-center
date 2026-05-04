@@ -10,6 +10,7 @@ const nextDir = path.join(repoRoot, '.next')
 const standaloneDir = path.join(nextDir, 'standalone')
 const staticDir = path.join(nextDir, 'static')
 const publicDir = path.join(repoRoot, 'public')
+const fontResourceDir = path.join(repoRoot, 'resource', 'fonts')
 const startScript = path.join(repoRoot, 'scripts', 'start-lite-win.ps1')
 const distRoot = path.join(repoRoot, 'dist')
 const packageDir = path.join(distRoot, 'laputa-lite-win')
@@ -20,15 +21,45 @@ const PRUNED_STANDALONE_PATHS = [
   '.cache',
   '.coverage',
   '.turbo',
+  'app',
+  'build',
+  'components',
+  'config',
   'coverage',
   'data',
   'dist',
   'docs',
+  'src-tauri',
+  'store',
+  'types',
   'logs',
   'playwright-report',
+  'resource',
+  'scripts',
   'test-results',
   'tests',
   'tmp',
+  'AGENTS.md',
+  'CHANGELOG.md',
+  'CODEX_FINDINGS.md',
+  'CODEX_HANDOFF.md',
+  'CONTRIBUTING.md',
+  'PROJECT_PLAN.md',
+  'README.en.md',
+  'README.md',
+  'biome.json',
+  'git-log.md',
+  'install.ps1',
+  'install.sh',
+  'log.md',
+  'playwright.config.ts',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+  'postcss.config.mjs',
+  'proxy.ts',
+  'tsconfig.app.json',
+  'tsconfig.json',
+  'vitest.config.ts',
 ]
 
 const resourcesReadme = `# LaputaMediaCenter Lite Windows resources
@@ -233,6 +264,9 @@ async function main() {
   await pruneStandaloneNoise()
   await copyDir(staticDir, path.join(packageDir, '.next', 'static'), '.next/static')
   await copyDir(publicDir, path.join(packageDir, 'public'), 'public assets', { optional: true })
+  await copyDir(fontResourceDir, path.join(packageDir, 'resource', 'fonts'), 'subtitle fonts', {
+    optional: true,
+  })
   await copyDir(
     path.join(repoRoot, 'lib', 'db'),
     path.join(packageDir, 'lib', 'db'),
