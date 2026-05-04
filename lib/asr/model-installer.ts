@@ -9,6 +9,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
+import { getLiteAppDataDir, resolveLiteWhisperModelPath } from '@/lib/packaging/lite-runtime'
 import { WHISPER_CPP_MODEL_REPO, type WhisperModelSize } from './types'
 
 const HUGGINGFACE_BASE = `https://huggingface.co/${WHISPER_CPP_MODEL_REPO}/resolve/main`
@@ -22,7 +23,7 @@ export class WhisperModelUnavailableError extends Error {
 }
 
 export function getModelCacheDir(): string {
-  return path.join(homedir(), '.laputa', 'whisper', 'models')
+  return path.join(getLiteAppDataDir() || path.join(homedir(), '.laputa'), 'whisper', 'models')
 }
 
 export function getModelFilename(size: WhisperModelSize): string {
@@ -114,7 +115,7 @@ async function downloadModelFile(
 
 export interface EnsureModelResult {
   path: string
-  source: 'cache' | 'downloaded'
+  source: 'packaged' | 'cache' | 'downloaded'
   size: WhisperModelSize
 }
 
@@ -124,6 +125,18 @@ export async function ensureWhisperModel(
 ): Promise<EnsureModelResult> {
   const modelPath = getModelPath(size)
   const cacheDir = getModelCacheDir()
+  const packagedModelPath = resolveLiteWhisperModelPath(size)
+
+  if (packagedModelPath) {
+    try {
+      const s = await stat(packagedModelPath)
+      if (s.size >= MODEL_MIN_SIZE_BYTES[size]) {
+        return { path: packagedModelPath, source: 'packaged', size }
+      }
+    } catch {
+      // 损坏，继续检查缓存或重新下载
+    }
+  }
 
   // 缓存命中：检查文件存在且大小合理（避免半下载损坏）
   if (existsSync(modelPath)) {
@@ -167,14 +180,25 @@ export function isWhisperModelReady(size: WhisperModelSize = 'base'): {
   ready: boolean
   path: string | null
   size: WhisperModelSize
+  source: 'packaged' | 'cache' | 'missing'
 } {
+  const packagedModelPath = resolveLiteWhisperModelPath(size)
+  if (packagedModelPath) {
+    try {
+      const s = require('node:fs').statSync(packagedModelPath)
+      if (s.size >= MODEL_MIN_SIZE_BYTES[size]) {
+        return { ready: true, path: packagedModelPath, size, source: 'packaged' }
+      }
+    } catch {}
+  }
+
   const modelPath = getModelPath(size)
-  if (!existsSync(modelPath)) return { ready: false, path: null, size }
+  if (!existsSync(modelPath)) return { ready: false, path: null, size, source: 'missing' }
   try {
     const s = require('node:fs').statSync(modelPath)
     if (s.size >= MODEL_MIN_SIZE_BYTES[size]) {
-      return { ready: true, path: modelPath, size }
+      return { ready: true, path: modelPath, size, source: 'cache' }
     }
   } catch {}
-  return { ready: false, path: null, size }
+  return { ready: false, path: null, size, source: 'missing' }
 }

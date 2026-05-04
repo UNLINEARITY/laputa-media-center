@@ -2,16 +2,17 @@
 
 **最後更新**：2026-05-04（每次對話結束 AI 助手會更新這裡）
 **當前 Phase**：✅ **Phase 5 主線完成**（Wave 5.1 secrets scan + history rewrite ✓ / Wave 5.2 LICENSE+README 中英+CONTRIBUTING+install scripts ✓ / push 前 UI P0 收尾 ✓ / tool-catalog normal form ✓ / GitHub push ✓）
-**下次從哪裡繼續**：whisper.cpp 安裝 429 體驗已修正；下一步繼續收斂分發前置鏈路（ffmpeg / yt-dlp / whisper.cpp 的一鍵安裝或隨包攜帶）與 Tauri / Windows 安裝器可行性。
+**下次從哪裡繼續**：Lite 小白版便攜運行時基礎已落地；下一步補齊 ffmpeg / yt-dlp / whisper.cpp 模型的自動下載或隨包策略，並評估是否包成 Tauri / NSIS Windows 安裝器。
 
 **Phase 5 防洩漏狀態**:
 - ✅ Git history rewrite 已完成（commit `a8eb924`）：舊工作流帳號 slug / 對應 Gmail / Zeabur IDs 已從 blob、commit message、refs 清乾淨；credential / dynamic 測試紀錄路徑已從 history 抹除；**保留** `hkdadinsz@gmail.com`、`hkdadinsz`、`laputa`。
 
 **開源後 / v1.1 跟進清單**（不阻塞 v1.0 公開）:
+- 2026-05-04 Lite 小白版便攜運行時基礎：新增 `lib/packaging/lite-runtime.ts`，讓 ingest / ASR / dubbing / runtime paths 優先讀 `LMC_LITE_RESOURCES_DIR` 與 `LMC_APP_DATA_DIR`；新增 `scripts/package-lite-win.mjs` + `scripts/start-lite-win.ps1`，可生成 `dist/laputa-lite-win`，內含 standalone server、隨包 Node、Python helper scripts、schema、resources layout，並把用戶資料放到 `%LOCALAPPDATA%\LaputaMediaCenter`。`pnpm test:unit` 116 files / 827 pass / 17 skip / 0 fail；`NEXT_OUTPUT_STANDALONE=true pnpm build` 通過且 Next workspace-root 警告已由 `turbopack.root` 收斂；`pnpm package:lite:win` 通過；生成包用隨包 Node 在 `http://127.0.0.1:8903/api/health` smoke 返回 200。當前包裝器會複製 PATH / cache 中已存在的 ffmpeg、yt-dlp、whisper.cpp binary / ggml-base，未存在時先保留 resources 占位。
 - 2026-05-04 whisper.cpp 安裝 429 修正：`POST /api/runtime/whisper-cpp/install` 先判斷 single-flight，再套用較寬鬆的本地安裝限流（3 次/分鐘），429 回傳 `Retry-After` 與中文重試提示；Settings 安裝器會解析 429/409 JSON，不再只顯示裸 `HTTP 429`。`pnpm test:unit` 110 files / 816 pass / 17 skip / 0 fail；`pnpm build` 通過；production 服務已重啟到 `http://localhost:8899/settings`，Edge smoke 截圖在 `tmp/whisper-installer-smoke.png`。
-- 2026-05-04 實機部署抽查：本地 `pnpm build` 通過，`LMC_BYPASS_LICENSE=true AUTH_ENABLED=false PORT=8899 pnpm start` 可打開首頁、Settings、Ingest、Podcast、Highlights；補回缺失的 `/api/jobs/[id]/logs` route，`pnpm test:unit` 107 files / 806 pass / 17 skip / 0 fail。後續仍需收斂兩個開源體驗點：README 說無 `LICENSE_KEY` 可直接本地跑，但 production proxy 仍需 `LMC_BYPASS_LICENSE=true`；Next 16 仍因 `C:\Users\unlin\package-lock.json` 推斷 workspace root 有警告。
+- 2026-05-04 實機部署抽查：本地 `pnpm build` 通過，`LMC_BYPASS_LICENSE=true AUTH_ENABLED=false PORT=8899 pnpm start` 可打開首頁、Settings、Ingest、Podcast、Highlights；補回缺失的 `/api/jobs/[id]/logs` route，`pnpm test:unit` 107 files / 806 pass / 17 skip / 0 fail。後續仍需收斂開源體驗點：README 說無 `LICENSE_KEY` 可直接本地跑，但 production proxy 仍需 `LMC_BYPASS_LICENSE=true`。
 - 2026-05-04 Requirement primitive 已落地：新增 `lib/product/setup-requirements.ts` + `/api/setup-requirements`，把 `requiredSetup` / `optionalSetup` 對應到實際 provider/runtime/asset readiness；`/settings` system tab 已新增「按工具檢查前置條件」面板，並實機部署到 `http://localhost:8899/settings` 驗證。`pnpm test:unit` 108 files / 812 pass / 17 skip / 0 fail；`pnpm build` 通過。
-- 分發前置鏈路簡化：把 ffmpeg / yt-dlp / whisper.cpp 從「提示用戶配置」推進到「一鍵安裝 / 隨包攜帶 / 首次啟動自檢」，再評估是否打包成 Tauri / Windows installer。
+- 分發前置鏈路簡化：Lite 便攜運行時已能讀隨包 resources；剩餘重點是把 ffmpeg / yt-dlp / whisper.cpp 模型從「占位或本機已有才複製」推進到「一鍵下載 / 隨包攜帶 / 首次啟動自檢」，再評估是否打包成 Tauri / Windows installer。
 - `tests/workflow/podcast-tts-mode.test.ts` 13 tests 是 schema 重寫 + 文檔斷言，需改成 import `@/app/api/podcast/route` 內部 schema export，並 execute `PodcastTtsStep` 真 early return path（Codex P3，user 確認非阻塞）
 - `scripts/migrations/` 29 個 .js legacy archive 評估是否一併砍掉或移到 `_archive/`（Codex P2 #9 後續）
 - prod 型別漂移收歛（Phase 4 W6 期間 cast 吸收的 3 處：`StepContext` 兩個定義、`TranslationCredentialStatusForDisplay`、`ClosedLoopReadiness`）— 真 cross-file refactor，建議列開源後 v1.1 再做

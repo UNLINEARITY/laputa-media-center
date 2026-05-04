@@ -9,7 +9,8 @@
  * 工作流产生的大量文件会触发重编译导致 CPU 飙升
  */
 
-import { normalize } from 'node:path'
+import { join, normalize } from 'node:path'
+import { getLiteAppDataDir } from '@/lib/packaging/lite-runtime'
 
 // ============================================================================
 // 根目录配置（默认使用系统临时目录，避免触发 Turbopack 重编译）
@@ -20,7 +21,11 @@ import { normalize } from 'node:path'
  * 可通过环境变量 RUNTIME_DIR 覆盖
  * 默认：/tmp/laputa（macOS/Linux）或项目目录（Docker）
  */
-const RUNTIME_ROOT = normalize(process.env.RUNTIME_DIR || '/tmp/laputa')
+const LITE_APP_DATA_DIR = getLiteAppDataDir()
+const RUNTIME_ROOT = normalize(
+  process.env.RUNTIME_DIR ||
+    (LITE_APP_DATA_DIR ? join(LITE_APP_DATA_DIR, 'runtime') : '/tmp/laputa'),
+)
 
 /**
  * 临时文件根目录

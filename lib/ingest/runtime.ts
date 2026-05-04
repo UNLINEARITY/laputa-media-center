@@ -1,12 +1,13 @@
 import { existsSync } from 'node:fs'
 import { delimiter } from 'node:path'
+import { resolveLiteExecutable } from '@/lib/packaging/lite-runtime'
 
 export interface RuntimeProbe {
   name: string
   path: string | null
   exists: boolean
   required: boolean
-  source: 'env' | 'fallback' | 'path'
+  source: 'env' | 'fallback' | 'packaged' | 'path'
 }
 
 function hasPathSeparator(value: string): boolean {
@@ -42,11 +43,13 @@ function resolveRuntime(
   envName: string,
   fallback: string,
   fallbackEnvName?: string,
+  packagedPath?: string | null,
 ): { path: string; source: RuntimeProbe['source']; exists: boolean } {
   const envValue = process.env[envName]?.trim()
   const fallbackEnvValue = fallbackEnvName ? process.env[fallbackEnvName]?.trim() : undefined
-  const value = envValue || fallbackEnvValue || fallback
-  const source: RuntimeProbe['source'] = envValue || fallbackEnvValue ? 'env' : 'fallback'
+  const value = envValue || fallbackEnvValue || packagedPath || fallback
+  const source: RuntimeProbe['source'] =
+    envValue || fallbackEnvValue ? 'env' : packagedPath ? 'packaged' : 'fallback'
 
   if (hasPathSeparator(value)) {
     return { path: value, source, exists: existsSync(value) }
@@ -72,7 +75,7 @@ export function getIngestPython(): string | undefined {
 
 /** Phase 2：whisper.cpp 二进制路径覆盖。不设则走自动下载 / 缓存。 */
 export function getWhisperCppPath(): string | undefined {
-  return process.env.WHISPER_CPP_PATH?.trim() || undefined
+  return process.env.WHISPER_CPP_PATH?.trim() || resolveLiteExecutable('whisper-cli') || undefined
 }
 
 /** Phase 2：whisper.cpp ggml 模型大小（默认 base） */
@@ -89,11 +92,16 @@ export function getWhisperCppThreads(): number | undefined {
 }
 
 export function getIngestFfmpeg(): string {
-  return process.env.INGEST_FFMPEG_EXE?.trim() || process.env.DUBBING_FFMPEG_EXE?.trim() || 'ffmpeg'
+  return (
+    process.env.INGEST_FFMPEG_EXE?.trim() ||
+    process.env.DUBBING_FFMPEG_EXE?.trim() ||
+    resolveLiteExecutable('ffmpeg') ||
+    'ffmpeg'
+  )
 }
 
 export function getIngestYtDlp(): string {
-  return process.env.INGEST_YTDLP_EXE?.trim() || 'yt-dlp'
+  return process.env.INGEST_YTDLP_EXE?.trim() || resolveLiteExecutable('yt-dlp') || 'yt-dlp'
 }
 
 export function getIngestYtDlpAuthArgs(): string[] {
@@ -135,8 +143,19 @@ export function getIngestWhisperModel(): string {
 }
 
 export function probeIngestRuntime(): RuntimeProbe[] {
-  const ffmpeg = resolveRuntime('INGEST_FFMPEG_EXE', 'ffmpeg', 'DUBBING_FFMPEG_EXE')
-  const ytDlp = resolveRuntime('INGEST_YTDLP_EXE', 'yt-dlp')
+  const packagedWhisperCpp = resolveLiteExecutable('whisper-cli')
+  const ffmpeg = resolveRuntime(
+    'INGEST_FFMPEG_EXE',
+    'ffmpeg',
+    'DUBBING_FFMPEG_EXE',
+    resolveLiteExecutable('ffmpeg'),
+  )
+  const ytDlp = resolveRuntime(
+    'INGEST_YTDLP_EXE',
+    'yt-dlp',
+    undefined,
+    resolveLiteExecutable('yt-dlp'),
+  )
   const cookiesPath = process.env.INGEST_YTDLP_COOKIES?.trim()
   const cookiesFromBrowser = process.env.INGEST_YTDLP_COOKIES_FROM_BROWSER?.trim()
   const configuredJsRuntime = process.env.INGEST_YTDLP_JS_RUNTIME?.trim()
@@ -151,7 +170,11 @@ export function probeIngestRuntime(): RuntimeProbe[] {
         path: whisperCppPath,
         exists: existsSync(whisperCppPath),
         required: false,
-        source: 'env',
+        source: process.env.WHISPER_CPP_PATH?.trim()
+          ? 'env'
+          : packagedWhisperCpp
+            ? 'packaged'
+            : 'fallback',
       }
     : {
         name: 'WHISPER_CPP_PATH (auto-download)',

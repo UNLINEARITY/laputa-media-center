@@ -40,7 +40,9 @@ const nextConfig: NextConfig = {
   // 备用方案：如果上述配置无效，可以在 proxy.ts 中添加 CORS 头
 
   // Turbopack 配置（Next.js 16.0+ 稳定）
-  turbopack: {},
+  turbopack: {
+    root: process.cwd(),
+  },
 
   // Webpack 开发环境优化：排除非源码目录监听，防止工作流产生的文件触发重编译
   webpack: (config, { dev }) => {

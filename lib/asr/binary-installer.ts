@@ -17,6 +17,7 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import { getLiteAppDataDir, resolveLiteExecutable } from '@/lib/packaging/lite-runtime'
 import { WHISPER_CPP_GITHUB_REPO, WHISPER_CPP_RELEASE_TAG } from './types'
 
 const RELEASE_BASE = `https://github.com/${WHISPER_CPP_GITHUB_REPO}/releases/download/${WHISPER_CPP_RELEASE_TAG}`
@@ -30,7 +31,7 @@ export class WhisperBinaryUnavailableError extends Error {
 }
 
 function getCacheRoot(): string {
-  return path.join(homedir(), '.laputa', 'whisper')
+  return path.join(getLiteAppDataDir() || path.join(homedir(), '.laputa'), 'whisper')
 }
 
 export function getBinaryCacheDir(): string {
@@ -164,8 +165,8 @@ function findReleaseDir(rootDir: string): string | null {
 export interface EnsureBinaryResult {
   /** 二进制绝对路径 */
   path: string
-  /** 来源：env / cache / downloaded */
-  source: 'env' | 'cache' | 'downloaded'
+  /** 来源：env / packaged / cache / downloaded */
+  source: 'env' | 'packaged' | 'cache' | 'downloaded'
 }
 
 export async function ensureWhisperBinary(
@@ -177,14 +178,20 @@ export async function ensureWhisperBinary(
     return { path: envPath, source: 'env' }
   }
 
-  // 2. 检查缓存
+  // 2. Lite 便携版随包二进制
+  const packagedExe = resolveLiteExecutable('whisper-cli')
+  if (packagedExe) {
+    return { path: packagedExe, source: 'packaged' }
+  }
+
+  // 3. 检查缓存
   const cacheDir = getBinaryCacheDir()
   const cachedExe = path.join(cacheDir, getBinaryFilename())
   if (existsSync(cachedExe)) {
     return { path: cachedExe, source: 'cache' }
   }
 
-  // 3. 下载（仅 Windows x64 自动支持）
+  // 4. 下载（仅 Windows x64 自动支持）
   const assetName = getReleaseAssetName()
   if (!assetName) {
     throw new WhisperBinaryUnavailableError(
@@ -244,6 +251,10 @@ export function isWhisperBinaryReady(): { ready: boolean; path: string | null; s
   const envPath = process.env.WHISPER_CPP_PATH?.trim()
   if (envPath && existsSync(envPath)) {
     return { ready: true, path: envPath, source: 'env' }
+  }
+  const packaged = resolveLiteExecutable('whisper-cli')
+  if (packaged) {
+    return { ready: true, path: packaged, source: 'packaged' }
   }
   const cached = path.join(getBinaryCacheDir(), getBinaryFilename())
   if (existsSync(cached)) {

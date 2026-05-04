@@ -3,6 +3,25 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] feat(packaging): 建立 Lite 便攜版運行時
+
+**commit summary**
+feat(packaging): 建立 Lite 便攜版運行時
+
+**description**
+Add a Lite portable runtime layer that resolves bundled resources before falling back to PATH, cache, or download flows. Ingest, ASR, dubbing, and runtime output paths now understand `LMC_LITE_RESOURCES_DIR` and `LMC_APP_DATA_DIR`, while explicit env overrides remain highest priority. Add a Windows Lite package script and launcher that produce `dist/laputa-lite-win` with a standalone server, bundled Node runtime, Python helper scripts, DB schema, resources layout, and local AppData storage. Set `turbopack.root` explicitly so Windows standalone builds no longer inherit the parent lockfile workspace root.
+
+新增 Lite 便攜運行時層，讓隨包 resources 優先於 PATH、cache 或下載流程被解析。ingest、ASR、dubbing 與 runtime output path 現在都能識別 `LMC_LITE_RESOURCES_DIR` 與 `LMC_APP_DATA_DIR`，同時保留明確 env 覆蓋最高優先級。新增 Windows Lite 打包腳本與啟動腳本，可生成 `dist/laputa-lite-win`，內含 standalone server、隨包 Node、Python helper scripts、DB schema、resources layout 與本機 AppData 儲存。同步固定 `turbopack.root`，避免 Windows standalone build 因上層 lockfile 誤判 workspace root。
+
+**verification**
+- `corepack pnpm exec biome check ...`
+- `corepack pnpm exec vitest run tests/packaging/lite-runtime.test.ts tests/ingest/runtime.test.ts tests/asr/binary-installer.test.ts tests/asr/model-installer.test.ts tests/jobs/dubbing-runtime.test.ts tests/utils/paths.test.ts tests/api/whisper-cpp-install-route.test.ts tests/api/runtime-status-redaction.test.ts`
+- `corepack pnpm typecheck:app`
+- `corepack pnpm test:unit`
+- `$env:NEXT_OUTPUT_STANDALONE='true'; corepack pnpm build`
+- `corepack pnpm package:lite:win`
+- Lite package smoke: bundled `resources/node/node.exe` served `GET http://127.0.0.1:8903/api/health` with HTTP 200
+
 ## [2026-05-04] fix(settings): 修正 whisper.cpp 安裝限流提示
 
 **commit summary**

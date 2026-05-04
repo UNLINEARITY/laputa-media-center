@@ -17,6 +17,7 @@ export interface WhisperCppRuntimeStatus {
     ready: boolean
     path: string | null
     size: WhisperModelSize
+    source: string
   }
   guidance?: string
 }

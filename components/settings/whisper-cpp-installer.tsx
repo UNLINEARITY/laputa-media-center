@@ -16,7 +16,7 @@ interface WhisperCppRuntimeStatus {
   ok?: boolean
   ready: boolean
   binary: { ready: boolean; path: string | null; source: string }
-  model: { ready: boolean; path: string | null; size: string }
+  model: { ready: boolean; path: string | null; size: string; source?: string }
   guidance?: string
   checked_at?: number
 }
