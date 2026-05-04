@@ -3,6 +3,31 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] Lite 啟動腳本自動清理端口占用
+
+### 用戶提出的問題
+1. Lite 包雖然能跑，但如果 8899 已被舊服務占用，小白不應該自己處理端口衝突。
+2. 期望啟動腳本自動清理端口。
+
+### 問題原因/修改思路
+- 原 `start-lite-win.ps1` 固定使用 8899，沒有啟動前端口檢查；如果舊的 Laputa / Next / Node server 還在，新的 Lite server 會啟動失敗。
+- 直接無條件 kill 端口也不安全，可能誤殺其他軟件。
+- 採用保守自動清理：只停止可確認是 `node.exe` 且命令行屬於 Laputa / Next / `server.js` 的舊進程；未知程序占用時輸出 PID 並提示換端口。
+
+### 實際修改記錄
+- **`scripts/start-lite-win.ps1`**:
+  - 支援從既有 `PORT` 讀端口，默認仍是 8899，並校驗端口合法性。
+  - 新增 `Get-PortListeners` / `Get-ProcessCommand` / `Test-IsLaputaNodeProcess` / `Clear-LitePort`。
+  - 啟動前自動停止舊 Laputa Node 進程。
+  - 若端口仍被未知程序占用，停止啟動並提示 PID 與 `$env:PORT="8898"; .\start-lite-win.ps1` 方案。
+  - 支援 `LMC_APP_DATA_DIR` 覆蓋 AppData 位置，便於測試或進階用戶自定義資料目錄。
+  - 支援 `LMC_SKIP_BROWSER=true`，用於 smoke test 或不想自動開瀏覽器的情況。
+
+### 驗證
+- ✅ PowerShell 語法檢查：`[scriptblock]::Create((Get-Content -Raw scripts\start-lite-win.ps1))` 通過。
+- ✅ `corepack pnpm package:lite:win` 通過，生成包內 `start-lite-win.ps1` 已同步更新。
+- ✅ 受控端口清理 smoke：先用生成包在 `PORT=8905` 啟動舊 Lite server，再執行 `dist\laputa-lite-win\start-lite-win.ps1`；腳本輸出 `Port 8905 is already used by an old Laputa process ... Stopping it...`，舊 PID 被停止，新 PID 接管同端口，`curl http://127.0.0.1:8905/api/health` 返回 200。
+
 ## [2026-05-04] 建立 Lite 小白版便攜運行時基礎
 
 ### 用戶提出的問題

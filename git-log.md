@@ -3,6 +3,21 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-04] fix(packaging): 自動清理 Lite 啟動端口
+
+**commit summary**
+fix(packaging): 自動清理 Lite 啟動端口
+
+**description**
+Teach the Lite Windows launcher to preflight the target port before starting the bundled server. It now accepts `PORT` overrides, validates the port, stops stale Laputa/Next/server.js `node.exe` processes that already own the port, and refuses to kill unknown programs while printing their PIDs and a fallback port command. Also allow `LMC_APP_DATA_DIR` to override the default AppData path and add `LMC_SKIP_BROWSER=true` for smoke tests or non-browser launches.
+
+讓 Lite Windows 啟動腳本在啟動隨包 server 前先檢查目標端口。現在腳本支援 `PORT` 覆蓋、校驗端口、停止已占用端口的舊 Laputa / Next / `server.js` `node.exe` 進程；若端口屬於未知程序，則不誤殺，輸出 PID 並提示換端口命令。同時支援 `LMC_APP_DATA_DIR` 覆蓋默認 AppData 路徑，並加入 `LMC_SKIP_BROWSER=true` 供 smoke test 或不自動開瀏覽器場景使用。
+
+**verification**
+- PowerShell syntax check for `scripts/start-lite-win.ps1`
+- `corepack pnpm package:lite:win`
+- Controlled port cleanup smoke on `PORT=8905`: old Lite PID stopped, new PID took over the same port, and `GET http://127.0.0.1:8905/api/health` returned HTTP 200
+
 ## [2026-05-04] feat(packaging): 建立 Lite 便攜版運行時
 
 **commit summary**
