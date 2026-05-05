@@ -3,6 +3,32 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-05] 修正 Settings 在 127.0.0.1 一直載入
+
+### 用戶提出的問題
+1. 本地服務已跑起來，但 Settings 界面一直顯示載入中。
+2. 無法配置 LLM / TTS 相關內容，需要確認本地是否真的可用。
+
+### 問題原因/修改思路
+- 復現後發現 `/settings` HTTP 返回 200，但瀏覽器沒有發出 `/api/providers/asr`、`/api/providers/llm`、`/api/setup-requirements` 等前端初始化請求。
+- dev server 日誌顯示 Next.js 16 阻止了從 `127.0.0.1` 請求 dev resource：`Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "127.0.0.1"`。
+- 根因是服務以 `localhost:8899` 啟動，而瀏覽器打開的是 `127.0.0.1:8899`；Next dev server 把兩者視為不同 origin，導致 hydration 沒完整完成，頁面停在服務端預渲染的 loading 狀態。
+- 修法是把 `127.0.0.1` 和 `localhost` 加入 `next.config.ts` 的 `allowedDevOrigins`，讓兩個本地入口都能正常載入 dev runtime。
+
+### 實際修改記錄
+- **`next.config.ts`**:
+  - `allowedDevOrigins` 補入 `127.0.0.1`。
+  - 同時明確補入 `localhost`，保持本地兩種常用訪問地址一致。
+
+### 驗證
+- ✅ 重啟 `corepack pnpm dev` 到 port 8899。
+- ✅ `http://127.0.0.1:8899/api/health` 返回 200。
+- ✅ Playwright + Edge headless 打開 `http://127.0.0.1:8899/settings`，Provider 列表和前置條件面板不再卡 loading。
+- ✅ Playwright + Edge headless 打開 `http://localhost:8899/settings`，同樣不再卡 loading。
+- ✅ Settings 頁可看到「通用 LLM 配置」與 MiniMax `API Base URL（可選）` 配置區。
+- ✅ `corepack pnpm lint` 通過。
+- ✅ `corepack pnpm typecheck:app` 通過。
+
 ## [2026-05-04] 支援通用 LLM 與 TTS Base URL
 
 ### 用戶提出的問題

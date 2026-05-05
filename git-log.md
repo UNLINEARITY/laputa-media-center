@@ -3,6 +3,24 @@
 - 由于日志可能过长，你不用全部阅读，仅需阅读部分内容，你可以学习仿照相关的格式
 - 每次将新的日志放置在开头，也就是此行说明的下面（防止上下文爆炸）
 
+## [2026-05-05] fix(dev): 允許 127.0.0.1 載入 Settings
+
+**commit summary**
+fix(dev): 允許 127.0.0.1 載入 Settings
+
+**description**
+Allow both `127.0.0.1` and `localhost` as Next.js development origins. Opening Settings through `127.0.0.1:8899` previously caused Next.js 16 to block dev resources such as HMR and fonts because the server advertised `localhost`, leaving the React client unhydrated and the provider/config panels stuck in loading state. The dev server now accepts both local origins, so Settings can initialize its API requests and expose the LLM/TTS configuration UI normally.
+
+允許 `127.0.0.1` 和 `localhost` 作為 Next.js 開發 origin。此前用 `127.0.0.1:8899` 打開 Settings 時，Next.js 16 會因服務 advertise `localhost` 而阻擋 HMR / font 等 dev resources，導致 React client 沒完成 hydration，Provider 與配置面板停在 loading。現在 dev server 同時接受兩個本地 origin，Settings 可以正常發出初始化 API 請求並顯示 LLM/TTS 配置 UI。
+
+**verification**
+- Restarted `corepack pnpm dev` on port 8899
+- `GET http://127.0.0.1:8899/api/health` returned HTTP 200
+- Playwright + Edge headless verified `http://127.0.0.1:8899/settings` no longer shows stuck provider/tool loading
+- Playwright + Edge headless verified `http://localhost:8899/settings` no longer shows stuck provider/tool loading
+- `corepack pnpm lint`
+- `corepack pnpm typecheck:app`
+
 ## [2026-05-04] feat(provider): 支援通用 LLM 與 TTS Base URL
 
 **commit summary**

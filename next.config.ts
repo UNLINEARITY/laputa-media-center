@@ -33,6 +33,8 @@ const nextConfig: NextConfig = {
   // 开发环境跨域配置：允许内网 IP 访问（Next.js 15.2+）
   // 格式：只需域名/IP，不含协议和端口
   allowedDevOrigins: [
+    '127.0.0.1',
+    'localhost',
     '192.168.9.167',
     '192.168.*.*', // 通配符匹配整个内网段
   ],
